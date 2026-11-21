@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Authenticated investor profile and custody balance stored under /users/{userId}.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "country": { "type": "string", "maxLength": 80 },
+        "phone": { "type": "string", "maxLength": 40 },
+        "walletBalance": { "type": "number" },
+        "totalProfit": { "type": "number" },
+        "bonus": { "type": "number" },
+        "referralBonus": { "type": "number" },
+        "totalDeposit": { "type": "number" },
+        "preferredRail": { "type": "string", "enum": ["USDT (TRC20)", "Bitcoin (BTC)", "Ethereum (ETH)", "Bank Wire"] },
+        "emailAlerts": { "type": "boolean" },
+        "twoFactorEnabled": { "type": "boolean" },
+        "role": { "type": "string", "enum": ["investor", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "displayName", "walletBalance", "totalProfit", "bonus", "referralBonus", "totalDeposit", "role", "createdAt", "updatedAt"]
+    },
+    "TransactionRecord": {
+      "title": "TransactionRecord",
+      "description": "User-submitted deposit, withdrawal, or allocation ledger record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userEmail": { "type": "string", "format": "email", "maxLength": 200 },
+        "type": { "type": "string", "enum": ["Deposit", "Withdrawal", "Investment", "Profit", "Referral"] },
+        "method": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "amount": { "type": "number" },
+        "destination": { "type": "string", "maxLength": 200 },
+        "reference": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "status": { "type": "string", "enum": ["Pending", "Completed", "Rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userEmail", "type", "method", "amount", "reference", "status", "createdAt", "updatedAt"]
+    },
+    "InvestmentAllocation": {
+      "title": "InvestmentAllocation",
+      "description": "Active or completed structured portfolio mandate allocated by an investor.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "planId": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "planName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "category": { "type": "string", "enum": ["crypto", "stock", "estate"] },
+        "amount": { "type": "number" },
+        "dailyRatePct": { "type": "number" },
+        "durationDays": { "type": "number" },
+        "status": { "type": "string", "enum": ["Active", "Completed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "planId", "planName", "category", "amount", "dailyRatePct", "durationDays", "status", "createdAt", "updatedAt"]
+    },
+    "NotificationMessage": {
+      "title": "NotificationMessage",
+      "description": "Account security or settlement notice addressed to a user or platform broadcast.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "category": { "type": "string", "enum": ["Security", "Settlement", "Yield", "Announcement"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "category", "title", "body", "read", "createdAt"]
+    },
+    "PropertyOffering": {
+      "title": "PropertyOffering",
+      "description": "Managed real estate asset offering published by administrators.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "location": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "assetType": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "targetYieldPct": { "type": "number" },
+        "minEntry": { "type": "number" },
+        "valuation": { "type": "number" },
+        "occupancyPct": { "type": "number" },
+        "status": { "type": "string", "enum": ["Open", "Fully Subscribed"] },
+        "image": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "location", "assetType", "targetYieldPct", "minEntry", "valuation", "occupancyPct", "status", "image", "summary", "createdAt", "updatedAt"]
+    },
+    "ContactInquiry": {
+      "title": "ContactInquiry",
+      "description": "Contact desk submission stored for admin review.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "topic": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 1500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "topic", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Private investor profile and wallet balances scoped strictly to owner and admin."
+    },
+    "/transactions/{txId}": {
+      "schema": { "$ref": "#/entities/TransactionRecord" },
+      "description": "Deposits, withdrawals, and mandate ledger records owned by userId."
+    },
+    "/investments/{investmentId}": {
+      "schema": { "$ref": "#/entities/InvestmentAllocation" },
+      "description": "Structured portfolio allocations owned by userId."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/NotificationMessage" },
+      "description": "Per-user alerts and admin broadcasts."
+    },
+    "/properties/{propertyId}": {
+      "schema": { "$ref": "#/entities/PropertyOffering" },
+      "description": "Publicly readable real estate catalog managed by admin."
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/ContactInquiry" },
+      "description": "Write-only contact form submissions readable only by admin."
+    }
+  }
+}

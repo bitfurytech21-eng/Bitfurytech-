@@ -1,0 +1,6 @@
+{
+  "name": "BitFuryTech",
+  "description": "Bitfury tech Investment — Institutional Cryptocurrency, Global Equities, and Commercial Real Estate Wealth Platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

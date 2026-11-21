@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-bf-obsidian: #05081a;
+  --color-bf-navy: #0b1129;
+  --color-bf-sidebar: #1e2b3c;
+  --color-bf-sidebar-deep: #182331;
+  --color-bf-slate: #294158;
+  --color-bf-gold: #facc15;
+  --color-bf-gold-hover: #fde047;
+  --color-bf-canvas: #f5f8fa;
+  --color-bf-surface: #ffffff;
+  --color-bf-border: #e2e8f0;
+  --color-bf-success: #16a34a;
+  --color-bf-warning: #d97706;
+  --color-bf-danger: #dc2626;
+}
+
+:root {
+  --bf-bg-public: #05081a;
+  --bf-surface-public: #0b1129;
+  --bf-bg-portal: #f5f8fa;
+  --bf-surface-portal: #ffffff;
+  --bf-sidebar-bg: #1e2b3c;
+  --bf-primary: #1e2b3c;
+  --bf-primary-hover: #294158;
+  --bf-accent: #facc15;
+  --bf-accent-ink: #020617;
+  --bf-border-light: #e2e8f0;
+  --bf-border-dark: rgba(255, 255, 255, 0.1);
+  --bf-radius-sm: 0.375rem;
+  --bf-radius-md: 0.5rem;
+  --bf-radius-lg: 0.75rem;
+  --bf-ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    text-rendering: optimizeLegibility;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid #facc15;
+    outline-offset: 2px;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.bf-container {
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .bf-container {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
