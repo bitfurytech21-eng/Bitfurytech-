@@ -5,9 +5,6 @@ on:
   push:
     branches:
       - migration/neon-cutover
-    paths:
-      - package.json
-      - package-lock.json
 
 permissions:
   contents: write
