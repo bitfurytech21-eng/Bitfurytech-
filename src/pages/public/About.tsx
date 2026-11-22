@@ -358,11 +358,11 @@ export default function About() {
               <div className="text-xs sm:text-sm text-slate-200 flex flex-wrap gap-x-5 gap-y-1.5">
                 <span className="inline-flex items-center gap-1.5">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                  <span>support@bitfurytechinvestment.com</span>
+                  <span>support@bitfurytech.cloud</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                  <span>admin@bitfurytechinvestment.com</span>
+                  <span>compliance.notice@bitfurytech.cloud</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
