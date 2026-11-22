@@ -72,6 +72,23 @@ CREATE TABLE IF NOT EXISTS user_roles (
   PRIMARY KEY (user_id, role)
 );
 
+-- Provision the least-privileged role and a profile for every new Better Auth user.
+CREATE OR REPLACE FUNCTION bitfurytech_provision_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO user_profiles (user_id) VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  INSERT INTO user_roles (user_id, role) VALUES (NEW.id, 'investor')
+  ON CONFLICT (user_id, role) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS bitfurytech_user_provision_after_insert ON "user";
+CREATE TRIGGER bitfurytech_user_provision_after_insert
+AFTER INSERT ON "user"
+FOR EACH ROW EXECUTE FUNCTION bitfurytech_provision_user();
+
 CREATE TABLE IF NOT EXISTS investment_plans (
   id text PRIMARY KEY,
   name text NOT NULL,

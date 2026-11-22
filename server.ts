@@ -148,6 +148,59 @@ app.get("/api/health/database", async (_req, res) => {
   }
 });
 
+/**
+ * Reports whether the additive Neon migration schema is installed.
+ * This endpoint exposes only readiness booleans, never database data or secrets.
+ */
+app.get("/api/health/migration", async (_req, res) => {
+  try {
+    const result = await queryDatabase<{ name: string; present: boolean }>(
+      `SELECT required.name,
+              to_regclass(required.name) IS NOT NULL AS present
+       FROM (VALUES
+         ('public."user"'),
+         ('public.session'),
+         ('public.account'),
+         ('public.verification'),
+         ('public.user_profiles'),
+         ('public.user_roles'),
+         ('public.investment_plans'),
+         ('public.investments'),
+         ('public.transactions'),
+         ('public.ledger_entries'),
+         ('public.properties'),
+         ('public.email_outbox'),
+         ('public.audit_logs')
+       ) AS required(name)`
+    );
+    const missing = result.rows.filter((row) => !row.present).map((row) => row.name);
+    const trigger = await queryDatabase<{ present: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM pg_trigger
+         WHERE tgname = 'bitfurytech_user_provision_after_insert'
+           AND NOT tgisinternal
+       ) AS present`
+    );
+    const schemaReady = missing.length === 0 && trigger.rows[0]?.present === true;
+    res.status(schemaReady ? 200 : 503).json({
+      ok: schemaReady,
+      database: "connected",
+      migrationSchema: schemaReady ? "ready" : "incomplete",
+      missingTables: missing,
+      userProvisioningTrigger: trigger.rows[0]?.present === true,
+    });
+  } catch (error) {
+    console.error("Migration readiness check failed:", error);
+    res.status(503).json({
+      ok: false,
+      database: "unavailable",
+      migrationSchema: "unknown",
+      error: "Unable to verify migration schema.",
+    });
+  }
+});
+
 interface MarketTickerQuote {
   symbol: string;
   name: string;
