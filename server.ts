@@ -27,6 +27,7 @@ import {
 import { validateUsername } from "./src/lib/username.ts";
 import { enqueueMailEvent } from "./src/services/mailOutbox.ts";
 import firebaseConfig from "./firebase-applet-config.json" with { type: "json" };
+import { queryDatabase } from "./src/db/pool.ts";
 
 dotenv.config();
 
@@ -53,6 +54,20 @@ app.use(
 // Health check endpoint
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "bitfurytech" });
+});
+
+app.get("/api/health/database", async (_req, res) => {
+  try {
+    await queryDatabase("SELECT 1 AS connected");
+    res.json({ ok: true, database: "connected" });
+  } catch (error) {
+    console.error("Database health check failed:", error);
+    res.status(503).json({
+      ok: false,
+      database: "unavailable",
+      error: "Database connection is not ready.",
+    });
+  }
 });
 
 interface MarketTickerQuote {
