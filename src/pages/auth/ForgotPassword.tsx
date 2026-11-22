@@ -42,7 +42,7 @@ export default function ForgotPassword() {
     <AuthLayout
       eyebrow="Account Recovery"
       headline="Recover access to your BitfuryTech client portal."
-      description="Request a secure Firebase password reset link for your registered email address."
+      description="Request a secure Better Auth password reset link for your registered email address."
     >
       <div className="w-full max-w-md bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.06)] p-8 sm:p-10 space-y-6">
         {sentTo ? (
@@ -61,7 +61,7 @@ export default function ForgotPassword() {
 
             <p className="text-sm text-[#3B4C5E] leading-relaxed">
               If a BitfuryTech account is registered for{" "}
-              <strong className="text-[#102030]">{sentTo}</strong>, Firebase Authentication has sent
+              <strong className="text-[#102030]">{sentTo}</strong>, Better Auth has sent
               a password reset link. Check your inbox and spam folder to complete recovery.
             </p>
 
