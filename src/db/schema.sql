@@ -72,6 +72,38 @@ CREATE TABLE IF NOT EXISTS user_roles (
   PRIMARY KEY (user_id, role)
 );
 
+-- Explicit bridge for verified migration of existing Firebase identities.
+-- Do not auto-link based on email equality: prove control of both identities first.
+CREATE TABLE IF NOT EXISTS legacy_auth_identities (
+  id bigserial PRIMARY KEY,
+  provider text NOT NULL CHECK (provider IN ('firebase')),
+  legacy_user_id text NOT NULL,
+  user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  verified_at timestamptz NOT NULL,
+  linked_by text REFERENCES "user"(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (provider, legacy_user_id),
+  UNIQUE (provider, user_id)
+);
+CREATE INDEX IF NOT EXISTS legacy_auth_user_idx ON legacy_auth_identities(user_id);
+
+-- Provision the least-privileged role and a profile for every new Better Auth user.
+CREATE OR REPLACE FUNCTION bitfurytech_provision_user()
+RETURNS trigger AS $
+BEGIN
+  INSERT INTO user_profiles (user_id) VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  INSERT INTO user_roles (user_id, role) VALUES (NEW.id, 'investor')
+  ON CONFLICT (user_id, role) DO NOTHING;
+  RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS bitfurytech_user_provision_after_insert ON "user";
+CREATE TRIGGER bitfurytech_user_provision_after_insert
+AFTER INSERT ON "user"
+FOR EACH ROW EXECUTE FUNCTION bitfurytech_provision_user();
+
 CREATE TABLE IF NOT EXISTS investment_plans (
   id text PRIMARY KEY,
   name text NOT NULL,
