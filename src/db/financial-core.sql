@@ -1,3 +1,6 @@
+-- Firebase identity bridge was never populated; no legacy customers are being migrated.
+DROP TABLE IF EXISTS legacy_auth_identities;
+
 -- Clean Neon financial core for the no-legacy-customer launch.
 -- Balances are derived from posted ledger entries; clients cannot write balances.
 CREATE TABLE IF NOT EXISTS wallets (
