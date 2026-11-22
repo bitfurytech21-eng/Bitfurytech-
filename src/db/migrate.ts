@@ -26,6 +26,16 @@ async function migrate(): Promise<void> {
       "INSERT INTO schema_migrations(version) VALUES ($1) ON CONFLICT (version) DO NOTHING",
       ["2026-11-22-initial-neon-foundation"]
     );
+    const financialVersion = "2026-11-22-financial-core";
+    const applied = await client.query(
+      "SELECT 1 FROM schema_migrations WHERE version = $1",
+      [financialVersion]
+    );
+    if (applied.rowCount === 0) {
+      const financialSql = await readFile(path.join(dirname, "financial-core.sql"), "utf8");
+      await client.query(financialSql);
+      await client.query("INSERT INTO schema_migrations(version) VALUES ($1)", [financialVersion]);
+    }
     await client.query("COMMIT");
     console.log("Neon PostgreSQL schema migration completed.");
   } catch (error) {
