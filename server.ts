@@ -40,8 +40,8 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === "production";
 
-// Better Auth must run before express.json() so it can read the request body.
-app.all("/api/auth/*splat", toNodeHandler(betterAuthInstance));
+// Better Auth is isolated under /api/better-auth and runs before express.json() so it can read the request body.
+app.all("/api/better-auth/*splat", toNodeHandler(betterAuthInstance));
 
 app.get("/api/account/session", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
