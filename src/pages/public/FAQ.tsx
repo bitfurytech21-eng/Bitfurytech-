@@ -190,7 +190,7 @@ const FAQ_ITEMS: FaqItem[] = [
     category: "support",
     question: "How do I contact customer support or visit your offices?",
     answer:
-      "Submit an inquiry on the Contact page, launch the Live Support Chat widget, or email support@bitfurytechinvestment.com, admin@bitfurytechinvestment.com, or bitfurytech21@gmail.com. Corporate offices include 12 Wren Walk, Tilbury, England, RM18 8EU; 171 Crescent Road, Oxford, England, OX4 2NX; and 2511 NW 41 St, Gainesville, FL 32606.",
+      "Submit an inquiry on the Contact page, launch the Live Support Chat widget, or email support@bitfurytechinvestment.com or admin@bitfurytechinvestment.com. Our office is at 171 Crescent Road, Oxford, England, OX4 2NX.",
   },
 ];
 

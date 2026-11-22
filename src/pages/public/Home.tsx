@@ -1209,7 +1209,7 @@ export default function Home() {
                   <span>admin@bitfurytechinvestment.com · bitfurytech21@gmail.com</span>
                 </p>
                 <p className="text-xs text-[#5A6B7C] pt-1">
-                  Offices: 12 Wren Walk, Tilbury, England, RM18 8EU · 2511 NW 41 St, Gainesville, FL 32606
+                  Office: 171 Crescent Road, Oxford, England, OX4 2NX
                 </p>
               </div>
               <div className="pt-4 flex flex-wrap gap-3">

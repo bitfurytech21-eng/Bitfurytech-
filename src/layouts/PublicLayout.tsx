@@ -249,7 +249,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
               through one unified custody account.
             </p>
             <div className="pt-1 text-xs text-slate-300 space-y-1.5">
-              <p>12 Wren Walk, Tilbury, England, RM18 8EU</p>
+              <p>171 Crescent Road, Oxford, England, OX4 2NX</p>
               <p className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
                 <span>admin@bitfurytechinvestment.com</span>

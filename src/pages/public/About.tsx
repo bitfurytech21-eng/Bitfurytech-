@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Building2, Mail, MapPin, ShieldCheck, Users } from "lucide-react";
+import { Mail, MapPin, ShieldCheck, Users } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
@@ -356,27 +356,13 @@ export default function About() {
                 Global Offices &amp; Governance
               </h2>
             </div>
-            <div className="grid md:grid-cols-3 gap-5 text-sm text-[#5A6B7C]">
+            <div className="grid md:grid-cols-2 gap-5 text-sm text-[#5A6B7C]">
               <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
                 <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#E94D65]" />
-                  <span>UK Registered Office</span>
-                </p>
-                <p className="text-xs">12 Wren Walk, Tilbury, England, RM18 8EU</p>
-              </div>
-              <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
-                <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-[#E94D65]" />
-                  <span>Oxford UK Location</span>
+                  <span>Office</span>
                 </p>
                 <p className="text-xs">171 Crescent Road, Oxford, England, OX4 2NX</p>
-              </div>
-              <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
-                <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#E94D65]" />
-                  <span>United States Office</span>
-                </p>
-                <p className="text-xs">2511 NW 41 St, Gainesville, FL 32606</p>
               </div>
             </div>
             <p className="text-xs text-[#5A6B7C] leading-relaxed">

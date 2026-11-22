@@ -165,21 +165,9 @@ export default function Contact() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-[#5A6B7C]">UK Registered Office</dt>
-                    <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
-                      12 Wren Walk, Tilbury, England, RM18 8EU
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-[#5A6B7C]">Oxford UK Location</dt>
+                    <dt className="text-xs text-[#5A6B7C]">Office</dt>
                     <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
                       171 Crescent Road, Oxford, England, OX4 2NX
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-[#5A6B7C]">United States Office</dt>
-                    <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
-                      2511 NW 41 St, Gainesville, FL 32606
                     </dd>
                   </div>
                   <div>
