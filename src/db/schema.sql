@@ -72,6 +72,22 @@ CREATE TABLE IF NOT EXISTS user_roles (
   PRIMARY KEY (user_id, role)
 );
 
+-- Explicit legacy identity bridge. Never auto-link accounts by email alone.
+-- A verified migration process must associate the old Firebase UID with the new
+-- Better Auth user ID, preserving the ability to reconcile existing account data.
+CREATE TABLE IF NOT EXISTS legacy_auth_identities (
+  id bigserial PRIMARY KEY,
+  provider text NOT NULL CHECK (provider IN ('firebase')),
+  legacy_user_id text NOT NULL,
+  user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  verified_at timestamptz NOT NULL,
+  linked_by text REFERENCES "user"(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (provider, legacy_user_id),
+  UNIQUE (provider, user_id)
+);
+CREATE INDEX IF NOT EXISTS legacy_auth_user_idx ON legacy_auth_identities(user_id);
+
 CREATE TABLE IF NOT EXISTS investment_plans (
   id text PRIMARY KEY,
   name text NOT NULL,
