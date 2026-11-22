@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   id text PRIMARY KEY,
   name text NOT NULL,
   email text NOT NULL UNIQUE,
+  username text UNIQUE,
   "emailVerified" boolean NOT NULL DEFAULT false,
   image text,
   "createdAt" timestamptz NOT NULL DEFAULT now(),
@@ -23,6 +24,10 @@ CREATE TABLE IF NOT EXISTS session (
   "userId" text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS session_user_id_idx ON session("userId");
+
+-- Safe for databases where the original Better Auth user table already exists.
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS username text;
+CREATE UNIQUE INDEX IF NOT EXISTS user_username_unique_idx ON "user"(username) WHERE username IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS account (
   id text PRIMARY KEY,
