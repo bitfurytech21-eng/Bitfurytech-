@@ -19,8 +19,8 @@ function AuthFormCard({ mode }: { mode: "login" | "register" }) {
   }, [authReady, firebaseUser, navigate, redirectTarget]);
 
   const handleGoogleAuth = async () => {
-    const ok = await signInWithGoogle();
-    if (ok) {
+    const result = await signInWithGoogle();
+    if (result.ok) {
       navigate(redirectTarget, { replace: true });
     }
   };
@@ -35,15 +35,15 @@ function AuthFormCard({ mode }: { mode: "login" | "register" }) {
           : "Sign in to your BitfuryTech portfolio workspace."
       }
     >
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-sm p-8 sm:p-10 space-y-7">
+      <div className="w-full max-w-md bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_2px_8px_rgba(27,73,98,0.06)] p-8 sm:p-10 space-y-7">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#294158]">
+          <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
             {isRegister ? "New Investor Registration" : "Investor Sign In"}
           </p>
-          <h2 className="text-2xl font-bold text-slate-900">
+          <h2 className="text-2xl font-heading font-bold text-[#102030]">
             {isRegister ? "Create BitfuryTech Account" : "Welcome back to BitfuryTech"}
           </h2>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[#5A6B7C]">
             {isRegister
               ? "Verify your identity with Google Authentication to provision your BitfuryTech client wallet."
               : "Continue with your verified Google account to open the BitfuryTech investor portal."}
@@ -53,7 +53,7 @@ function AuthFormCard({ mode }: { mode: "login" | "register" }) {
         {authError && (
           <div
             role="alert"
-            className="rounded-md bg-rose-50 border border-rose-200 px-4 py-3 text-xs text-rose-700"
+            className="rounded-[5px] bg-rose-50 border border-rose-200 px-4 py-3 text-xs text-rose-700"
           >
             {authError}
           </div>
@@ -64,9 +64,9 @@ function AuthFormCard({ mode }: { mode: "login" | "register" }) {
             type="button"
             disabled={authBusy}
             onClick={handleGoogleAuth}
-            className="w-full inline-flex items-center justify-center gap-3 bg-[#1e2b3c] hover:bg-[#294158] disabled:opacity-60 text-white font-semibold text-sm py-3 px-5 rounded-md transition-colors shadow-sm cursor-pointer"
+            className="w-full inline-flex items-center justify-center gap-3 bg-[#E94D65] hover:bg-[#D43B53] disabled:opacity-60 text-white font-heading font-bold text-sm py-3 px-5 rounded-none transition-colors shadow-sm cursor-pointer"
           >
-            <ShieldCheck className="w-4 h-4 text-yellow-400" />
+            <ShieldCheck className="w-4 h-4" />
             <span>
               {authBusy
                 ? "Verifying Google Session..."
@@ -76,17 +76,17 @@ function AuthFormCard({ mode }: { mode: "login" | "register" }) {
             </span>
           </button>
 
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs text-[#5A6B7C] leading-relaxed">
             Your session is protected via verified Firebase Identity tokens. Upon sign-in, your
             account document is provisioned or loaded directly from Firestore.
           </p>
         </div>
 
-        <div className="pt-5 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+        <div className="pt-5 border-t border-[#DCE4EC] flex items-center justify-between text-xs text-[#5A6B7C]">
           <span>{isRegister ? "Already have an account?" : "Need an investor account?"}</span>
           <Link
             to={isRegister ? "/login" : "/register"}
-            className="font-semibold text-[#1e2b3c] hover:text-[#294158] underline"
+            className="font-semibold text-[#1B4962] hover:text-[#B92841] underline"
           >
             {isRegister ? "Sign In" : "Register Account"}
           </Link>

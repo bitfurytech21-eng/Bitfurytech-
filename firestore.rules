@@ -31,6 +31,10 @@ service cloud.firestore {
       return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function isValidUsername(name) {
+      return name is string && name.size() >= 3 && name.size() <= 30 && name.matches('^[a-z0-9_]+$');
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -60,6 +64,7 @@ service cloud.firestore {
         ]) &&
         data.keys().hasOnly([
           'uid',
+          'username',
           'email',
           'displayName',
           'country',
@@ -73,10 +78,12 @@ service cloud.firestore {
           'emailAlerts',
           'twoFactorEnabled',
           'role',
+          'accountStatus',
           'createdAt',
           'updatedAt'
         ]) &&
         data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid == userId &&
+        (!('username' in data) || isValidUsername(data.username)) &&
         data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
         data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120 &&
         data.country is string && data.country.size() <= 80 &&
@@ -90,6 +97,18 @@ service cloud.firestore {
         data.emailAlerts is bool &&
         data.twoFactorEnabled is bool &&
         data.role in ['investor', 'admin'] &&
+        (!('accountStatus' in data) || (data.accountStatus is string && data.accountStatus in ['Active', 'Review', 'Suspended'])) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUsernameLookup(data, username) {
+      return data.keys().hasAll(['username', 'uid', 'email', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['username', 'uid', 'email', 'createdAt', 'updatedAt']) &&
+        isValidUsername(username) &&
+        data.username == username &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp;
     }
@@ -168,6 +187,64 @@ service cloud.firestore {
         data.updatedAt is timestamp;
     }
 
+    function isValidInvestmentPlan(data) {
+      return data.keys().hasAll([
+          'name',
+          'category',
+          'categoryLabel',
+          'audience',
+          'description',
+          'minDeposit',
+          'maxDeposit',
+          'dailyRatePct',
+          'durationDays',
+          'paymentFrequency',
+          'settlementRail',
+          'returnTerms',
+          'availabilityStatus',
+          'published',
+          'image',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'name',
+          'category',
+          'categoryLabel',
+          'audience',
+          'description',
+          'minDeposit',
+          'maxDeposit',
+          'dailyRatePct',
+          'durationDays',
+          'paymentFrequency',
+          'settlementRail',
+          'returnTerms',
+          'availabilityStatus',
+          'published',
+          'image',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+        data.category in ['crypto', 'stock', 'estate'] &&
+        data.categoryLabel is string && data.categoryLabel.size() >= 1 && data.categoryLabel.size() <= 60 &&
+        data.audience is string && data.audience.size() >= 1 && data.audience.size() <= 160 &&
+        data.description is string && data.description.size() >= 1 && data.description.size() <= 800 &&
+        data.minDeposit is number && data.minDeposit > 0 &&
+        data.maxDeposit is number && data.maxDeposit >= data.minDeposit &&
+        data.dailyRatePct is number && data.dailyRatePct > 0 &&
+        data.durationDays is number && data.durationDays > 0 &&
+        data.paymentFrequency is string && data.paymentFrequency.size() >= 1 && data.paymentFrequency.size() <= 160 &&
+        data.settlementRail is string && data.settlementRail.size() >= 1 && data.settlementRail.size() <= 120 &&
+        data.returnTerms is string && data.returnTerms.size() >= 1 && data.returnTerms.size() <= 500 &&
+        data.availabilityStatus in ['Open', 'Paused', 'Closed'] &&
+        data.published is bool &&
+        data.image is string && data.image.size() >= 1 && data.image.size() <= 200 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
     function isValidNotification(data) {
       return data.keys().hasAll(['userId', 'category', 'title', 'body', 'read', 'createdAt']) &&
         data.keys().hasOnly(['userId', 'category', 'title', 'body', 'read', 'createdAt']) &&
@@ -203,6 +280,9 @@ service cloud.firestore {
           'valuation',
           'occupancyPct',
           'status',
+          'published',
+          'supportingDocUrl',
+          'supportingDocName',
           'image',
           'summary',
           'createdAt',
@@ -216,6 +296,9 @@ service cloud.firestore {
         data.valuation is number && data.valuation > 0 &&
         data.occupancyPct is number && data.occupancyPct >= 0 && data.occupancyPct <= 100 &&
         data.status in ['Open', 'Fully Subscribed'] &&
+        (!('published' in data) || data.published is bool) &&
+        (!('supportingDocUrl' in data) || (data.supportingDocUrl is string && data.supportingDocUrl.size() <= 200)) &&
+        (!('supportingDocName' in data) || (data.supportingDocName is string && data.supportingDocName.size() <= 140)) &&
         data.image is string && data.image.size() >= 1 && data.image.size() <= 200 &&
         data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 600 &&
         data.createdAt is timestamp &&
@@ -230,6 +313,54 @@ service cloud.firestore {
         data.topic is string && data.topic.size() >= 1 && data.topic.size() <= 120 &&
         data.message is string && data.message.size() >= 1 && data.message.size() <= 1500 &&
         data.createdAt is timestamp;
+    }
+
+    function isValidCustomerDocument(data) {
+      return data.keys().hasAll(['userId', 'title', 'docType', 'reference', 'summary', 'createdAt']) &&
+        data.keys().hasOnly(['userId', 'title', 'docType', 'reference', 'relatedId', 'summary', 'fileUrl', 'createdAt']) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+        data.docType in ['Agreement', 'Receipt', 'DepositConfirmation', 'WithdrawalRecord', 'AccountDocument'] &&
+        data.reference is string && data.reference.size() >= 1 && data.reference.size() <= 64 &&
+        (!('relatedId' in data) || (data.relatedId is string && data.relatedId.size() <= 128)) &&
+        data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 600 &&
+        (!('fileUrl' in data) || (data.fileUrl is string && data.fileUrl.size() <= 200)) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['actorUid', 'actorEmail', 'action', 'targetType', 'targetId', 'summary', 'createdAt']) &&
+        data.keys().hasOnly(['actorUid', 'actorEmail', 'action', 'targetType', 'targetId', 'summary', 'createdAt']) &&
+        data.actorUid is string && data.actorUid.size() >= 1 && data.actorUid.size() <= 128 &&
+        data.actorEmail is string && data.actorEmail.size() >= 3 && data.actorEmail.size() <= 200 &&
+        data.action is string && data.action.size() >= 1 && data.action.size() <= 80 &&
+        data.targetType is string && data.targetType.size() >= 1 && data.targetType.size() <= 60 &&
+        data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 128 &&
+        data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 500 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidIdempotencyKey(data) {
+      return data.keys().hasAll(['userId', 'operation', 'reference', 'resultId', 'createdAt']) &&
+        data.keys().hasOnly(['userId', 'operation', 'reference', 'resultId', 'createdAt']) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.operation is string && data.operation.size() >= 1 && data.operation.size() <= 40 &&
+        data.reference is string && data.reference.size() >= 1 && data.reference.size() <= 64 &&
+        data.resultId is string && data.resultId.size() >= 1 && data.resultId.size() <= 128 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidReferral(data) {
+      return data.keys().hasAll(['referrerUid', 'referredUid', 'referredEmail', 'code', 'status', 'rewardAmount', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['referrerUid', 'referredUid', 'referredEmail', 'code', 'status', 'rewardAmount', 'createdAt', 'updatedAt']) &&
+        data.referrerUid is string && data.referrerUid.size() >= 1 && data.referrerUid.size() <= 128 &&
+        data.referredUid is string && data.referredUid.size() >= 1 && data.referredUid.size() <= 128 &&
+        data.referredEmail is string && data.referredEmail.size() >= 3 && data.referredEmail.size() <= 200 &&
+        data.code is string && data.code.size() >= 3 && data.code.size() <= 40 &&
+        data.status in ['Pending', 'Qualified', 'Credited'] &&
+        data.rewardAmount is number && data.rewardAmount >= 0 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
     }
 
     match /test/connection {
@@ -270,6 +401,7 @@ service cloud.firestore {
             incoming().role == existing().role &&
             (
               incoming().diff(existing()).affectedKeys().hasOnly([
+                'username',
                 'displayName',
                 'country',
                 'phone',
@@ -287,6 +419,27 @@ service cloud.firestore {
           )
         );
       allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      allow get: if isValidUsername(username);
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() &&
+        isValidUsername(username) &&
+        isValidUsernameLookup(incoming(), username) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() &&
+        isValidUsername(username) &&
+        isValidUsernameLookup(incoming(), username) &&
+        existing().uid == request.auth.uid &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() &&
+        isValidUsername(username) &&
+        existing().uid == request.auth.uid;
     }
 
     match /transactions/{txId} {
@@ -337,6 +490,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /investmentPlans/{planId} {
+      allow get: if isValidId(planId) && (existing().published == true || isAdmin());
+      allow list: if resource.data.published == true || isBootstrapAdmin();
+      allow create: if isAdmin() &&
+        isValidId(planId) &&
+        isValidInvestmentPlan(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isAdmin() &&
+        isValidId(planId) &&
+        isValidInvestmentPlan(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(planId);
+    }
+
     match /notifications/{notificationId} {
       allow get: if isSignedIn() && isValidId(notificationId) && (existing().userId == request.auth.uid || existing().userId == 'all' || isAdmin());
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || isBootstrapAdmin());
@@ -380,6 +549,60 @@ service cloud.firestore {
         isValidInquiry(incoming()) &&
         incoming().createdAt == request.time;
       allow update, delete: if false;
+    }
+
+    match /documents/{docId} {
+      allow get: if isSignedIn() && isValidId(docId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isBootstrapAdmin());
+      allow create: if isVerifiedUser() &&
+        isValidId(docId) &&
+        isValidCustomerDocument(incoming()) &&
+        incoming().createdAt == request.time &&
+        (isAdmin() || incoming().userId == request.auth.uid);
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /auditLogs/{logId} {
+      allow get: if isAdmin() && isValidId(logId);
+      allow list: if isBootstrapAdmin();
+      allow create: if isAdmin() &&
+        isValidId(logId) &&
+        isValidAuditLog(incoming()) &&
+        incoming().actorUid == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /idempotencyKeys/{keyId} {
+      allow get: if isSignedIn() && isValidId(keyId) && existing().userId == request.auth.uid;
+      allow list: if false;
+      allow create: if isVerifiedUser() &&
+        isValidId(keyId) &&
+        isValidIdempotencyKey(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /referrals/{refId} {
+      allow get: if isSignedIn() && isValidId(refId) && (existing().referrerUid == request.auth.uid || existing().referredUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.referrerUid == request.auth.uid || isBootstrapAdmin());
+      allow create: if isVerifiedUser() &&
+        isValidId(refId) &&
+        isValidReferral(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (incoming().referredUid == request.auth.uid && incoming().status == 'Pending' && incoming().rewardAmount == 0)
+        );
+      allow update: if isAdmin() &&
+        isValidId(refId) &&
+        isValidReferral(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time;
+      allow delete: if false;
     }
   }
 }

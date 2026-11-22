@@ -39,7 +39,7 @@ export function DataTable<T>({
     return (
       <div className="space-y-3 py-2" aria-busy="true" aria-label="Loading records">
         {[1, 2, 3, 4].map((n) => (
-          <SkeletonBlock key={n} className="h-10 w-full rounded" />
+          <SkeletonBlock key={n} className="h-10 w-full" />
         ))}
       </div>
     );
@@ -56,15 +56,15 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full overflow-x-auto">
       <table className="w-full text-left text-xs border-collapse">
         <thead>
-          <tr className="border-b border-slate-200 text-slate-500">
+          <tr className="border-b border-[#DCE4EC] text-[#5A6B7C] bg-[#F6F8FA]">
             {columns.map((col) => (
               <th
                 key={col.key}
                 scope="col"
-                className={`pb-2.5 px-2 first:pl-0 last:pr-0 font-semibold whitespace-nowrap ${
+                className={`py-3 px-3 font-semibold font-heading whitespace-nowrap ${
                   col.align === "right" ? "text-right" : "text-left"
                 }`}
               >
@@ -73,13 +73,13 @@ export function DataTable<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[#EDF2F7]">
           {rows.map((row) => (
-            <tr key={rowKey(row)} className="hover:bg-slate-50/80 transition-colors">
+            <tr key={rowKey(row)} className="hover:bg-[#F6F8FA] transition-colors">
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className={`py-3 px-2 first:pl-0 last:pr-0 align-middle ${
+                  className={`py-3 px-3 align-middle ${
                     col.align === "right" ? "text-right" : "text-left"
                   }`}
                 >

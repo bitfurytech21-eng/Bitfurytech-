@@ -3,6 +3,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -15,10 +16,12 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { validateUsername } from "../lib/username";
 import { validateAllocation } from "../trading/tradingPage";
 
 export interface UserAccount {
   uid: string;
+  username?: string;
   email: string;
   displayName: string;
   country: string;
@@ -84,8 +87,11 @@ export interface PropertyOffering {
   valuation: number;
   occupancyPct: number;
   status: "Open" | "Fully Subscribed";
+  published?: boolean;
   image: string;
   summary: string;
+  supportingDocUrl?: string;
+  supportingDocName?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -102,17 +108,44 @@ export function formatTimestamp(ts?: Timestamp): string {
   return ts.toDate().toISOString().slice(0, 10);
 }
 
+async function lookupClaimedUsernameForUid(uid: string): Promise<string | undefined> {
+  try {
+    const q = query(collection(db, "usernames"), where("uid", "==", uid));
+    const snap = await getDocs(q);
+    if (snap.empty) return undefined;
+    const raw = String(snap.docs[0].data()?.username ?? snap.docs[0].id ?? "");
+    const check = validateUsername(raw);
+    return check.valid ? check.normalized : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function ensureUserAccount(
   uid: string,
   email: string,
-  displayName: string
+  displayName: string,
+  preferredUsername?: string
 ): Promise<void> {
   const path = `users/${uid}`;
   try {
     const ref = doc(db, "users", uid);
     const snap = await getDoc(ref);
+
+    const validatedPreferred = preferredUsername
+      ? validateUsername(preferredUsername)
+      : null;
+    let resolvedUsername =
+      validatedPreferred && validatedPreferred.valid
+        ? validatedPreferred.normalized
+        : undefined;
+
+    if (!resolvedUsername) {
+      resolvedUsername = await lookupClaimedUsernameForUid(uid);
+    }
+
     if (!snap.exists()) {
-      await setDoc(ref, {
+      const baseDoc = {
         uid,
         email: email.slice(0, 200),
         displayName: (displayName || email.split("@")[0] || "Investor").slice(0, 120),
@@ -129,7 +162,33 @@ export async function ensureUserAccount(
         role: "investor",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      };
+
+      if (resolvedUsername) {
+        try {
+          await setDoc(ref, { ...baseDoc, username: resolvedUsername });
+        } catch (writeErr) {
+          const code =
+            typeof writeErr === "object" && writeErr !== null && "code" in writeErr
+              ? String((writeErr as { code?: unknown }).code)
+              : "";
+          if (code === "permission-denied") {
+            console.warn(
+              "Firestore rejected optional username field (deploy updated firestore.rules to Firebase Console). Creating base user record."
+            );
+            await setDoc(ref, baseDoc);
+          } else {
+            throw writeErr;
+          }
+        }
+      } else {
+        await setDoc(ref, baseDoc);
+      }
+    } else if (resolvedUsername && !snap.data()?.username) {
+      await updateDoc(ref, {
+        username: resolvedUsername,
+        updatedAt: serverTimestamp(),
+      }).catch(() => undefined);
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);

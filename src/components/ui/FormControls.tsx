@@ -17,8 +17,8 @@ export function FormField({
   tone = "light",
   children,
 }: FieldWrapperProps) {
-  const labelClass = tone === "dark" ? "text-slate-300" : "text-slate-700";
-  const hintClass = tone === "dark" ? "text-slate-400" : "text-slate-500";
+  const labelClass = tone === "dark" ? "text-white" : "text-[#102030]";
+  const hintClass = tone === "dark" ? "text-slate-200" : "text-[#5A6B7C]";
 
   return (
     <div className="space-y-1.5">
@@ -27,7 +27,7 @@ export function FormField({
       </label>
       {children}
       {error ? (
-        <p role="alert" className="text-xs text-rose-600 font-medium">
+        <p role="alert" className="text-xs text-[#BE123C] font-medium">
           {error}
         </p>
       ) : (
@@ -38,9 +38,9 @@ export function FormField({
 }
 
 const INPUT_LIGHT =
-  "w-full rounded-md border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#294158] focus:border-[#294158] disabled:bg-slate-50 disabled:text-slate-500";
+  "w-full rounded-[5px] border border-[#CBD6E2] bg-white px-3.5 py-2.5 text-sm text-[#102030] placeholder:text-[#7A8B9C] focus:outline-none focus:ring-2 focus:ring-[#1B4962] focus:border-[#1B4962] disabled:bg-[#F6F8FA] disabled:text-[#5A6B7C]";
 const INPUT_DARK =
-  "w-full rounded-md border border-white/15 bg-[#05081a] px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400";
+  "w-full rounded-[5px] border border-white/20 bg-[#14374B] px-3.5 py-2.5 text-sm text-white placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#E94D65] focus:border-[#E94D65]";
 
 export function TextInput({
   tone = "light",

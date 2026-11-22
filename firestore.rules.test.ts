@@ -11,4 +11,6 @@ export const DIRTY_DOZEN_SECURITY_CASES = [
   { id: 10, name: "Server Timestamp Spoofing", path: "/investments/{id}", expected: "PERMISSION_DENIED" },
   { id: 11, name: "Oversized Document ID Poisoning", path: "/transactions/{longId}", expected: "PERMISSION_DENIED" },
   { id: 12, name: "Unauthorized Property Catalog Mutation", path: "/properties/{id}", expected: "PERMISSION_DENIED" },
+  { id: 13, name: "Username Claim Spoofing Another UID", path: "/usernames/{username}", expected: "PERMISSION_DENIED" },
+  { id: 14, name: "Blanket Username Directory Enumeration", path: "/usernames", expected: "PERMISSION_DENIED" },
 ] as const;

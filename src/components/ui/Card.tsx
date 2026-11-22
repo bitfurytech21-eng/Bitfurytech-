@@ -22,8 +22,8 @@ export function Card({
 }: CardProps) {
   const toneStyles =
     tone === "dark"
-      ? "bg-[#0b1129] border border-white/10 text-white rounded-xl"
-      : "bg-white border border-slate-200 text-slate-900 rounded-md shadow-xs";
+      ? "bg-[#1B4962] border border-white/15 text-white rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.12)]"
+      : "bg-white border border-[#DCE4EC] text-[#102030] rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.05)]";
 
   return (
     <section className={`${toneStyles} ${PADDING_MAP[padding]} ${className}`.trim()}>
@@ -45,16 +45,16 @@ export function CardHeader({
   tone?: "light" | "dark";
   className?: string;
 }) {
-  const borderClass = tone === "dark" ? "border-white/10" : "border-slate-200";
-  const titleClass = tone === "dark" ? "text-white" : "text-slate-900";
-  const subClass = tone === "dark" ? "text-slate-400" : "text-slate-500";
+  const borderClass = tone === "dark" ? "border-white/15" : "border-[#DCE4EC]";
+  const titleClass = tone === "dark" ? "text-white" : "text-[#102030]";
+  const subClass = tone === "dark" ? "text-slate-200" : "text-[#5A6B7C]";
 
   return (
     <div
       className={`px-5 py-4 border-b ${borderClass} flex flex-wrap items-center justify-between gap-3 ${className}`.trim()}
     >
       <div className="min-w-0">
-        <h2 className={`text-sm font-bold ${titleClass}`}>{title}</h2>
+        <h2 className={`text-sm font-bold font-heading ${titleClass}`}>{title}</h2>
         {subtitle && <p className={`text-xs mt-0.5 ${subClass}`}>{subtitle}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}

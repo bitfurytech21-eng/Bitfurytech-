@@ -21,25 +21,25 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#1e2b3c] hover:bg-[#294158] text-white border border-transparent",
+    "bg-[#E94D65] hover:bg-[#D43B53] text-white border border-transparent",
   gold:
-    "bg-yellow-400 hover:bg-yellow-300 text-slate-950 border border-transparent",
+    "bg-[#E94D65] hover:bg-[#D43B53] text-white border border-transparent",
   secondary:
-    "bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200",
+    "bg-[#1B4962] hover:bg-[#14374B] text-white border border-transparent",
   outline:
-    "bg-white hover:bg-slate-50 text-slate-700 border border-slate-300",
+    "bg-white hover:bg-[#EDF3F7] text-[#1B4962] border border-[#1B4962]/30",
   outlineDark:
-    "bg-transparent hover:bg-white/5 text-white border border-white/20",
+    "bg-transparent hover:bg-white/10 text-white border border-white/35",
   ghost:
-    "bg-transparent hover:bg-slate-100 text-slate-700 border border-transparent",
+    "bg-transparent hover:bg-[#EDF3F7] text-[#1B4962] border border-transparent",
   danger:
-    "bg-rose-600 hover:bg-rose-700 text-white border border-transparent",
+    "bg-[#BE123C] hover:bg-[#9F1239] text-white border border-transparent",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-xs gap-1.5",
-  md: "px-4 py-2 text-xs gap-2",
-  lg: "px-5 py-3 text-sm gap-2",
+  sm: "px-3.5 py-2 text-xs gap-1.5",
+  md: "px-4 py-2.5 text-xs gap-2",
+  lg: "px-6 py-3 text-sm gap-2",
 };
 
 export function buttonClasses({
@@ -54,7 +54,7 @@ export function buttonClasses({
   className?: string;
 }) {
   return [
-    "inline-flex items-center justify-center rounded-md font-semibold transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed",
+    "inline-flex items-center justify-center rounded-none font-heading font-bold tracking-wide transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed",
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     fullWidth ? "w-full" : "",

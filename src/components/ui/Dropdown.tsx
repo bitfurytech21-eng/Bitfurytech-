@@ -55,11 +55,11 @@ export function DropdownMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-800 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-2 rounded-[5px] border border-[#DCE4EC] bg-white hover:bg-[#F6F8FA] px-3 py-1.5 text-xs font-medium text-[#102030] transition-colors cursor-pointer"
       >
         {trigger}
         <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${
+          className={`w-3.5 h-3.5 text-[#5A6B7C] transition-transform duration-150 ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -75,16 +75,16 @@ export function DropdownMenu({
             transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
             className={`absolute ${
               align === "right" ? "right-0" : "left-0"
-            } mt-2 w-52 bg-white border border-slate-200 rounded-md shadow-md py-1.5 z-50`}
+            } mt-2 w-56 bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_10px_28px_rgba(16,32,48,0.12)] py-1.5 z-50`}
           >
             {items.map((item) => {
               const colorClass = item.danger
-                ? "text-rose-600 hover:bg-rose-50"
-                : "text-slate-700 hover:bg-slate-50";
+                ? "text-[#BE123C] hover:bg-[#FDF1F3]"
+                : "text-[#102030] hover:bg-[#EDF3F7]";
 
               return (
                 <div key={item.id}>
-                  {item.dividerBefore && <div className="my-1 border-t border-slate-100" />}
+                  {item.dividerBefore && <div className="my-1 border-t border-[#DCE4EC]" />}
                   {item.to ? (
                     <Link
                       to={item.to}

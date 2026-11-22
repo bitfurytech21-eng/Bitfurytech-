@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import PublicLayout from "../../components/PublicLayout";
+import { buttonClasses } from "../../components/ui";
 
 const SERVICES = [
   {
@@ -24,46 +25,56 @@ const SERVICES = [
     index: "04",
     title: "Dedicated Settlement Administration",
     description:
-      "Verified deposit confirmation, multi-rail payout processing, and real-time account alerts inside your Metronic investor workspace.",
+      "Verified deposit confirmation, multi-rail payout processing, and real-time account alerts inside your BitfuryTech investor workspace.",
   },
 ];
 
 export default function ServicesPage() {
   return (
     <PublicLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-12">
-        <div className="max-w-3xl space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-yellow-400">
+      <section className="bg-[#1B4962] text-white border-b border-white/15">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-3">
+          <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
             BitfuryTech Capabilities
           </p>
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white">
+          <h1 className="text-3xl sm:text-5xl font-heading font-bold tracking-tight text-white">
             Institutional Portfolio Services
           </h1>
-          <p className="text-base text-slate-300">
+          <p className="text-base text-slate-200 max-w-3xl">
             Four focused wealth management pillars operating under a single unified client portal.
           </p>
         </div>
+      </section>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {SERVICES.map((srv) => (
-            <div
-              key={srv.index}
-              className="bg-[#0b1129] border border-white/10 rounded-xl p-7 space-y-3"
+      <div className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-10">
+          <div className="grid md:grid-cols-2 gap-6">
+            {SERVICES.map((srv) => (
+              <div
+                key={srv.index}
+                className="bg-white border border-[#DCE4EC] rounded-[5px] p-7 space-y-3 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
+              >
+                <p className="text-xs font-mono font-semibold text-[#B92841]">{srv.index}.</p>
+                <h2 className="text-xl font-heading font-bold text-[#102030]">{srv.title}</h2>
+                <p className="text-sm text-[#5A6B7C] leading-relaxed">{srv.description}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-2 flex flex-wrap gap-3">
+            <Link
+              to="/register"
+              className={buttonClasses({ variant: "primary", size: "lg" })}
             >
-              <p className="text-xs font-mono text-yellow-400">{srv.index}.</p>
-              <h2 className="text-xl font-bold text-white">{srv.title}</h2>
-              <p className="text-sm text-slate-300 leading-relaxed">{srv.description}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="pt-2">
-          <Link
-            to="/register"
-            className="inline-block bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-semibold text-sm px-6 py-3 rounded-md"
-          >
-            Open Client Account
-          </Link>
+              Open Client Account
+            </Link>
+            <Link
+              to="/investments-catalog"
+              className={buttonClasses({ variant: "secondary", size: "lg" })}
+            >
+              Browse Investment Plans
+            </Link>
+          </div>
         </div>
       </div>
     </PublicLayout>
