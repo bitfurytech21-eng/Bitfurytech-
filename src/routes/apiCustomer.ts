@@ -168,7 +168,7 @@ async function getMergedActivePlans(rawToken?: string): Promise<
         durationDays: Math.max(1, Number(row.durationDays ?? 30) || 30),
         paymentFrequency: String(row.paymentFrequency ?? "Scheduled cycle distribution"),
         settlementRail: String(row.settlementRail ?? "USDT (TRC20) / Bank Wire"),
-        image: String(row.image ?? "/images/hero-private-capital.png"),
+        image: String(row.image ?? "/images/hero-private-capital.jpg"),
         returnTerms: String(
           row.returnTerms ??
             "Indicative benchmark terms only. Returns are variable and not guaranteed."
@@ -294,7 +294,7 @@ export function createCustomerRouter(): Router {
           valuation: Number(p.valuation ?? 0) || 0,
           occupancyPct: Number(p.occupancyPct ?? 0) || 0,
           status: String(p.status ?? "Open"),
-          image: String(p.image ?? "/images/commercial-property.png"),
+          image: String(p.image ?? "/images/commercial-property.jpg"),
           summary: String(p.summary ?? ""),
         }));
 

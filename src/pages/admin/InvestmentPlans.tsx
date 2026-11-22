@@ -55,7 +55,7 @@ const EMPTY_PLAN: Omit<AdminPlanRow, "id"> & { id?: string } = {
   returnTerms: "",
   availabilityStatus: "Open",
   published: true,
-  image: "/images/hero-private-capital.png",
+  image: "/images/hero-private-capital.jpg",
 };
 
 export default function AdminInvestmentPlans() {

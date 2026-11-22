@@ -38,7 +38,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "USDT (TRC20) / BTC / ETH",
-    image: "/images/digital-assets.png",
+    image: "/images/digital-assets.jpg",
     returnTerms:
       "1.08% indicative daily benchmark (32.4% monthly target) over a 30-day cycle with 5% referral bonus on qualified deposits. Digital asset values fluctuate and targets are non-guaranteed.",
     highlights: [
@@ -63,7 +63,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "USDT (TRC20) / BTC / ETH",
-    image: "/images/digital-assets.png",
+    image: "/images/digital-assets.jpg",
     returnTerms:
       "1.26% indicative daily benchmark (37.8% monthly target) over 30 days with 5% referral bonus. Returns depend on market liquidity and are not guaranteed.",
     highlights: [
@@ -88,7 +88,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "USDT (TRC20) / BTC / ETH / Bank Wire",
-    image: "/images/digital-assets.png",
+    image: "/images/digital-assets.jpg",
     returnTerms:
       "1.95% indicative daily benchmark (58.6% monthly target) over 30 days with 5% referral bonus. Subject to crypto market volatility and non-guaranteed performance.",
     highlights: [
@@ -113,7 +113,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "USDT (TRC20) / BTC / Bank Wire",
-    image: "/images/digital-assets.png",
+    image: "/images/digital-assets.jpg",
     returnTerms:
       "1.98% indicative daily benchmark (59.4% monthly target) over 30 days with 5% referral bonus. Variable digital asset outcomes; capital remains at market risk.",
     highlights: [
@@ -138,7 +138,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "USDT (TRC20) / BTC / Bank Wire",
-    image: "/images/digital-assets.png",
+    image: "/images/digital-assets.jpg",
     returnTerms:
       "2.3% indicative daily benchmark (69% monthly target) over 30 days with 5% referral bonus (10% partner tier for referred deposits above $100k). Non-guaranteed returns.",
     highlights: [
@@ -163,7 +163,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "Bank Wire / USDT (TRC20) / BTC",
-    image: "/images/digital-assets.png",
+    image: "/images/digital-assets.jpg",
     returnTerms:
       "2.8% indicative daily benchmark (85% monthly target) over 30 days with 5% plan referral bonus. High-tier digital asset exposure carries capital risk and is not guaranteed.",
     highlights: [
@@ -190,7 +190,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "Bank Wire / USDT (TRC20)",
-    image: "/images/global-equities.png",
+    image: "/images/global-equities.jpg",
     returnTerms:
       "1.08% indicative daily benchmark (32.4% monthly target) over 30 days with 6% referral bonus. Stock valuations rise and fall with earnings and macroeconomic conditions.",
     highlights: [
@@ -215,7 +215,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "Bank Wire / USDT (TRC20)",
-    image: "/images/global-equities.png",
+    image: "/images/global-equities.jpg",
     returnTerms:
       "1.6% indicative daily benchmark (48% monthly target) over 30 days with 6% referral bonus. Equity returns fluctuate with market liquidity and are not guaranteed.",
     highlights: [
@@ -240,7 +240,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "Bank Wire / USDT (TRC20)",
-    image: "/images/global-equities.png",
+    image: "/images/global-equities.jpg",
     returnTerms:
       "1.98% indicative daily benchmark (59.4% monthly target) over 30 days with 6% referral bonus. Capital value can decline as well as rise.",
     highlights: [
@@ -265,7 +265,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily trading session accrual · 30-day cycle",
     settlementRail: "Bank Wire / USDT (TRC20)",
-    image: "/images/global-equities.png",
+    image: "/images/global-equities.jpg",
     returnTerms:
       "2.6% indicative daily benchmark (78% monthly target) over 30 days with 6% referral bonus. Concentrated equity allocations carry market risk with no guaranteed return.",
     highlights: [
@@ -292,7 +292,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily cycle accrual · 30-day term",
     settlementRail: "Bank Wire / USDT (TRC20)",
-    image: "/images/commercial-property.png",
+    image: "/images/commercial-property.jpg",
     returnTerms:
       "1.4% indicative daily benchmark (42% monthly target) with 7% referral bonus. Property returns depend on occupancy, lease performance, and appraised valuation.",
     highlights: [
@@ -317,7 +317,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily cycle accrual · 30-day term",
     settlementRail: "Bank Wire / USDT (TRC20)",
-    image: "/images/commercial-property.png",
+    image: "/images/commercial-property.jpg",
     returnTerms:
       "1.8% indicative daily benchmark (54% monthly target) with 7% referral bonus. Real estate values and rental cash flows are non-guaranteed.",
     highlights: [
@@ -342,7 +342,7 @@ export const INVESTMENT_MANDATES: InvestmentMandate[] = [
     durationDays: 30,
     paymentFrequency: "Daily cycle accrual · 30-day term",
     settlementRail: "Bank Wire / Institutional Custody",
-    image: "/images/commercial-property.png",
+    image: "/images/commercial-property.jpg",
     returnTerms:
       "2.0% indicative daily benchmark (60% monthly target) with 7% referral bonus. Subject to tenancy performance, market appraisal, and settlement terms.",
     highlights: [

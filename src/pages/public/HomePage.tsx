@@ -62,7 +62,7 @@ export default function HomePage() {
 
           <div className="lg:col-span-5 relative min-h-[280px] lg:min-h-[400px] rounded-xl overflow-hidden border border-white/10 bg-[#0b1129]">
             <img
-              src="/images/hero-private-capital.png"
+              src="/images/hero-private-capital.jpg"
               alt="BitfuryTech institutional financial district headquarters"
               className="w-full h-full object-cover"
             />
@@ -207,7 +207,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-8 items-stretch">
           <div className="relative min-h-[280px] rounded-xl overflow-hidden border border-white/10">
             <img
-              src="/images/digital-assets.png"
+              src="/images/digital-assets.jpg"
               alt="BitfuryTech quantitative trading desk"
               className="w-full h-full object-cover"
             />
@@ -222,7 +222,7 @@ export default function HomePage() {
 
           <div className="relative min-h-[280px] rounded-xl overflow-hidden border border-white/10">
             <img
-              src="/images/commercial-property.png"
+              src="/images/commercial-property.jpg"
               alt="BitfuryTech commercial property portfolio"
               className="w-full h-full object-cover"
             />

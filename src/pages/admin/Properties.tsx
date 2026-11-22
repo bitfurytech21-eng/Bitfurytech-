@@ -47,7 +47,7 @@ const DEFAULT_FORM: Omit<AdminPropertyRow, "id"> = {
   occupancyPct: 95,
   status: "Open",
   published: true,
-  image: "/images/commercial-property.png",
+  image: "/images/commercial-property.jpg",
   summary: "",
   supportingDocUrl: "",
   supportingDocName: "",
@@ -119,7 +119,7 @@ export default function AdminProperties() {
       occupancyPct: p.occupancyPct,
       status: p.status,
       published: p.published !== false,
-      image: p.image || "/images/commercial-property.png",
+      image: p.image || "/images/commercial-property.jpg",
       summary: p.summary,
       supportingDocUrl: p.supportingDocUrl || "",
       supportingDocName: p.supportingDocName || "",
@@ -247,7 +247,7 @@ export default function AdminProperties() {
       render: (p) => (
         <div className="flex items-center gap-3 min-w-[220px]">
           <img
-            src={p.image || "/images/commercial-property.png"}
+            src={p.image || "/images/commercial-property.jpg"}
             alt={p.title}
             className="w-12 h-9 object-cover rounded border border-slate-200 shrink-0"
           />

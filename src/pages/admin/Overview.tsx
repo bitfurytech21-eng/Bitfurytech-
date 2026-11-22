@@ -165,7 +165,7 @@ export default function AdminOverview() {
   return (
     <AdminLayout
       title="Administrator Overview"
-      subtitle="Platform treasury metrics, pending customer settlements, property catalog count, and governance audit trail."
+      subtitle="Capital activity, customer growth, and review queues in one operational view."
       actions={
         <>
           <Button
@@ -204,96 +204,125 @@ export default function AdminOverview() {
           </Card>
         </div>
       ) : (
-        <div className="space-y-6">
-          {/* Primary Operations KPIs */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card padding="md" className="flex items-start justify-between gap-4">
+        <div className="space-y-5 sm:space-y-6">
+          <section
+            aria-label="Operations snapshot"
+            className="flex flex-col gap-4 rounded-lg bg-[#112E3E] px-5 py-5 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6"
+          >
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B9D1DE]">
+                Operations console
+              </p>
+              <h2 className="mt-1.5 text-xl font-bold font-heading tracking-tight sm:text-2xl">
+                Platform at a glance
+              </h2>
+              <p className="mt-1.5 text-sm text-slate-300">
+                Review capital movement and customer activity across the platform.
+              </p>
+            </div>
+            <div className="flex items-center gap-4 border-t border-white/15 pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/10 text-[#FFD1D8]">
+                <Shield className="h-5 w-5" aria-hidden="true" />
+              </div>
               <div>
-                <p className="text-xs text-slate-500">Total Customers</p>
-                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+                <p className="text-xs text-slate-300">Items awaiting review</p>
+                <p className="mt-0.5 text-lg font-bold font-mono tabular-nums text-white">
+                  {data.stats.pendingDepositsCount + data.stats.pendingWithdrawalsCount}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Primary Operations KPIs */}
+          <section
+            aria-label="Platform key metrics"
+            className="grid grid-cols-1 min-[390px]:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+          >
+            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-[#5A6B7C]">Total Customers</p>
+                <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {data.stats.totalCustomers}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="mt-1 text-xs text-[#5A6B7C]">
                   {data.stats.newRegistrations} registered in past 7 days
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-[5px] bg-[#1B4962] text-white flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#EDF3F7] text-[#1B4962]">
+                <Users className="h-4 w-4" aria-hidden="true" />
               </div>
             </Card>
 
-            <Card padding="md" className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs text-slate-500">Total Invested Capital</p>
-                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-[#5A6B7C]">Total Invested Capital</p>
+                <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {formatUsd(data.stats.totalInvested)}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="mt-1 text-xs text-[#5A6B7C]">
                   {data.stats.activeInvestmentsCount} active positions
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-[5px] bg-[#E94D65] text-white flex items-center justify-center shrink-0">
-                <TrendingUp className="w-5 h-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#FFF0F2] text-[#B92841]">
+                <TrendingUp className="h-4 w-4" aria-hidden="true" />
               </div>
             </Card>
 
-            <Card padding="md" className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs text-slate-500">Pending Deposits</p>
-                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-[#5A6B7C]">Pending Deposits</p>
+                <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {data.stats.pendingDepositsCount}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Queue volume:{" "}
-                  <span className="font-mono">{formatUsd(data.stats.pendingDepositsAmount)}</span>
+                <p className="mt-1 text-xs text-[#5A6B7C]">
+                  Queue volume <span className="font-mono">{formatUsd(data.stats.pendingDepositsAmount)}</span>
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                <ArrowDownCircle className="w-5 h-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-700">
+                <ArrowDownCircle className="h-4 w-4" aria-hidden="true" />
               </div>
             </Card>
 
-            <Card padding="md" className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs text-slate-500">Pending Withdrawals</p>
-                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-[#5A6B7C]">Pending Withdrawals</p>
+                <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {data.stats.pendingWithdrawalsCount}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Queue volume:{" "}
-                  <span className="font-mono">{formatUsd(data.stats.pendingWithdrawalsAmount)}</span>
+                <p className="mt-1 text-xs text-[#5A6B7C]">
+                  Queue volume <span className="font-mono">{formatUsd(data.stats.pendingWithdrawalsAmount)}</span>
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-                <ArrowUpRight className="w-5 h-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#FFF0F2] text-[#B92841]">
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
               </div>
             </Card>
 
-            <Card padding="md" className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs text-slate-500">New Registrations (7d)</p>
-                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-[#5A6B7C]">New Registrations (7d)</p>
+                <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {data.stats.newRegistrations}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">Verified onboarding flow</p>
+                <p className="mt-1 text-xs text-[#5A6B7C]">Verified onboarding flow</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                <UserPlus className="w-5 h-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+                <UserPlus className="h-4 w-4" aria-hidden="true" />
               </div>
             </Card>
 
-            <Card padding="md" className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs text-slate-500">Listed Properties & Inquiries</p>
-                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-[#5A6B7C]">Listed Properties & Inquiries</p>
+                <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {data.stats.propertiesCount} / {data.stats.inquiriesCount}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="mt-1 text-xs text-[#5A6B7C]">
                   Properties cataloged · Support inquiries
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#EDF3F7] text-[#1B4962]">
+                <Building2 className="h-4 w-4" aria-hidden="true" />
               </div>
             </Card>
           </section>

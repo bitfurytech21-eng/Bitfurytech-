@@ -19,7 +19,7 @@ export default function AuthLayout({
       {/* Left Institutional Brand Column */}
       <aside className="lg:col-span-5 bg-[#1B4962] text-white relative overflow-hidden flex flex-col justify-between p-8 sm:p-12 border-b lg:border-b-0 lg:border-r border-[#14374B]">
         <img
-          src="/images/hero-private-capital.png"
+          src="/images/hero-private-capital.jpg"
           alt="BitfuryTech institutional wealth office"
           referrerPolicy="no-referrer"
           className="absolute inset-0 w-full h-full object-cover opacity-20"

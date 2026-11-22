@@ -20,7 +20,7 @@ export const ASSET_CLASS_GUIDES: AssetClassGuide[] = [
     slug: "crypto",
     label: "Digital assets",
     title: "Cryptocurrency & digital assets",
-    image: "/images/digital-assets.png",
+    image: "/images/digital-assets.jpg",
     summary:
       "Digital assets trade around the clock across centralized venues and blockchain networks. Prices can move quickly as liquidity, market sentiment, technology, and regulation change.",
     approach:
@@ -48,7 +48,7 @@ export const ASSET_CLASS_GUIDES: AssetClassGuide[] = [
     slug: "stocks",
     label: "Public equities",
     title: "Stocks & company shares",
-    image: "/images/global-equities.png",
+    image: "/images/global-equities.jpg",
     summary:
       "A share represents an ownership interest in a company. Its market value responds to the issuer’s financial results, competitive position, investor expectations, and broader economic conditions.",
     approach:
@@ -76,7 +76,7 @@ export const ASSET_CLASS_GUIDES: AssetClassGuide[] = [
     slug: "real-estate",
     label: "Commercial property",
     title: "Commercial real estate",
-    image: "/images/commercial-property.png",
+    image: "/images/commercial-property.jpg",
     summary:
       "Commercial property value is influenced by location, condition, tenant demand, financing costs, and local market conditions. Property investments can be less liquid than listed securities.",
     approach:
