@@ -120,7 +120,7 @@ export default function Referrals() {
   return (
     <DashboardLayout
       title="Referral Program"
-      subtitle="Share your unique referral identifier and review verified referral earnings."
+      subtitle="Invite contacts using your unique code and track Total Referrals, Qualified Referrals, and settled referral earnings."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadReferrals()}>
           <RefreshCw className="w-3.5 h-3.5" />
@@ -170,7 +170,10 @@ export default function Referrals() {
           <Card>
             <CardHeader
               title="Referral Link"
-              subtitle={data?.ruleSummary || "Credits apply strictly under backend settlement rules."}
+              subtitle={
+                data?.ruleSummary ||
+                "Invited sign-ups track under Total Referrals and qualify for rewards strictly upon administrator verification of qualifying settled deposits."
+              }
               action={<Share2 className="w-4 h-4 text-slate-400" />}
             />
             <CardBody className="flex flex-col sm:flex-row gap-2">
@@ -195,7 +198,7 @@ export default function Referrals() {
           <Card>
             <CardHeader
               title="Referral Transaction History"
-              subtitle="Settled referral payouts posted to your custody ledger"
+              subtitle="Approved referral rewards posted to your custody ledger after qualifying deposits settle"
             />
             <CardBody>
               <DataTable

@@ -137,11 +137,27 @@ export default function InvestmentPlanDetail() {
                       </dd>
                     </div>
                     <div className="py-3 flex justify-between gap-4">
-                      <dt className="text-[#5A6B7C]">Indicative Return Target</dt>
+                      <dt className="text-[#5A6B7C]">Indicative Daily Target</dt>
                       <dd className="font-mono tabular-nums font-semibold text-[#B92841]">
                         {plan.dailyRatePct}% daily (Non-Guaranteed)
                       </dd>
                     </div>
+                    {typeof plan.monthlyRatePct === "number" && (
+                      <div className="py-3 flex justify-between gap-4">
+                        <dt className="text-[#5A6B7C]">Indicative Monthly Benchmark</dt>
+                        <dd className="font-mono tabular-nums font-semibold text-[#102030]">
+                          {plan.monthlyRatePct}% monthly
+                        </dd>
+                      </div>
+                    )}
+                    {typeof plan.referralBonusPct === "number" && (
+                      <div className="py-3 flex justify-between gap-4">
+                        <dt className="text-[#5A6B7C]">Plan Referral Bonus</dt>
+                        <dd className="font-mono tabular-nums font-semibold text-[#1B4962]">
+                          {plan.referralBonusPct}% on qualified referrals
+                        </dd>
+                      </div>
+                    )}
                     <div className="py-3 flex justify-between gap-4">
                       <dt className="text-[#5A6B7C]">Payment Frequency</dt>
                       <dd className="text-[#102030] text-right">{plan.paymentFrequency}</dd>
@@ -224,6 +240,11 @@ export default function InvestmentPlanDetail() {
                       </h3>
                     </div>
                     <p className="text-xs text-[#5A6B7C] leading-relaxed">{plan.returnTerms}</p>
+                    <p className="text-xs text-[#5A6B7C] leading-relaxed pt-2 border-t border-[#DCE4EC]">
+                      Asset values can rise as well as fall, and returns are never guaranteed. Review
+                      how this category complements your broader portfolio allocation, liquidity
+                      needs, and risk tolerance prior to committing funds.
+                    </p>
                   </div>
                 </div>
               </section>

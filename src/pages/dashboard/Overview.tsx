@@ -98,7 +98,7 @@ export default function Overview() {
   return (
     <DashboardLayout
       title="Overview"
-      subtitle="Verified custody balances, portfolio allocations, pending settlements, and active investment opportunities."
+      subtitle="Monitor your available balance, cumulative investments, earnings, pending payments, active holdings, and recent ledger activity in one place."
       actions={
         <>
           <Button
@@ -227,6 +227,7 @@ export default function Overview() {
             <Card className="lg:col-span-7">
               <CardHeader
                 title={`Active Investments (${data.metrics.activeInvestmentsCount})`}
+                subtitle="Current capital allocations, cycle progress, and upcoming maturity dates"
                 action={
                   <Link
                     to="/investments"
@@ -292,7 +293,10 @@ export default function Overview() {
             </Card>
 
             <Card className="lg:col-span-5">
-              <CardHeader title="Investment Portfolio Summary" />
+              <CardHeader
+                title="Investment Portfolio Summary"
+                subtitle="Capital allocation across Digital Assets, Equities, and Real Estate"
+              />
               <CardBody className="space-y-5">
                 <div className="space-y-4">
                   {data.portfolioSummary.map((bucket) => (
@@ -340,6 +344,7 @@ export default function Overview() {
             <Card className="lg:col-span-6">
               <CardHeader
                 title="Recent Transactions"
+                subtitle="Latest verified deposits, withdrawals, allocations, and credits"
                 action={
                   <Link
                     to="/transactions"
@@ -397,6 +402,7 @@ export default function Overview() {
             <Card className="lg:col-span-6">
               <CardHeader
                 title="Investment Opportunities"
+                subtitle="Review published terms before allocating from your available balance"
                 action={
                   <Link
                     to="/dashboard/opportunities"

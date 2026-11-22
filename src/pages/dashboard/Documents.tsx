@@ -137,7 +137,7 @@ export default function Documents() {
   return (
     <DashboardLayout
       title="Documents"
-      subtitle="User-scoped investment agreements, transaction receipts, deposit confirmations, withdrawal records, and account disclosures."
+      subtitle="Inspect and download your investment agreements, transaction receipts, deposit confirmations, withdrawal records, and account disclosures."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadDocs()}>
           <RefreshCw className="w-3.5 h-3.5" />

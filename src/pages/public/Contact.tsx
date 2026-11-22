@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Mail, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Mail, MessageSquare, ShieldCheck } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
+import { openLiveSupportChat } from "../../components/LiveSupportWidget";
 import {
   Button,
   Card,
@@ -149,38 +150,83 @@ export default function Contact() {
                   </h2>
                 </div>
                 <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                  Inquiries submitted here are validated by the BitfuryTech server and persisted
-                  directly to the administration review queue.
+                  We maintain a culture of treating people with respect, listening closely, and
+                  working in our clients&apos; best interests. Inquiries submitted here are validated
+                  by the BitfuryTech server and persisted directly to our administration review
+                  queue.
                 </p>
                 <dl className="pt-3 border-t border-[#DCE4EC] space-y-3 text-sm">
                   <div>
-                    <dt className="text-xs text-[#5A6B7C]">Administration &amp; Settlement Desk</dt>
-                    <dd className="font-mono text-[#102030] font-semibold mt-0.5">
-                      bitfurytech21@gmail.com
+                    <dt className="text-xs text-[#5A6B7C]">Client Support &amp; Administration Emails</dt>
+                    <dd className="font-mono text-[#102030] font-semibold mt-0.5 space-y-0.5 text-xs sm:text-sm">
+                      <p>support@bitfurytechinvestment.com</p>
+                      <p>admin@bitfurytechinvestment.com</p>
+                      <p>bitfurytech21@gmail.com</p>
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-[#5A6B7C]">Platform Workspace</dt>
-                    <dd className="text-[#102030] mt-0.5">
-                      BitfuryTech Institutional Custody &amp; Investment Portal
+                    <dt className="text-xs text-[#5A6B7C]">UK Registered Office</dt>
+                    <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
+                      12 Wren Walk, Tilbury, England, RM18 8EU
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[#5A6B7C]">Oxford UK Location</dt>
+                    <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
+                      171 Crescent Road, Oxford, England, OX4 2NX
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[#5A6B7C]">United States Office</dt>
+                    <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
+                      2511 NW 41 St, Gainesville, FL 32606
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[#5A6B7C]">Support Desk Hours</dt>
+                    <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
+                      Monday – Friday · 08:00 – 18:00 UTC (24/7 Live Chat Triage)
                     </dd>
                   </div>
                 </dl>
+                <div className="pt-3 border-t border-[#DCE4EC] space-y-2">
+                  <p className="text-xs text-[#5A6B7C]">
+                    Need immediate assistance with verification, deposits, or mandate allocation?
+                  </p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="md"
+                    fullWidth
+                    onClick={() => openLiveSupportChat(subject)}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Launch Live Support Chat</span>
+                  </Button>
+                </div>
               </Card>
 
               <Card padding="lg" className="space-y-4 bg-[#F6F8FA]">
                 <div className="flex items-center gap-2.5">
                   <ShieldCheck className="w-5 h-5 text-[#1B4962] shrink-0" />
                   <h2 className="text-base font-heading font-bold text-[#102030]">
-                    Support Information
+                    Support Information &amp; Expectations
                   </h2>
                 </div>
                 <ul className="space-y-2.5 text-sm text-[#5A6B7C]">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />
                     <span>
-                      Include your transaction reference code (e.g. DEP- or WDR-) for settlement
-                      inquiries.
+                      Include your transaction reference code (e.g. DEP-, WDR-, or INV-) and
+                      registered email address for faster settlement or allocation lookup.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />
+                    <span>
+                      Support covers account access, verification, deposit/withdrawal tracking,
+                      mandate terms, and referral ledger questions—without providing personalized
+                      investment advice.
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -206,7 +252,8 @@ export default function Contact() {
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />
                     <span>
-                      Never share passwords or sensitive authentication codes in support messages.
+                      Never share passwords, recovery links, or private credentials in support
+                      messages.
                     </span>
                   </li>
                 </ul>

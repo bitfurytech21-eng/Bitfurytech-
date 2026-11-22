@@ -67,7 +67,7 @@ export const DEPOSIT_RAILS: DepositRailConfig[] = [
     network: "Bitcoin Mainnet",
     minDeposit: 250,
     instructions:
-      "Transfer BTC via Bitcoin Mainnet and enter your transaction ID (TXID). USD credit is calculated at verified settlement settlement review.",
+      "Transfer BTC via Bitcoin Mainnet and enter your transaction ID (TXID). USD credit is calculated at verified settlement review.",
     custodyDestination: "BitfuryTech Custody Desk — Cold Reserve BTC",
     confirmationInfo:
       "Requires minimum 3 mainnet confirmations and manual settlement desk sign-off.",
@@ -160,6 +160,10 @@ async function getMergedActivePlans(rawToken?: string): Promise<
         minDeposit,
         maxDeposit,
         dailyRatePct: Number(row.dailyRatePct ?? 1.5) || 1.5,
+        ...(row.monthlyRatePct !== undefined ? { monthlyRatePct: Number(row.monthlyRatePct) } : {}),
+        ...(row.referralBonusPct !== undefined
+          ? { referralBonusPct: Number(row.referralBonusPct) }
+          : {}),
         durationDays: Math.max(1, Number(row.durationDays ?? 30) || 30),
         paymentFrequency: String(row.paymentFrequency ?? "Scheduled cycle distribution"),
         settlementRail: String(row.settlementRail ?? "USDT (TRC20) / Bank Wire"),

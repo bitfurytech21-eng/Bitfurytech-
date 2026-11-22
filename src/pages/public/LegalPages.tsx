@@ -79,11 +79,14 @@ export function TermsPage() {
       <section className="bg-[#1B4962] text-white border-b border-white/15">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-2">
           <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-            Governance
+            Legal Agreement
           </p>
           <h1 className="text-3xl sm:text-5xl font-heading font-bold tracking-tight text-white">
-            Terms &amp; Risk Disclosure
+            Terms &amp; Conditions
           </h1>
+          <p className="text-sm text-slate-200">
+            General business terms governing access to the Bitfury Tech Investment web application.
+          </p>
         </div>
       </section>
 
@@ -91,22 +94,79 @@ export function TermsPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-6 text-sm text-[#5A6B7C] leading-relaxed">
           <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
             <h2 className="text-lg font-heading font-bold text-[#102030]">
-              1. Account Ownership &amp; Custody
+              1. Scope of Application
             </h2>
             <p>
-              Each BitfuryTech client account is strictly bound to its authenticated identity.
-              Balances, mandates, and ledger entries reflect verified transactions settled on the
-              platform.
+              These General Terms and Conditions apply to the entire business relationship between
+              the client and Bitfury Tech Investment in its capacity as operator of the Bitfury Tech
+              Investment web application and online investment portal. Each authenticated client
+              account initializes strictly at $0.00 and maintains an isolated custody ledger.
             </p>
           </section>
+
           <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
             <h2 className="text-lg font-heading font-bold text-[#102030]">
-              2. Settlement &amp; Market Risk
+              2. Amendments to General Terms
             </h2>
             <p>
-              Digital assets, public equities, and commercial property holdings involve capital risk
-              and settlement verification intervals. Past mandate parameters do not guarantee future
-              market returns.
+              Any proposed amendments to these terms are notified at least one month prior to their
+              effective date via the web platform and the registered customer email address in a
+              printable, readable format. Clients may register written objections within two weeks
+              after notification; otherwise, continued use after the notice window constitutes
+              acceptance.
+            </p>
+          </section>
+
+          <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
+            <h2 className="text-lg font-heading font-bold text-[#102030]">
+              3. Cryptocurrencies &amp; Digital Asset Definitions
+            </h2>
+            <p>
+              Cryptocurrencies are electronic forms of value generated via decentralized peer-to-peer
+              networks and secured by cryptographic digital signatures. Cryptocurrencies are not
+              legal tender backed as official currency by any government agency. Digital asset
+              mandates, stock allocations, and real estate tiers carry capital risk and settlement
+              verification intervals.
+            </p>
+          </section>
+
+          <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
+            <h2 className="text-lg font-heading font-bold text-[#102030]">
+              4. Technical Access &amp; Electronic Communications
+            </h2>
+            <p>
+              Access to the web application is provided exclusively over an internet-connected
+              computer or mobile web browser. All transaction confirmations, deposit notices, and
+              account alerts are delivered electronically via your in-portal inbox and registered
+              email address.
+            </p>
+          </section>
+
+          <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
+            <h2 className="text-lg font-heading font-bold text-[#102030]">
+              5. Registration &amp; Customer Duties of Cooperation
+            </h2>
+            <p>
+              Natural persons with full legal capacity may register an account using a personally
+              controlled email inbox and complete onboarding data verification. Clients must keep
+              login credentials confidential, never leave signed-in sessions unattended, enable
+              available security safeguards (including two-factor or payout verification controls),
+              and notify Bitfury Tech Investment immediately if unauthorized access is suspected.
+            </p>
+          </section>
+
+          <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
+            <h2 className="text-lg font-heading font-bold text-[#102030]">
+              6. Fees, Settlement &amp; Market Risk Disclosure
+            </h2>
+            <p>
+              An investor may receive back less than the amount invested, and past performance is
+              not necessarily a guide to future performance. Mandate values and returns can go down
+              as well as up and are never guaranteed. Applicable unit structuring fees (0.5%) and
+              withdrawal settlement fees (1.0%, minimum $2.00 USD) are disclosed transparently
+              before confirmation. Questions or formal complaints may be sent to{" "}
+              <span className="font-mono text-[#102030]">support@bitfurytechinvestment.com</span> or{" "}
+              <span className="font-mono text-[#102030]">bitfurytech21@gmail.com</span>.
             </p>
           </section>
         </div>
@@ -126,6 +186,9 @@ export function PrivacyPage() {
           <h1 className="text-3xl sm:text-5xl font-heading font-bold tracking-tight text-white">
             Privacy Policy
           </h1>
+          <p className="text-sm text-slate-200">
+            How Bitfury Tech Investment collects, isolates, and safeguards client information.
+          </p>
         </div>
       </section>
 
@@ -133,19 +196,53 @@ export function PrivacyPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-6 text-sm text-[#5A6B7C] leading-relaxed">
           <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
             <h2 className="text-lg font-heading font-bold text-[#102030]">
-              1. Strict Account Isolation
+              1. Scope &amp; Controller Data Collection
             </h2>
             <p>
-              Investor profile data, email addresses, and financial records are isolated by security
-              rules so only the verified account owner and authorized settlement administrators can
-              view account records.
+              Bitfury Tech Investment collects only the account details you provide manually
+              (username, name, email address, jurisdiction, phone contact, and settlement details)
+              together with essential technical request metadata (operating system, browser agent,
+              page retrieval timestamp, and anonymized IP server logs) needed to deliver secure
+              access and prevent unauthorized abuse.
             </p>
           </section>
+
           <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
-            <h2 className="text-lg font-heading font-bold text-[#102030]">2. Session Tokens</h2>
+            <h2 className="text-lg font-heading font-bold text-[#102030]">
+              2. Strict Account Isolation &amp; Runtime Session Tokens
+            </h2>
             <p>
-              Authentication tokens are retained strictly in runtime memory during your active
-              session and are never persisted to browser local storage.
+              Investor profile data, email addresses, and financial records are strictly isolated by
+              UID-based Firestore security rules and server-side token validation so only the
+              verified owner and authorized administrators can inspect records. Authentication tokens
+              remain exclusively in runtime memory during an active session and are never persisted
+              to browser local storage.
+            </p>
+          </section>
+
+          <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
+            <h2 className="text-lg font-heading font-bold text-[#102030]">
+              3. Server Logs, Cookies &amp; Newsletter Consent
+            </h2>
+            <p>
+              Functional session preferences optimize routing, security, and platform usability.
+              Newsletter registrations record the subscriber&apos;s email address and confirmation
+              timestamp, and every briefing permits revocation or unsubscription at any time.
+              Technical log IP addresses are deleted or anonymized once operational security checks
+              conclude.
+            </p>
+          </section>
+
+          <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2">
+            <h2 className="text-lg font-heading font-bold text-[#102030]">
+              4. Support Inquiries &amp; Confidentiality
+            </h2>
+            <p>
+              Inquiries submitted via our Contact page, Live Support Chat, or{" "}
+              <span className="font-mono text-[#102030]">support@bitfurytechinvestment.com</span>{" "}
+              (or <span className="font-mono text-[#102030]">bitfurytech21@gmail.com</span>) are
+              used strictly to verify and resolve client requests. Never transmit account passwords
+              or private recovery links inside support messages.
             </p>
           </section>
         </div>

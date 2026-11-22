@@ -66,6 +66,26 @@ export default function PropertiesPage() {
 
       <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-10">
+          <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-3xl">
+              <h2 className="text-sm font-heading font-bold text-[#102030]">
+                Property Evaluation &amp; Risk Considerations
+              </h2>
+              <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">
+                Before participating in any real estate offering, carefully review the property
+                location, appraised valuation, occupancy rate, minimum entry threshold, rental
+                income assumptions, and supporting prospectus. Property valuations and rental yields
+                can rise or fall with market conditions and are not guaranteed.
+              </p>
+            </div>
+            <Link
+              to="/investments-catalog?category=estate"
+              className={buttonClasses({ variant: "secondary", size: "sm" })}
+            >
+              View Real Estate Mandates
+            </Link>
+          </div>
+
           {loading ? (
             <div className="grid md:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (

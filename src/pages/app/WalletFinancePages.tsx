@@ -92,7 +92,7 @@ export function WalletPage() {
   return (
     <MetronicShell
       title="Custody Wallet"
-      subtitle="Review verified wallet liquidity, pending settlements, and funding actions."
+      subtitle="Review your verified available balance, cumulative deposits, pending settlements, and complete wallet movement history."
     >
       <div className="grid md:grid-cols-3 gap-4">
         <Card padding="md" className="flex items-center gap-4">
@@ -155,6 +155,7 @@ export function WalletPage() {
       <Card>
         <CardHeader
           title="Wallet Movement History"
+          subtitle="All deposits, withdrawals, allocations, and settled credits linked to your wallet"
           action={
             <Link to="/transactions" className="text-xs font-semibold text-[#294158] hover:underline">
               Full Ledger

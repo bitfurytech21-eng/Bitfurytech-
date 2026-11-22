@@ -145,7 +145,7 @@ export default function Settings() {
   return (
     <DashboardLayout
       title="Settings"
-      subtitle="Manage password recovery, notification preferences, security verification, and active sessions."
+      subtitle="Configure your default settlement rail, ledger email alerts, Enhanced Payout Verification Flag, password updates, and active session controls."
     >
       <div className="grid lg:grid-cols-12 gap-6 items-start">
         <Card className="lg:col-span-7">

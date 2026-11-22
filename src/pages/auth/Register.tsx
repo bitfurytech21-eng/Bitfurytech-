@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AtSign,
   CheckCircle2,
@@ -35,8 +35,11 @@ export default function Register() {
     refreshUserSession,
   } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlReferralCode = (searchParams.get("ref") || "").trim().toUpperCase().slice(0, 40);
 
   const [fullName, setFullName] = useState("");
+  const [referralCode, setReferralCode] = useState(urlReferralCode);
   const [username, setUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<{
     checking: boolean;
@@ -500,6 +503,31 @@ export default function Register() {
                   onChange={(e) => setCaptchaInput(e.target.value)}
                   placeholder="Enter numeric sum"
                   className="w-full rounded-[5px] border border-[#CBD6E2] bg-white px-3 py-2 text-sm font-mono tabular-nums text-[#102030] placeholder:text-[#7A8B9C] focus:border-[#1B4962] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <label
+                    htmlFor="reg-ref"
+                    className="block text-xs font-semibold text-[#102030]"
+                  >
+                    Referral Code (Optional)
+                  </label>
+                  {urlReferralCode && (
+                    <span className="text-[11px] font-medium text-emerald-700">
+                      Captured from invite link
+                    </span>
+                  )}
+                </div>
+                <input
+                  id="reg-ref"
+                  type="text"
+                  maxLength={40}
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  placeholder="BF-XXXXXXXX"
+                  className="w-full rounded-[5px] border border-[#CBD6E2] bg-white px-3 py-2 text-sm font-mono text-[#102030] placeholder:text-[#7A8B9C] focus:border-[#1B4962] focus:outline-none"
                 />
               </div>
 

@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
-Sitemap: https://bitfurytechlimited.com/sitemap.xml
+Disallow: /dashboard/
+

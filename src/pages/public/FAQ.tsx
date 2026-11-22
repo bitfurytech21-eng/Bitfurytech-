@@ -14,7 +14,9 @@ type FaqCategoryId =
   | "plans"
   | "properties"
   | "returns"
-  | "security";
+  | "referrals"
+  | "security"
+  | "support";
 
 interface FaqCategory {
   id: Exclude<FaqCategoryId, "all">;
@@ -36,73 +38,82 @@ const FAQ_CATEGORIES: FaqCategory[] = [
   { id: "withdrawals", label: "Withdrawals" },
   { id: "plans", label: "Investment plans" },
   { id: "properties", label: "Property investments" },
-  { id: "returns", label: "Returns and payments" },
+  { id: "returns", label: "Returns & risk" },
+  { id: "referrals", label: "Referral programme" },
   { id: "security", label: "Account security" },
+  { id: "support", label: "Customer support" },
 ];
 
 const FAQ_ITEMS: FaqItem[] = [
   {
     id: "gen-1",
     category: "general",
-    question: "What is BitfuryTech?",
+    question: "What is Bitfury Tech Investment and algorithmic trading?",
     answer:
-      "BitfuryTech is a multi-asset wealth administration portal enabling investors to manage custody balances and allocate capital across structured Digital Assets, Global Equities, and Commercial Real Estate mandates.",
+      "Founded in 2017, Bitfury Tech Investment combines mathematical and statistical algorithmic trading strategies with multi-asset portfolio administration across Cryptocurrency, Stocks, and Commercial Real Estate. Algorithmic execution follows predefined quantitative rules and monitors global markets 24/7.",
   },
   {
     id: "gen-2",
     category: "general",
+    question: "Who makes strategic investment policy decisions at the firm?",
+    answer:
+      "Strategic investment policy decisions are overseen by our Investment Policy Committee (IPC), whose members bring over 10 years of combined investing experience alongside a research department of network engineers, macroeconomists, research scientists, and quantitative analysts.",
+  },
+  {
+    id: "gen-3",
+    category: "general",
     question: "Does BitfuryTech display demo or placeholder account balances?",
     answer:
-      "No. Every newly created investor account initializes at $0.00. All balances, transactions, and active allocations displayed in the dashboard reflect verified ledger records only.",
+      "No. Every newly created investor account initializes strictly at $0.00. All balances, transactions, and active allocations displayed in the dashboard reflect verified ledger records only.",
   },
   {
     id: "reg-1",
     category: "registration",
     question: "How do I create a BitfuryTech investor account?",
     answer:
-      "Visit the Register or Login page and sign up with a username, email, and password (or Google sign-in). Once registered, your isolated investor profile and custody ledger initialize automatically.",
+      "Open the Register page and complete onboarding with a unique username, email address, password, and the numeric verification challenge (or sign in with Google). Confirm your email address via the verification link to activate your isolated $0.00 custody profile.",
   },
   {
     id: "reg-2",
     category: "registration",
-    question: "Can I update my contact details and preferred rail after registering?",
+    question: "Can I have several concurrent deposits or mandates active at once?",
     answer:
-      "Yes. After signing in, open the Profile and Settings pages inside your dashboard to update your display name, country, phone number, and default settlement rail.",
+      "Yes. You can hold multiple active allocations simultaneously across Crypto, Stock, and Real Estate tiers. Each allocation is tracked and settled independently according to its own mandate principal, start date, and 30-day cycle maturity.",
   },
   {
     id: "ver-1",
     category: "verification",
-    question: "How does account verification work?",
+    question: "How does identity and email verification work?",
     answer:
-      "Account authentication relies on verified Firebase identity tokens. Certain administrative and settlement actions enforce verified identity and profile completeness before execution.",
+      "Account authentication verifies your email identity through Firebase Authentication tokens alongside profile completeness checks in your investor record. Deposit notices, withdrawals, and optional Enhanced Payout Verification flags undergo settlement administrator verification before execution.",
   },
   {
     id: "ver-2",
     category: "verification",
     question: "Why might a deposit or payout remain in Pending status?",
     answer:
-      "All deposit notices and withdrawal requests enter the Settlement Queue as Pending so an authorized BitfuryTech administrator can confirm transfer references before adjusting wallet balances.",
+      "All deposit notices and withdrawal requests enter the Settlement Queue as Pending so an authorized BitfuryTech administrator can confirm transfer references and block confirmations before adjusting wallet balances.",
   },
   {
     id: "dep-1",
     category: "deposits",
-    question: "Which funding rails are supported for deposits?",
+    question: "How do I fund my account and why are cryptocurrencies emphasized?",
     answer:
-      "BitfuryTech supports USDT (TRC20), Bitcoin (BTC), Ethereum (ETH), and Bank Wire. You can configure your preferred default rail in Account Settings or choose any supported rail per deposit notice.",
+      "Bitfury Tech Investment embraces digital-first global settlement via USDT (TRC20) ($100 minimum), Bitcoin (BTC) ($250 minimum), Ethereum (ETH) ($250 minimum), alongside Bank Wire ($1,000 minimum, 1–3 business days). Open Deposit inside your dashboard, select your preferred rail, and submit your transfer reference for review.",
   },
   {
     id: "dep-2",
     category: "deposits",
-    question: "When does a submitted deposit appear in my available wallet balance?",
+    question: "What are the deposit minimums and when does funding credit my wallet?",
     answer:
-      "Your deposit appears immediately in your Transaction Ledger with Pending status. Once confirmed by the settlement administration desk, its status updates to Completed and your wallet balance increases by the verified amount.",
+      "While Cryptocurrency mandate tiers begin at $200.00 ($1,000.00 for Stocks and $3,000.00 for Real Estate), custody wallet deposit notices start at $100 USD for USDT (TRC20). Every deposit appears immediately in Pending status and credits your available balance once verified by our settlement desk.",
   },
   {
     id: "wdr-1",
     category: "withdrawals",
-    question: "How do I request a withdrawal from my wallet?",
+    question: "How do I withdraw funds and how fast are withdrawals handled?",
     answer:
-      "Navigate to the Withdrawal page inside the client portal, select your payout rail, enter an amount up to your available wallet balance, and provide your destination wallet address or bank routing reference.",
+      "Open the Withdrawal page in your dashboard, choose your payout rail, enter an amount between $50.00 USD and $250,000.00 USD (up to your available wallet balance), provide your destination address or bank beneficiary details, review the upfront 1.0% fee (minimum $2.00 USD), and confirm. Requests are reviewed promptly by the settlement queue before outbound release.",
   },
   {
     id: "wdr-2",
@@ -114,16 +125,16 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     id: "pln-1",
     category: "plans",
-    question: "How do I select and confirm an investment plan?",
+    question: "What investment plans are available across Crypto, Stocks, and Real Estate?",
     answer:
-      "Review minimum and maximum entry bounds, cycle duration, and terms on the Investment Plans catalog. Once your wallet balance covers your desired allocation, open the Investments page in your portal, pick the mandate, and confirm.",
+      "Bitfury Tech Investment offers 13 mandate tiers across 30-day cycles: 6 Cryptocurrency plans (Crypto Beginner $200 through Crypto Master Pro $1,000,000), 4 Stock plans (Stock Beginner $1,000 through Stock Premium $1,000,000), and 3 Real Estate plans (Real Estate Beginner $3,000 through Real Estate Executive $5,000,000). Clients may also switch categories without switching fees.",
   },
   {
     id: "pln-2",
     category: "plans",
-    question: "Can I allocate an amount outside a mandate's minimum or maximum limits?",
+    question: "When are cycle profits distributed and how do I track my investments?",
     answer:
-      "No. Allocation validation enforces each mandate's published minimum and maximum USD range as well as sufficient verified wallet liquidity before creating an active mandate.",
+      "Trading session accruals are recorded on the active cycle schedule inside your investor portal. Track active mandates, elapsed days, maturity dates, portfolio diversification, and downloadable receipts in real time from Overview, My Investments, and Transactions.",
   },
   {
     id: "prp-1",
@@ -135,16 +146,16 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     id: "prp-2",
     category: "properties",
-    question: "What details are provided for each property offering?",
+    question: "What details should I review before investing in real estate?",
     answer:
-      "Each published offering lists its asset class, location, minimum entry threshold, independent valuation figure, target yield benchmark, occupancy percentage, and current subscription status (Open or Fully Subscribed).",
+      "Always inspect each offering's asset class, location, minimum entry threshold, independent valuation figure, target yield benchmark, occupancy percentage, and current subscription status (Open or Fully Subscribed) alongside supporting disclosures.",
   },
   {
     id: "ret-1",
     category: "returns",
-    question: "Are indicative daily target rates guaranteed?",
+    question: "What is the risk for my investment, and are returns guaranteed?",
     answer:
-      "No. All published daily target rates and cycle return benchmarks are indicative mandate specifications and are never guaranteed. Market liquidity, asset performance, and settlement conditions apply.",
+      "Every financial market—including algorithmic trading, digital assets, equities, and real estate—carries inherent risk. Our experienced risk management and IPC controls work to mitigate downside exposure, but returns are never guaranteed and capital values can go down as well as up.",
   },
   {
     id: "ret-2",
@@ -154,11 +165,18 @@ const FAQ_ITEMS: FaqItem[] = [
       "All settled transactions, allocations, and payouts are recorded in your Transactions ledger with unique reference codes, timestamps, and status indicators (Pending, Completed, or Rejected).",
   },
   {
+    id: "ref-1",
+    category: "referrals",
+    question: "How does the 5%–10% referral programme work?",
+    answer:
+      "Inside the Referrals page of your dashboard, you receive a unique code (BF-XXXXXXXX) and partner registration link. Referrals under $100,000 qualify for a 5% partner bonus and referrals above $100,000 qualify for 10% (alongside plan-category tiers of 5% Crypto, 6% Stock, and 7% Real Estate). Rewards credit strictly upon administrator verification of settled qualifying deposits.",
+  },
+  {
     id: "sec-1",
     category: "security",
     question: "How is my account data protected from unauthorized access?",
     answer:
-      "Strict security rules and server-side token validation isolate user profiles, transactions, investments, and private notifications to the owning authenticated UID (and verified administrators). Non-admin users cannot alter balances or escalate roles.",
+      "All communication runs over HTTPS/SSL protocols, while strict Firestore security rules and server-side token validation isolate user profiles, transactions, investments, and notifications to the owning authenticated UID. You can also update your password or enable the Enhanced Payout Verification Flag in Settings.",
   },
   {
     id: "sec-2",
@@ -166,6 +184,13 @@ const FAQ_ITEMS: FaqItem[] = [
     question: "Are session tokens stored in browser localStorage?",
     answer:
       "No. Session tokens are managed securely in runtime memory during your active session and are verified server-side for protected endpoints.",
+  },
+  {
+    id: "sup-1",
+    category: "support",
+    question: "How do I contact customer support or visit your offices?",
+    answer:
+      "Submit an inquiry on the Contact page, launch the Live Support Chat widget, or email support@bitfurytechinvestment.com, admin@bitfurytechinvestment.com, or bitfurytech21@gmail.com. Corporate offices include 12 Wren Walk, Tilbury, England, RM18 8EU; 171 Crescent Road, Oxford, England, OX4 2NX; and 2511 NW 41 St, Gainesville, FL 32606.",
   },
 ];
 

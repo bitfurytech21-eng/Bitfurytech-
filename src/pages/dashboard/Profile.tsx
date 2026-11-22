@@ -118,7 +118,7 @@ export default function Profile() {
   return (
     <DashboardLayout
       title="Profile"
-      subtitle="Review verified account identity details and update your contact profile."
+      subtitle="Review your verified identity standing, update your display name, username, phone number, and country or jurisdiction."
     >
       {loading ? (
         <Card padding="lg" className="max-w-3xl">

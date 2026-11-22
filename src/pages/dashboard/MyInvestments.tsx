@@ -317,7 +317,7 @@ export default function MyInvestments() {
   return (
     <DashboardLayout
       title="My Investments"
-      subtitle="Verified investment positions belonging strictly to your authenticated BitfuryTech account."
+      subtitle="Track active mandates, cycle progress, maturity dates, and allocation history for your authenticated BitfuryTech account."
       actions={
         <>
           <Button
@@ -383,7 +383,8 @@ export default function MyInvestments() {
           {/* Investments Table */}
           <Card>
             <CardHeader
-              title="Authenticated Investment Positions"
+              title="Active &amp; Completed Positions"
+              subtitle="Inspect cycle duration, elapsed days, expected payment terms, and attached receipts"
               action={
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
@@ -437,6 +438,7 @@ export default function MyInvestments() {
           <Card>
             <CardHeader
               title="Investment Transaction History"
+              subtitle="Capital allocations and settled return entries recorded for your holdings"
               action={
                 <Link
                   to="/transactions"

@@ -12,6 +12,8 @@ import {
 import { getMandateById, INVESTMENT_MANDATES } from "./src/trading/tradingPage.ts";
 import { createCustomerRouter } from "./src/routes/apiCustomer.ts";
 import { createAdminRouter } from "./src/routes/apiAdmin.ts";
+import { createSupportRouter } from "./src/routes/apiSupport.ts";
+import { attachSupportWebSocketServer } from "./src/services/supportWebSocketServer.ts";
 import {
   commitFirestoreWrites,
   decodeDocument,
@@ -191,6 +193,8 @@ app.get("/api/trading/plans", async (_req, res) => {
         minDeposit: Number(r.minDeposit ?? 500) || 500,
         maxDeposit: Number(r.maxDeposit ?? 50000) || 50000,
         dailyRatePct: Number(r.dailyRatePct ?? 1.5) || 1.5,
+        ...(r.monthlyRatePct !== undefined ? { monthlyRatePct: Number(r.monthlyRatePct) } : {}),
+        ...(r.referralBonusPct !== undefined ? { referralBonusPct: Number(r.referralBonusPct) } : {}),
         durationDays: Number(r.durationDays ?? 30) || 30,
         paymentFrequency: String(r.paymentFrequency ?? "Scheduled cycle distribution"),
         settlementRail: String(r.settlementRail ?? "USDT (TRC20) / Bank Wire"),
@@ -662,12 +666,14 @@ app.post("/api/newsletter", async (req, res) => {
   }
 });
 
-// Modular Customer & Admin API routers (protected via requireAuth)
+// Modular Support, Customer & Admin API routers
+app.use("/api", createSupportRouter());
 app.use("/api", createCustomerRouter());
 app.use("/api/admin", createAdminRouter());
 
 async function startServer() {
   const httpServer = http.createServer(app);
+  attachSupportWebSocketServer(httpServer);
 
   if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
@@ -675,7 +681,6 @@ async function startServer() {
       server: {
         middlewareMode: true,
         hmr: process.env.DISABLE_HMR === "true" ? false : { server: httpServer },
-        ws: { server: httpServer },
       },
       appType: "spa",
     });

@@ -61,7 +61,7 @@ export function InvestmentOpportunitiesPage() {
   return (
     <DashboardLayout
       title="Investment Opportunities"
-      subtitle="Browse verified BitfuryTech mandates across Digital Assets, Global Equities, and Real Estate."
+      subtitle="Compare Cryptocurrency, Equities, and Real Estate mandates—review entry limits, durations, and non-guaranteed return terms before allocating."
       actions={
         <Link
           to="/investments"
@@ -275,10 +275,10 @@ export function DashboardPropertiesPage() {
   return (
     <DashboardLayout
       title="Properties"
-      subtitle="Commercial real estate offerings published by BitfuryTech portfolio administrators."
+      subtitle="Inspect commercial real estate offerings published by BitfuryTech administrators, including valuation, occupancy, and target yield disclosures."
       actions={
         <Link
-          to="/investments?plan=estate-commercial"
+          to="/investments?plan=estate-beginner"
           className={buttonClasses({ variant: "primary", size: "sm" })}
         >
           <Building2 className="w-3.5 h-3.5" />
@@ -360,7 +360,7 @@ export function DashboardPropertiesPage() {
               </div>
               <div className="px-5 pb-5">
                 <Link
-                  to="/investments?plan=estate-commercial"
+                  to="/investments?plan=estate-beginner"
                   className={buttonClasses({ variant: "primary", size: "sm", fullWidth: true })}
                 >
                   Participate via Estate Mandate

@@ -1,18 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://bitfurytechlimited.com/</loc></url>
-  <url><loc>https://bitfurytechlimited.com/about</loc></url>
-  <url><loc>https://bitfurytechlimited.com/company</loc></url>
-  <url><loc>https://bitfurytechlimited.com/services</loc></url>
-  <url><loc>https://bitfurytechlimited.com/investment</loc></url>
-  <url><loc>https://bitfurytechlimited.com/crypto</loc></url>
-  <url><loc>https://bitfurytechlimited.com/stock</loc></url>
-  <url><loc>https://bitfurytechlimited.com/estate</loc></url>
-  <url><loc>https://bitfurytechlimited.com/properties</loc></url>
-  <url><loc>https://bitfurytechlimited.com/news</loc></url>
-  <url><loc>https://bitfurytechlimited.com/faq</loc></url>
-  <url><loc>https://bitfurytechlimited.com/contact</loc></url>
-  <url><loc>https://bitfurytechlimited.com/rules</loc></url>
-  <url><loc>https://bitfurytechlimited.com/terms</loc></url>
-  <url><loc>https://bitfurytechlimited.com/privacy</loc></url>
+  <url><loc>/</loc></url>
+  <url><loc>/about</loc></url>
+  <url><loc>/services</loc></url>
+  <url><loc>/investments-catalog</loc></url>
+  <url><loc>/properties</loc></url>
+  <url><loc>/how-it-works</loc></url>
+  <url><loc>/faq</loc></url>
+  <url><loc>/contact</loc></url>
+  <url><loc>/terms</loc></url>
+  <url><loc>/privacy</loc></url>
 </urlset>
+

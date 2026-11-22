@@ -165,7 +165,7 @@ export default function Deposit() {
   return (
     <DashboardLayout
       title="Deposit Funds"
-      subtitle="Submit a verified funding notice through supported BitfuryTech payment rails."
+      subtitle="Select a supported rail, review transfer instructions, and submit a deposit notice for settlement verification."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadData()}>
           <RefreshCw className="w-3.5 h-3.5" />
@@ -323,8 +323,8 @@ export default function Deposit() {
 
       <Card>
         <CardHeader
-          title="Recent Deposit Submissions"
-          subtitle="Live payment status and reference history"
+          title="Deposit History"
+          subtitle="Track submitted funding notices and their Pending, Completed, or Rejected verification status"
         />
         <CardBody>
           <DataTable

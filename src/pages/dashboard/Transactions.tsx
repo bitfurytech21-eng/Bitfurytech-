@@ -179,7 +179,7 @@ export default function Transactions() {
   return (
     <DashboardLayout
       title="Transactions"
-      subtitle="Searchable, filterable ledger of your authenticated deposits, withdrawals, investments, and credits."
+      subtitle="Search, filter, and download receipts for every Deposit, Withdrawal, Investment, Profit, and Referral ledger record."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadTransactions()}>
           <RefreshCw className="w-3.5 h-3.5" />
@@ -197,7 +197,7 @@ export default function Transactions() {
         <Card>
           <CardHeader
             title="Account Transaction Ledger"
-            subtitle={`${filtered.length} matching record(s)`}
+            subtitle={`${filtered.length} matching record(s) · Inspect details or download individual receipts`}
           />
           <CardBody className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">

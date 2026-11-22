@@ -202,7 +202,7 @@ export default function Withdraw() {
   return (
     <DashboardLayout
       title="Withdraw Funds"
-      subtitle="Submit a verified payout request from your available BitfuryTech custody balance."
+      subtitle="Request a payout from your available custody balance with upfront fee calculation and full settlement tracking."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadData()}>
           <RefreshCw className="w-3.5 h-3.5" />
@@ -362,8 +362,8 @@ export default function Withdraw() {
 
       <Card>
         <CardHeader
-          title="Withdrawal Request History"
-          subtitle="Pending, Completed, and Rejected disbursements"
+          title="Withdrawal History"
+          subtitle="Pending, Completed, and Rejected payout requests; declined requests automatically restore reserved funds"
         />
         <CardBody>
           <DataTable

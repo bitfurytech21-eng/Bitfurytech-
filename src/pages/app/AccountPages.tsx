@@ -37,7 +37,7 @@ export function NotificationsPage() {
   return (
     <MetronicShell
       title="Notifications"
-      subtitle="Platform announcements, settlement updates, and account notices."
+      subtitle="Track platform broadcasts alongside personal settlement alerts, deposit confirmations, and withdrawal notices."
     >
       <Card>
         <CardHeader
@@ -47,6 +47,7 @@ export function NotificationsPage() {
               <span>Message Feed</span>
             </span>
           }
+          subtitle="Mark personal account notices as read once reviewed"
         />
         <CardBody>
           {items.length === 0 ? (

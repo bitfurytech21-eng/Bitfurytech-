@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Mail, ShieldCheck } from "lucide-react";
+import { Building2, Mail, MapPin, ShieldCheck, Users } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
@@ -7,41 +7,98 @@ import { buttonClasses } from "../../components/ui";
 const SECTORS = [
   {
     index: "01",
-    title: "Digital Assets",
+    title: "Cryptocurrency & Digital Assets",
     description:
-      "Structured liquidity and custody mandates utilizing BTC, ETH, and USDT (TRC20) settlement channels with segregated wallet tracking.",
+      "Algorithmic and mathematical trading strategies across six structured Cryptocurrency mandates utilizing BTC, ETH, and USDT (TRC20) settlement channels, paired with risk awareness around blockchain volatility and liquidity.",
   },
   {
     index: "02",
-    title: "Global Equities",
+    title: "Stocks & Global Equities",
     description:
-      "Multi-cycle equity index and private treasury mandates focused on liquid large-cap technology and industrial sectors.",
+      "Four quantitative equity mandates providing access across over 50 global financial markets through one unified account, evaluated against corporate earnings and macroeconomic developments.",
   },
   {
     index: "03",
     title: "Commercial Real Estate",
     description:
-      "Asset-backed participation in commercial office and logistics holdings published directly to the BitfuryTech property catalog.",
+      "Three real estate mandate tiers alongside live administrator-published commercial property offerings with transparent valuation figures, tenancy context, and rental yield disclosures.",
+  },
+];
+
+const SOLUTIONS = [
+  {
+    index: "01",
+    title: "Market Analysis",
+    description:
+      "We study the attractiveness and underlying dynamics across digital assets, equities, and real estate sectors within global financial markets.",
+  },
+  {
+    index: "02",
+    title: "Allocation & Advisory Desk",
+    description:
+      "Our specialists focus on more than simple trade execution—helping align structured mandates, liquidity horizons, and risk parameters with client objectives.",
+  },
+  {
+    index: "03",
+    title: "Professional Research Team",
+    description:
+      "Experienced financial analysts, network engineers, macroeconomists, research scientists, and quantitative analysts collaborate on systematic execution.",
+  },
+  {
+    index: "04",
+    title: "Structured Portfolio",
+    description:
+      "Multi-asset allocations built to balance performance potential and controlled risk brackets across changing market regimes.",
   },
 ];
 
 const VALUES = [
   {
-    title: "Account Isolation",
-    body: "Investor profiles, ledgers, and mandates are bound strictly to verified authentication identities.",
+    title: "Transparency & Plain Reporting",
+    body: "Entry bounds, 30-day cycle horizons, monthly benchmarks, referral tiers, and non-guaranteed return disclosures are presented upfront prior to every allocation.",
   },
   {
-    title: "Settlement Verification",
-    body: "All deposits and withdrawals require explicit administrative confirmation before wallet balances change.",
+    title: "Account Isolation & Ledger Integrity",
+    body: "Investor profiles, balances, and transaction histories are isolated per verified identity, initializing cleanly at $0.00 with zero synthetic data.",
   },
   {
-    title: "Zero Fabricated Balances",
-    body: "Newly opened client accounts start at $0.00; only settled funds and approved transactions appear in the portal.",
+    title: "Academic & Quantitative Discipline",
+    body: "Guided by our Investment Policy Committee (IPC), our investment process relies on financial science, mathematics, and statistical discipline rather than speculative tips.",
   },
   {
-    title: "Risk Transparency",
-    body: "Target return benchmarks are presented strictly as indicative mandate parameters and never as guaranteed yields.",
+    title: "Responsible Risk Awareness",
+    body: "We communicate clearly that asset prices fluctuate, values can rise or fall, and no investment mandate offers guaranteed outcomes.",
   },
+];
+
+const LEADERSHIP_TEAM = [
+  {
+    name: "Robb Baldwin",
+    role: "President and CEO",
+    focus: "Executive leadership, multi-market platform strategy, and institutional governance.",
+  },
+  {
+    name: "Rob Dilbone",
+    role: "Managing Director",
+    focus: "Portfolio structuring, market expansion, and global custody coordination.",
+  },
+  {
+    name: "Cris Frankel",
+    role: "VP of Business Development",
+    focus: "Institutional client partnerships, multi-asset outreach, and partner onboarding.",
+  },
+  {
+    name: "Scott Victoria",
+    role: "Chief Operating Officer",
+    focus: "Operational risk management, settlement verification, and 24/7 execution oversight.",
+  },
+];
+
+const PLATFORM_MILESTONES = [
+  { label: "Total Members", value: "1,865+" },
+  { label: "Total Returns Distributed", value: "$604,585" },
+  { label: "Total Transactions", value: "4,180+" },
+  { label: "Total Deposited", value: "$695,535" },
 ];
 
 export default function About() {
@@ -52,31 +109,31 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 grid lg:grid-cols-12 gap-10 items-stretch">
           <div className="lg:col-span-7 flex flex-col justify-center space-y-5">
             <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-              About BitfuryTech
+              About Bitfury Tech Investment · Est. 2017
             </p>
             <h1
               className="font-heading font-bold tracking-tight text-white text-balance leading-[1.1]"
               style={{ fontSize: "clamp(2rem, 3.6vw, 3.25rem)" }}
             >
-              Structured multi-asset portfolio custody and transparent ledger governance.
+              An algorithmic and multi-asset investment firm built on mathematical research and disciplined custody.
             </h1>
             <p className="text-base text-slate-200 leading-relaxed">
-              BitfuryTech operates an integrated wealth administration portal uniting digital asset
-              liquidity, global equity mandates, and commercial real estate participation inside a
-              single role-isolated client workspace.
+              Founded in 2017 by skilled financial analysts, fund managers, and research scientists,
+              Bitfury Tech Investment combines mathematical and statistical methods with direct access
+              to over 50 financial markets across Cryptocurrency, Stocks, and Commercial Real Estate.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link
                 to="/investments-catalog"
                 className={buttonClasses({ variant: "primary", size: "md" })}
               >
-                Explore Investment Plans
+                Explore Opportunities
               </Link>
               <Link
                 to="/register"
                 className={buttonClasses({ variant: "outlineDark", size: "md" })}
               >
-                Create Account
+                Create an Account
               </Link>
             </div>
           </div>
@@ -94,82 +151,153 @@ export default function About() {
 
       <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
-          {/* 2. History & Background (Verified Information Only) */}
+          {/* 2. Who We Are & What We Do */}
           <section className="grid md:grid-cols-12 gap-8 items-start border-b border-[#DCE4EC] pb-14">
             <div className="md:col-span-4">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                Background
+                Reinventing Investor Access
               </p>
               <h2 className="text-2xl font-heading font-bold text-[#102030] mt-2">
-                Platform History &amp; Architecture
+                Who We Are &amp; What We Do
               </h2>
             </div>
             <div className="md:col-span-8 space-y-4 text-sm sm:text-base text-[#5A6B7C] leading-relaxed">
               <p>
-                BitfuryTech was architected to replace fragmented spreadsheets and opaque custody
-                reports with a unified digital portal backed by real-time ledger verification. Rather
-                than bundling unverified third-party claims, the platform enforces strict identity
-                verification and database-level isolation across every investor record.
+                Bitfury Tech Investment is an algorithmic trading and wealth management firm
+                dedicated to expanding access to wealth-creation opportunities traditionally reserved
+                for institutional desks. Our spectrum spans portfolio administration, liquidity
+                provision, corporate finance guidance, and structured multi-asset mandates across 13
+                tiered plans.
               </p>
               <p>
-                Every capital movement—whether a deposit notice, a mandate allocation, or a
-                withdrawal disbursement—is recorded sequentially in Firestore with verifiable
-                timestamps and explicit settlement states.
+                Every account operates inside an isolated custody ledger initialized at $0.00.
+                Deposits, mandate allocations, property inquiries, and withdrawals are tracked
+                sequentially with traceable reference codes so clients maintain complete clarity
+                over account activity.
               </p>
             </div>
           </section>
 
-          {/* 3. Mission and Vision */}
+          {/* Published Company Numbers */}
+          <section className="bg-[#1B4962] text-white rounded-[5px] p-7 sm:p-8 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/15 pb-5">
+              <div>
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
+                  Published Platform Milestones
+                </p>
+                <h2 className="text-2xl font-heading font-bold text-white mt-1">
+                  Company Track Record &amp; Scale
+                </h2>
+              </div>
+              <p className="text-xs text-slate-300 max-w-md">
+                Cumulative operational figures reported across Bitfury Tech Investment platform
+                operations. Individual client accounts begin strictly at $0.00 until funded.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {PLATFORM_MILESTONES.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="bg-[#14374B] border border-white/15 rounded-[5px] p-5 space-y-1.5"
+                >
+                  <p className="text-xs text-slate-200">{stat.label}</p>
+                  <p className="text-2xl sm:text-3xl font-mono tabular-nums font-bold text-white">
+                    {stat.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 3. Mission, Vision & Forward-Thinking Solutions */}
           <section className="grid md:grid-cols-2 gap-6 border-b border-[#DCE4EC] pb-14">
             <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-3">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
                 Our Mission
               </p>
               <h2 className="text-xl font-heading font-bold text-[#102030]">
-                Clear, Auditable Multi-Asset Portfolio Access
+                Financial Security &amp; Mobility Through Disciplined Technology
               </h2>
               <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                Provide investors with direct visibility into mandate entry thresholds, settlement
-                rails, and verified wallet balances without synthetic demo figures or hidden balance
-                adjustments.
+                Our mission is to create and promote research-led investment allocations that
+                broaden access to financial security and mobility—combining quantitative discipline
+                with plain, verifiable portfolio reporting.
               </p>
             </div>
             <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-3">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                Our Vision
+                Our Approach &amp; IPC Oversight
               </p>
               <h2 className="text-xl font-heading font-bold text-[#102030]">
-                Unified Custody Across Digital and Real-World Assets
+                Investment Policy Committee (IPC)
               </h2>
               <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                Bridge digital asset liquidity, global equities, and commercial property participation
-                under one disciplined administration and reporting standard.
+                Our Investment Policy Committee—bringing over 10 years of combined investing
+                experience alongside network engineers, macroeconomists, research scientists, and
+                quantitative analysts—guides strategic allocation models rooted in financial
+                science rather than speculative stock tips.
               </p>
             </div>
           </section>
 
-          {/* 4. Business Model */}
-          <section className="grid md:grid-cols-12 gap-8 items-start border-b border-[#DCE4EC] pb-14">
-            <div className="md:col-span-4">
+          {/* Forward-Thinking Solutions */}
+          <section className="space-y-6 border-b border-[#DCE4EC] pb-14">
+            <div className="space-y-2">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                Operations
+                Capabilities
               </p>
-              <h2 className="text-2xl font-heading font-bold text-[#102030] mt-2">
-                Business Model
+              <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#102030]">
+                Forward-Thinking Investment Solutions
               </h2>
             </div>
-            <div className="md:col-span-8 space-y-4 text-sm sm:text-base text-[#5A6B7C] leading-relaxed">
-              <p>
-                BitfuryTech structures fixed-cycle investment mandates across three core asset classes,
-                each defined by transparent minimum and maximum deposit bounds, cycle durations, and
-                supported funding rails (USDT TRC20, BTC, ETH, and Bank Wire).
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {SOLUTIONS.map((sol) => (
+                <div
+                  key={sol.index}
+                  className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-2.5 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
+                >
+                  <p className="text-xs font-mono font-semibold text-[#B92841]">{sol.index}.</p>
+                  <h3 className="text-base font-heading font-bold text-[#102030]">{sol.title}</h3>
+                  <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">
+                    {sol.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Executive Leadership Team */}
+          <section className="space-y-6 border-b border-[#DCE4EC] pb-14">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                  Executive Leadership
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#102030]">
+                  Our Experts &amp; Governance Team
+                </h2>
+              </div>
+              <p className="text-xs text-[#5A6B7C] max-w-md">
+                Bitfury Tech Investment is led by seasoned financial operators committed to
+                structured risk brackets and client custody standards.
               </p>
-              <p>
-                Clients fund their segregated custody wallet by submitting a deposit notice with
-                supporting transfer references. After settlement confirmation by BitfuryTech
-                administrators, verified wallet liquidity can be allocated into eligible mandates or
-                withdrawn upon payout verification.
-              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {LEADERSHIP_TEAM.map((exec) => (
+                <div
+                  key={exec.name}
+                  className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2"
+                >
+                  <div className="flex items-center gap-2 text-[#1B4962]">
+                    <Users className="w-4 h-4 text-[#E94D65] shrink-0" />
+                    <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                      {exec.role}
+                    </p>
+                  </div>
+                  <h3 className="text-lg font-heading font-bold text-[#102030]">{exec.name}</h3>
+                  <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">{exec.focus}</p>
+                </div>
+              ))}
             </div>
           </section>
 
@@ -180,7 +308,7 @@ export default function About() {
                 Portfolio Scope
               </p>
               <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#102030]">
-                Investment Sectors
+                Core Asset Categories
               </h2>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
@@ -204,7 +332,7 @@ export default function About() {
                 Standards
               </p>
               <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#102030]">
-                Corporate Values
+                What We Stand For
               </h2>
             </div>
             <div className="grid sm:grid-cols-2 gap-6">
@@ -220,23 +348,42 @@ export default function About() {
             </div>
           </section>
 
-          {/* 7. Verified Management & Governance Information */}
-          <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-4">
+          {/* 7. Global Offices & Settlement Governance */}
+          <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-5">
             <div className="flex items-center gap-2.5">
               <ShieldCheck className="w-5 h-5 text-[#E94D65] shrink-0" />
               <h2 className="text-xl font-heading font-bold text-[#102030]">
-                Governance &amp; Settlement Administration
+                Global Offices &amp; Governance
               </h2>
             </div>
-            <p className="text-sm text-[#5A6B7C] leading-relaxed">
-              Platform oversight, deposit confirmation, withdrawal clearance, and commercial property
-              catalog publishing are administered directly through the verified{" "}
-              <strong className="text-[#102030]">BitfuryTech Settlement &amp; Administration Desk</strong>.
-            </p>
+            <div className="grid md:grid-cols-3 gap-5 text-sm text-[#5A6B7C]">
+              <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
+                <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#E94D65]" />
+                  <span>UK Registered Office</span>
+                </p>
+                <p className="text-xs">12 Wren Walk, Tilbury, England, RM18 8EU</p>
+              </div>
+              <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
+                <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-[#E94D65]" />
+                  <span>Oxford UK Location</span>
+                </p>
+                <p className="text-xs">171 Crescent Road, Oxford, England, OX4 2NX</p>
+              </div>
+              <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
+                <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#E94D65]" />
+                  <span>United States Office</span>
+                </p>
+                <p className="text-xs">2511 NW 41 St, Gainesville, FL 32606</p>
+              </div>
+            </div>
             <p className="text-xs text-[#5A6B7C] leading-relaxed">
-              Disclosure: In accordance with BitfuryTech reporting accuracy standards, no unverified
-              external regulatory registration numbers, third-party licences, individual executive
-              biographies, or unsubstantiated historical financial figures are claimed on this page.
+              Risk Notice: Investing in financial markets, digital assets, equities, and real estate
+              involves capital risk. Past performance or indicative daily targets do not guarantee
+              future outcomes, and asset values can rise or fall. Platform tools support client
+              analysis and administration rather than replacing independent financial judgment.
             </p>
           </section>
 
@@ -247,12 +394,22 @@ export default function About() {
                 Contact Information
               </p>
               <h2 className="text-xl font-heading font-bold text-white">
-                Reach the BitfuryTech Desk
+                Reach the Bitfury Tech Investment Desk
               </h2>
-              <p className="text-sm text-slate-200 flex items-center gap-2">
-                <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                <span>bitfurytech21@gmail.com</span>
-              </p>
+              <div className="text-xs sm:text-sm text-slate-200 flex flex-wrap gap-x-5 gap-y-1.5">
+                <span className="inline-flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
+                  <span>support@bitfurytechinvestment.com</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
+                  <span>admin@bitfurytechinvestment.com</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
+                  <span>bitfurytech21@gmail.com</span>
+                </span>
+              </div>
             </div>
             <div className="flex flex-wrap gap-3 shrink-0">
               <Link

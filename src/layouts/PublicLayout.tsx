@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Clock, Hexagon, Mail, Menu, ShieldCheck, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import LiveSupportWidget from "../components/LiveSupportWidget";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -71,15 +72,15 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-10 py-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1.5 text-xs">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-slate-100">
             <a
-              href="mailto:bitfurytech21@gmail.com"
+              href="mailto:support@bitfurytechinvestment.com"
               className="inline-flex items-center gap-1.5 hover:text-[#E94D65] transition-colors whitespace-nowrap"
             >
               <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-              <span>bitfurytech21@gmail.com</span>
+              <span>support@bitfurytechinvestment.com</span>
             </a>
             <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-200 whitespace-nowrap">
               <Clock className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-              <span>Settlement Verification Desk · Mon–Fri 08:00–18:00 UTC</span>
+              <span>50+ Global Markets · Quantitative &amp; Multi-Asset Custody</span>
             </span>
           </div>
 
@@ -243,13 +244,19 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
               </span>
             </Link>
             <p className="text-sm text-slate-200 leading-relaxed max-w-sm">
-              Structured digital asset custody, global equity mandates, and commercial property
-              portfolio administration with verifiable ledger settlement.
+              Bitfury Tech Investment is an algorithmic and multi-asset trading firm founded in 2017,
+              providing mathematical and statistical allocations across over 50 financial markets
+              through one unified custody account.
             </p>
-            <div className="pt-1 text-xs text-slate-300 space-y-1">
+            <div className="pt-1 text-xs text-slate-300 space-y-1.5">
+              <p>12 Wren Walk, Tilbury, England, RM18 8EU</p>
               <p className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-                <span>bitfurytech21@gmail.com</span>
+                <span>admin@bitfurytechinvestment.com</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
+                <span>support@bitfurytechinvestment.com · bitfurytech21@gmail.com</span>
               </p>
             </div>
           </div>
@@ -360,14 +367,26 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         </div>
 
         <div className="bg-[#112E3E] border-t border-white/10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-300">
-            <p>© {new Date().getFullYear()} BitfuryTech. All rights reserved.</p>
-            <p className="text-center sm:text-right">
-              Indicative mandate rates are non-guaranteed benchmarks subject to market risk.
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-3 text-xs text-slate-300">
+            <p className="leading-relaxed text-slate-300/90">
+              Important Notice: Bitfury Tech Investment publishes platform materials for
+              informational purposes only, which should not be regarded as a personal financial
+              solicitation. Investing in stocks, options, futures, digital assets, and foreign
+              markets involves substantial risk, and investment income may go down as well as up.
+              Published regulatory and dispute frameworks reference Bitfury Tech Investment filings
+              with The Financial Commission, SEC, IIROC, and CIPF where applicable.
             </p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10">
+              <p>© {new Date().getFullYear()} Bitfury Tech Investment. All rights reserved.</p>
+              <p className="text-center sm:text-right">
+                Indicative mandate rates are non-guaranteed benchmarks subject to market risk.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
+
+      <LiveSupportWidget />
     </div>
   );
 }
