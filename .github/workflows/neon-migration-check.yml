@@ -35,7 +35,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: false
       - name: Regenerate package lock from package.json
         run: npm install --package-lock-only --ignore-scripts
       - name: Commit repaired lockfile when changed
