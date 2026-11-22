@@ -30,6 +30,7 @@ import firebaseConfig from "./firebase-applet-config.json" with { type: "json" }
 import { queryDatabase } from "./src/db/pool.ts";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { betterAuthInstance } from "./src/lib/better-auth.ts";
+import { requireBetterAuth, requireBetterAdmin, resolveBetterAuthRole, type BetterAuthRequest } from "./src/middleware/betterAuth.ts";
 
 dotenv.config();
 
@@ -76,6 +77,43 @@ app.get("/api/account/session", async (req, res) => {
     console.error("Better Auth session lookup failed:", error);
     res.status(503).json({ authenticated: false, error: "Unable to verify account session." });
   }
+});
+
+// Better Auth session endpoints. The existing Firebase-backed API remains in place during staged migration.
+app.get("/api/auth/better-session", requireBetterAuth, async (req: BetterAuthRequest, res) => {
+  const session = req.betterAuthSession;
+  if (!session) {
+    res.status(401).json({ authenticated: false });
+    return;
+  }
+  try {
+    const role = await resolveBetterAuthRole(session.user.id);
+    res.json({
+      authenticated: true,
+      user: {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        emailVerified: session.user.emailVerified,
+        role,
+        isAdmin: role === "admin" && session.user.emailVerified,
+      },
+      session: { expiresAt: session.session.expiresAt },
+    });
+  } catch (error) {
+    console.error("Better Auth role lookup failed:", error);
+    res.status(503).json({ authenticated: false, error: "Unable to verify account permissions." });
+  }
+});
+
+app.get("/api/auth/better-admin-check", requireBetterAuth, requireBetterAdmin, (req: BetterAuthRequest, res) => {
+  res.json({
+    ok: true,
+    userId: req.betterAuthSession?.user.id,
+    email: req.betterAuthSession?.user.email ?? null,
+    isAdmin: true,
+    role: "admin",
+  });
 });
 
 app.use(express.json({ limit: "6mb" }));
