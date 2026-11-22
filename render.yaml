@@ -10,3 +10,5 @@ services:
         value: production
       - key: PORT
         value: 3000
+      - key: SMTP_FROM
+        value: "BitfuryTech Support <support@bitfurytech.cloud>"
