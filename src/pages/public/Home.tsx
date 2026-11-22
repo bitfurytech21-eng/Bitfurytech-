@@ -28,6 +28,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
 import InvestorTestimonials from "../../components/InvestorTestimonials";
 import PaymentMethods from "../../components/PaymentMethods";
+import AnimatedStatValue from "../../components/AnimatedStatValue";
 import {
   PropertyOffering,
   subscribeProperties,
@@ -887,12 +888,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section aria-labelledby="our-numbers-heading" className="bg-[#FBFAFC]">
+      <section aria-labelledby="our-numbers-heading" className="bg-[#F6F8FA]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
           <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-            <span aria-hidden="true" className="h-2 w-24 bg-[#58A363]" />
-            <h2 id="our-numbers-heading" className="mt-6 font-heading text-4xl font-bold tracking-tight text-[#121212] sm:text-5xl">
-              Our <span className="text-[#58A363]">Numbers</span>
+            <span aria-hidden="true" className="h-1.5 w-24 rounded-full bg-[#E94D65]" />
+            <h2 id="our-numbers-heading" className="mt-6 font-heading text-4xl font-bold tracking-tight text-[#102030] sm:text-5xl">
+              Our <span className="text-[#E94D65]">Numbers</span>
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-[#5B5B61] sm:text-base">
               Historical figures as reported by the company; not independently audited.
@@ -904,14 +905,12 @@ export default function Home() {
               return (
                 <article
                   key={item.label}
-                  className={`flex min-h-[210px] flex-col items-center justify-center rounded-3xl border border-[#F0EDF4] bg-white px-5 py-7 text-center shadow-[0_18px_48px_rgba(64,51,89,0.08)] sm:min-h-[250px] sm:py-9 ${
-                    index % 2 === 1 ? "lg:translate-y-8" : ""
-                  }`}
+                  className={`bf-reveal flex min-h-[210px] flex-col items-center justify-center rounded-2xl border border-[#DCE4EC] bg-white px-5 py-7 text-center shadow-[0_18px_48px_rgba(27,73,98,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[#E94D65]/50 hover:shadow-[0_22px_55px_rgba(27,73,98,0.14)] sm:min-h-[250px] sm:py-9 ${index % 2 === 1 ? "lg:translate-y-8" : ""}` } style={{ animationDelay: `${index * 120}ms` }}
                 >
-                  <Icon aria-hidden="true" className="mb-5 h-14 w-14 text-[#513A76] sm:h-16 sm:w-16" strokeWidth={1.5} />
+                  <Icon aria-hidden="true" className="mb-5 h-14 w-14 text-[#1B4962] sm:h-16 sm:w-16" strokeWidth={1.5} />
                   <p className="text-lg font-medium text-[#3F3F46] sm:text-xl">{item.label}</p>
-                  <p className="mt-2 text-3xl font-extrabold tabular-nums text-[#1B2353] sm:text-4xl">
-                    {item.value}
+                  <p className="mt-2 text-3xl font-extrabold tabular-nums text-[#1B4962] sm:text-4xl">
+                    <AnimatedStatValue value={item.value} />
                   </p>
                 </article>
               );
