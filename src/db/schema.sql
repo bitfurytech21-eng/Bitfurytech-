@@ -89,7 +89,7 @@ CREATE INDEX IF NOT EXISTS legacy_auth_user_idx ON legacy_auth_identities(user_i
 
 -- Provision the least-privileged role and a profile for every new Better Auth user.
 CREATE OR REPLACE FUNCTION bitfurytech_provision_user()
-RETURNS trigger AS $
+RETURNS trigger AS $$
 BEGIN
   INSERT INTO user_profiles (user_id) VALUES (NEW.id)
   ON CONFLICT (user_id) DO NOTHING;
@@ -97,7 +97,7 @@ BEGIN
   ON CONFLICT (user_id, role) DO NOTHING;
   RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS bitfurytech_user_provision_after_insert ON "user";
 CREATE TRIGGER bitfurytech_user_provision_after_insert
