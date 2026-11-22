@@ -6,7 +6,6 @@ import {
   Building2,
   FileText,
   FolderOpen,
-  Hexagon,
   Home,
   Layers,
   LayoutDashboard,
@@ -75,11 +74,15 @@ function AdminSidebarContent({
           <Link
             to="/admin"
             onClick={onNavigate}
-            className="inline-flex items-center gap-2.5 font-heading font-extrabold text-lg text-white whitespace-nowrap shrink-0"
+            className="inline-flex items-center gap-2 rounded-md bg-white px-2 py-1 whitespace-nowrap shrink-0"
           >
-            <Hexagon className="w-6 h-6 text-[#E94D65] fill-[#E94D65]/20 shrink-0" />
-            <span>
-              Bitfury<span className="text-[#E94D65]">Admin</span>
+            <img
+              src="/images/brand/bitfurylogo.png"
+              alt="Bitfury Tech Investment"
+              className="h-7 w-auto"
+            />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1B4962]">
+              Admin
             </span>
           </Link>
           {showCloseButton && onCloseMobile && (

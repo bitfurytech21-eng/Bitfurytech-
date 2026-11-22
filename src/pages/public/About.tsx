@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Building2, Mail, MapPin, ShieldCheck, Users } from "lucide-react";
+import { FileText, Mail, MapPin, ShieldCheck, Users } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
@@ -75,21 +75,25 @@ const LEADERSHIP_TEAM = [
   {
     name: "Robb Baldwin",
     role: "President and CEO",
+    image: "/images/leadership/robb-baldwin.webp",
     focus: "Executive leadership, multi-market platform strategy, and institutional governance.",
   },
   {
     name: "Rob Dilbone",
     role: "Managing Director",
+    image: "/images/leadership/rob-dilbone.webp",
     focus: "Portfolio structuring, market expansion, and global custody coordination.",
   },
   {
     name: "Cris Frankel",
     role: "VP of Business Development",
+    image: "/images/leadership/cris-frankel.webp",
     focus: "Institutional client partnerships, multi-asset outreach, and partner onboarding.",
   },
   {
     name: "Scott Victoria",
     role: "Chief Operating Officer",
+    image: "/images/leadership/scott-victoria.webp",
     focus: "Operational risk management, settlement verification, and 24/7 execution oversight.",
   },
 ];
@@ -176,6 +180,37 @@ export default function About() {
                 over account activity.
               </p>
             </div>
+          </section>
+
+          <section
+            aria-labelledby="company-document-heading"
+            className="flex flex-col gap-5 rounded-xl border border-[#DCE4EC] bg-[#F6F8FA] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-[#1B4962] shadow-sm">
+                <FileText aria-hidden="true" className="h-5 w-5" />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                  Company document
+                </p>
+                <h2 id="company-document-heading" className="text-lg font-heading font-bold text-[#102030]">
+                  Company information document
+                </h2>
+                <p className="max-w-2xl text-xs leading-relaxed text-[#5A6B7C]">
+                  This PDF was linked as the company number document on the previous website. Its
+                  contents have not been independently verified.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/documents/bitfury-company-certificate.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md bg-[#1B4962] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#14374B]"
+            >
+              View certificate (PDF)
+            </a>
           </section>
 
           {/* Published Company Numbers */}
@@ -286,16 +321,24 @@ export default function About() {
               {LEADERSHIP_TEAM.map((exec) => (
                 <div
                   key={exec.name}
-                  className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2"
+                  className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
                 >
-                  <div className="flex items-center gap-2 text-[#1B4962]">
-                    <Users className="w-4 h-4 text-[#E94D65] shrink-0" />
-                    <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                      {exec.role}
-                    </p>
+                  <img
+                    src={exec.image}
+                    alt={`${exec.name}, ${exec.role}`}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover object-top"
+                  />
+                  <div className="space-y-2 p-5">
+                    <div className="flex items-center gap-2 text-[#1B4962]">
+                      <Users className="w-4 h-4 text-[#E94D65] shrink-0" />
+                      <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                        {exec.role}
+                      </p>
+                    </div>
+                    <h3 className="text-lg font-heading font-bold text-[#102030]">{exec.name}</h3>
+                    <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">{exec.focus}</p>
                   </div>
-                  <h3 className="text-lg font-heading font-bold text-[#102030]">{exec.name}</h3>
-                  <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">{exec.focus}</p>
                 </div>
               ))}
             </div>
@@ -356,27 +399,13 @@ export default function About() {
                 Global Offices &amp; Governance
               </h2>
             </div>
-            <div className="grid md:grid-cols-3 gap-5 text-sm text-[#5A6B7C]">
+            <div className="grid md:grid-cols-2 gap-5 text-sm text-[#5A6B7C]">
               <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
                 <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#E94D65]" />
-                  <span>UK Registered Office</span>
-                </p>
-                <p className="text-xs">12 Wren Walk, Tilbury, England, RM18 8EU</p>
-              </div>
-              <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
-                <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-[#E94D65]" />
-                  <span>Oxford UK Location</span>
+                  <span>Office</span>
                 </p>
                 <p className="text-xs">171 Crescent Road, Oxford, England, OX4 2NX</p>
-              </div>
-              <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
-                <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#E94D65]" />
-                  <span>United States Office</span>
-                </p>
-                <p className="text-xs">2511 NW 41 St, Gainesville, FL 32606</p>
               </div>
             </div>
             <p className="text-xs text-[#5A6B7C] leading-relaxed">

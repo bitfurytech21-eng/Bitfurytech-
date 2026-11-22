@@ -1,5 +1,5 @@
 import { Link, Outlet } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Hexagon, Lock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Lock, ShieldCheck } from "lucide-react";
 
 interface AuthLayoutProps {
   eyebrow?: string;
@@ -27,11 +27,12 @@ export default function AuthLayout({
         <div className="absolute inset-0 bg-gradient-to-b from-[#1B4962]/92 via-[#1B4962]/86 to-[#112E3E]/96" />
 
         <div className="relative z-10 flex items-center justify-between gap-4">
-          <Link to="/" className="inline-flex items-center gap-2 font-heading font-extrabold text-xl text-white">
-            <Hexagon className="w-6 h-6 text-[#E94D65] fill-[#E94D65]/20 shrink-0" />
-            <span>
-              Bitfury<span className="text-[#E94D65]">Tech</span>
-            </span>
+          <Link to="/" className="inline-flex items-center rounded-md bg-white px-2 py-1">
+            <img
+              src="/images/brand/bitfurylogo.png"
+              alt="Bitfury Tech Investment"
+              className="h-8 w-auto"
+            />
           </Link>
           <Link
             to="/"

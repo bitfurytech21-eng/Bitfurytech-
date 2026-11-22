@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
+import CompanyLogoSlideshow from "../../components/CompanyLogoSlideshow";
 import ResilientImage from "../../components/ResilientImage";
 import TradingViewTickerTape from "../../components/TradingViewTickerTape";
 import {
@@ -145,10 +146,54 @@ const PORTFOLIO_PRINCIPLES = [
 ];
 
 const LEADERSHIP_TEAM = [
-  { name: "Robb Baldwin", role: "President & CEO" },
-  { name: "Rob Dilbone", role: "Managing Director" },
-  { name: "Cris Frankel", role: "VP of Business Development" },
-  { name: "Scott Victoria", role: "Chief Operating Officer" },
+  {
+    name: "Robb Baldwin",
+    role: "President & CEO",
+    image: "/images/leadership/robb-baldwin.webp",
+  },
+  {
+    name: "Rob Dilbone",
+    role: "Managing Director",
+    image: "/images/leadership/rob-dilbone.webp",
+  },
+  {
+    name: "Cris Frankel",
+    role: "VP of Business Development",
+    image: "/images/leadership/cris-frankel.webp",
+  },
+  {
+    name: "Scott Victoria",
+    role: "Chief Operating Officer",
+    image: "/images/leadership/scott-victoria.webp",
+  },
+];
+
+const LEGACY_REVIEWS = [
+  {
+    name: "Jenifer Smart",
+    quote:
+      "I have never trusted any investment platform before, but Bitfury Tech Investments changed everything. They manage my assets and funds.",
+  },
+  {
+    name: "Mr. Kelvin",
+    quote:
+      "I am happy I found Bitfury Tech Investments. They keep exceeding my expectations, and I have found deposits and withdrawals quick.",
+  },
+  {
+    name: "Richard",
+    quote:
+      "I appreciate the insights shared in each trading session report and look forward to continued investments together.",
+  },
+  {
+    name: "Michal Abraham",
+    quote:
+      "I received my investment account update this morning, and I am pleased with the work being done. I would like to invest more in future opportunities.",
+  },
+  {
+    name: "Joseph Bricks",
+    quote:
+      "For me, investing is about trust, ability, affinity and availability. I have found the team attentive to detail and focused on their clients.",
+  },
 ];
 
 const PUBLISHED_MILESTONES = [
@@ -400,15 +445,16 @@ export default function Home() {
   return (
     <PublicLayout>
       {/* 1. Homepage Introduction & Rotating Hero Banner */}
-      <section aria-label="Featured investment overview" className="relative bg-[#1B4962] text-white overflow-hidden">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-20 grid lg:grid-cols-12 gap-10 items-stretch">
-          <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
-            <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
+      <section aria-label="Featured investment overview" className="relative isolate overflow-hidden bg-[#102f43] text-white">
+        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_12%_12%,rgba(233,77,101,0.2),transparent_36%),linear-gradient(115deg,#102f43_0%,#1B4962_58%,#112e3e_100%)]" />
+        <div className="relative mx-auto grid max-w-7xl items-stretch gap-10 px-4 py-14 sm:px-6 lg:grid-cols-12 lg:px-8 lg:py-24">
+          <div className="flex flex-col justify-center space-y-6 lg:col-span-7">
+            <p className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[11px] font-heading font-bold uppercase tracking-[0.16em] text-[#ffd0d7]">
               {activeSlide.kicker}
             </p>
             <h1
-              className="font-heading font-bold tracking-tight text-white text-balance leading-[1.08]"
-              style={{ fontSize: "clamp(2.25rem, 4vw, 3.5rem)" }}
+              className="max-w-3xl font-heading font-bold tracking-[-0.035em] text-white text-balance leading-[1.04]"
+              style={{ fontSize: "clamp(2.5rem, 5vw, 4.35rem)" }}
             >
               {activeSlide.headline}
             </h1>
@@ -444,7 +490,7 @@ export default function Home() {
             </div>
 
             {/* Banner Slide Controls */}
-            <div className="flex items-center gap-4 pt-3">
+            <div className="flex items-center gap-4 pt-3" aria-label="Hero carousel controls">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -483,7 +529,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:col-span-5 relative min-h-[280px] lg:min-h-[420px] rounded-[5px] overflow-hidden border border-white/20 bg-[#14374B]">
+          <div className="relative min-h-[300px] overflow-hidden rounded-2xl border border-white/15 bg-[#14374B] shadow-[0_28px_80px_rgba(4,18,29,0.35)] lg:col-span-5 lg:min-h-[460px]">
             <ResilientImage
               src={activeSlide.image}
               alt={activeSlide.imageAlt}
@@ -491,7 +537,7 @@ export default function Home() {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#112E3E]/90 via-[#112E3E]/20 to-transparent" />
-            <div className="absolute bottom-5 left-5 right-5 text-xs text-slate-200">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#102f43]/95 via-[#102f43]/65 to-transparent px-6 pb-6 pt-20 text-xs text-slate-200 sm:px-8 sm:pb-8">
               <p className="font-heading font-bold text-white text-sm">{activeSlide.kicker}</p>
               <p className="text-slate-200 mt-1">
                 Cryptocurrency · Stocks · Commercial Real Estate
@@ -655,6 +701,34 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          <section className="grid items-center gap-8 rounded-2xl border border-[#DCE4EC] bg-white p-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:p-7 lg:grid-cols-12">
+            <div className="space-y-3 lg:col-span-4">
+              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                Company Introduction
+              </p>
+              <h3 className="text-2xl font-heading font-bold tracking-tight text-[#102030]">
+                A closer look at Bitfury Tech Investment
+              </h3>
+              <p className="text-sm leading-relaxed text-[#5A6B7C]">
+                Watch the company introduction from Bitfury Tech Investment&apos;s original website.
+                Investment involves risk, and outcomes are never guaranteed.
+              </p>
+            </div>
+            <div className="lg:col-span-8">
+              <video
+                controls
+                playsInline
+                preload="none"
+                poster="/images/hero_institutional_wealth.jpg"
+                aria-label="Bitfury Tech Investment company introduction video"
+                className="aspect-video w-full rounded-xl bg-slate-950 object-cover"
+              >
+                <source src="/videos/bitfurytechinvestment.mp4" type="video/mp4" />
+                Your browser does not support HTML video.
+              </video>
+            </div>
+          </section>
         </div>
       </section>
 
@@ -1094,37 +1168,65 @@ export default function Home() {
             {LEADERSHIP_TEAM.map((leader) => (
               <div
                 key={leader.name}
-                className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-1.5"
+                className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
               >
-                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                  {leader.role}
-                </p>
-                <h3 className="text-lg font-heading font-bold text-[#102030]">{leader.name}</h3>
+                <img
+                  src={leader.image}
+                  alt={`${leader.name}, ${leader.role}`}
+                  loading="lazy"
+                  className="aspect-[4/3] w-full object-cover object-top"
+                />
+                <div className="space-y-1.5 p-5">
+                  <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                    {leader.role}
+                  </p>
+                  <h3 className="text-lg font-heading font-bold text-[#102030]">{leader.name}</h3>
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <div className="flex items-center gap-2 text-[#1B4962]">
-                <MessageSquareQuote className="w-5 h-5 text-[#E94D65] shrink-0" />
-                <h3 className="text-base font-heading font-bold text-[#102030]">
-                  Compliance-Verified Endorsement Policy
+          <section aria-labelledby="legacy-reviews-title" className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-2">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                  Investor Feedback
+                </p>
+                <h3 id="legacy-reviews-title" className="text-2xl font-heading font-bold text-[#102030]">
+                  Reviews from Bitfury Tech&apos;s previous website
                 </h3>
               </div>
-              <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                Bitfury Tech Investment displays only written client reviews approved through
-                settlement verification—never unverified quotes or synthetic ratings. Verified
-                participants may submit account feedback for compliance review at any time.
-              </p>
+              <Link to="/contact" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+                Contact our team
+              </Link>
             </div>
-            <Link
-              to="/contact"
-              className={buttonClasses({ variant: "secondary", size: "md" })}
-            >
-              Submit Verified Feedback
-            </Link>
-          </div>
+            <p className="max-w-4xl text-xs leading-relaxed text-[#5A6B7C]">
+              These excerpts are reproduced from the previous public website and have not been
+              independently verified. They are individual opinions, not representative results or
+              guarantees. Investing involves risk and outcomes vary.
+            </p>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {LEGACY_REVIEWS.map((review) => (
+                <article
+                  key={review.name}
+                  className="flex flex-col justify-between gap-5 rounded-xl border border-[#DCE4EC] bg-white p-6 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
+                >
+                  <div className="flex items-center gap-2 text-[#1B4962]">
+                    <MessageSquareQuote aria-hidden="true" className="h-5 w-5 shrink-0 text-[#E94D65]" />
+                    <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                      Edited source-site excerpt
+                    </span>
+                  </div>
+                  <blockquote className="text-sm leading-relaxed text-[#3B4C5E]">
+                    {review.quote}
+                  </blockquote>
+                  <cite className="not-italic text-sm font-heading font-bold text-[#102030]">
+                    {review.name}
+                  </cite>
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
       </section>
 
@@ -1208,7 +1310,7 @@ export default function Home() {
                   <span>admin@bitfurytechinvestment.com · bitfurytech21@gmail.com</span>
                 </p>
                 <p className="text-xs text-[#5A6B7C] pt-1">
-                  Offices: 12 Wren Walk, Tilbury, England, RM18 8EU · 2511 NW 41 St, Gainesville, FL 32606
+                  Office: 171 Crescent Road, Oxford, England, OX4 2NX
                 </p>
               </div>
               <div className="pt-4 flex flex-wrap gap-3">
@@ -1297,6 +1399,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <CompanyLogoSlideshow />
     </PublicLayout>
   );
 }
