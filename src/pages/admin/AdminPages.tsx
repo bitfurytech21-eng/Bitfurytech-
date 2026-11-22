@@ -308,9 +308,9 @@ export function AdminSettlementQueuePage() {
 }
 
 const LOCAL_IMAGES = [
-  { label: "Commercial Real Estate", value: "/images/asset_real_estate.jpg" },
-  { label: "Institutional Plaza", value: "/images/hero_institutional_wealth.jpg" },
-  { label: "Financial Operations", value: "/images/asset_algo_trading.jpg" },
+  { label: "Commercial Real Estate", value: "/images/commercial-property.png" },
+  { label: "Institutional Plaza", value: "/images/hero-private-capital.png" },
+  { label: "Financial Operations", value: "/images/digital-assets.png" },
 ];
 
 export function AdminPropertiesPage() {

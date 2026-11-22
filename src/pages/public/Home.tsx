@@ -43,7 +43,7 @@ const HERO_SLIDES = [
     headline: "Algorithmic trading precision and multi-asset wealth management you can verify.",
     description:
       "Founded in 2017 by financial analysts, fund managers, and research scientists, Bitfury Tech Investment applies mathematical and statistical discipline with direct access to over 50 financial markets through one unified account.",
-    image: "/images/hero_institutional_wealth.jpg",
+    image: "/images/hero-private-capital.png",
     imageAlt: "BitfuryTech financial district architectural skyline",
     primaryLabel: "Explore Opportunities",
     primaryTo: "/investments-catalog",
@@ -56,7 +56,7 @@ const HERO_SLIDES = [
     headline: "Move beyond conventional strategies across Cryptocurrency, Stocks, and Real Estate.",
     description:
       "Compare 13 transparent mandate tiers governed by our Investment Policy Committee (IPC), inspect monthly benchmarks and referral tiers, and manage custody inside a segregated ledger.",
-    image: "/images/hero_digital_liquidity.jpg",
+    image: "/images/global-equities.png",
     imageAlt: "Institutional multi-asset portfolio management boardroom",
     primaryLabel: "Explore Opportunities",
     primaryTo: "/investments-catalog",
@@ -86,7 +86,7 @@ const SECTOR_BLOCKS = [
     description:
       "Explore digital assets built on decentralized blockchain networks, including Bitcoin, Ethereum, and USD-pegged liquidity pools. Cryptocurrency markets operate continuously and can experience sharp price volatility, network congestion, and liquidity shifts, making disciplined position sizing and risk awareness essential.",
     riskNote: "High market volatility & digital asset price risk",
-    image: "/images/asset_algo_trading.jpg",
+    image: "/images/digital-assets.png",
     to: "/sectors/crypto",
   },
   {
@@ -96,7 +96,7 @@ const SECTOR_BLOCKS = [
     description:
       "Access structured equity mandates centered on publicly traded company shares across global markets. Share ownership exposes capital to corporate earnings performance, sector demand, interest-rate expectations, and broader economic developments that can cause stock values to rise or decline.",
     riskNote: "Equity market, earnings & macroeconomic risk",
-    image: "/images/hero_digital_liquidity.jpg",
+    image: "/images/global-equities.png",
     to: "/sectors/stocks",
   },
   {
@@ -106,7 +106,7 @@ const SECTOR_BLOCKS = [
     description:
       "Review commercial property offerings and asset-backed real estate mandates. Property participation considers potential rental income, tenant occupancy stability, and long-term property value changes—always review full valuation, location, and offering terms before committing capital.",
     riskNote: "Tenancy, valuation & property liquidity risk",
-    image: "/images/asset_real_estate.jpg",
+    image: "/images/commercial-property.png",
     to: "/sectors/real-estate",
   },
 ];
@@ -662,7 +662,7 @@ export default function Home() {
                 controls
                 playsInline
                 preload="none"
-                poster="/images/hero_institutional_wealth.jpg"
+                poster="/images/hero-private-capital.png"
                 aria-label="Bitfury Tech Investment company introduction video"
                 className="aspect-video w-full rounded-xl bg-slate-950 object-cover"
               >
@@ -809,7 +809,7 @@ export default function Home() {
                   <div>
                     <div className="h-44 w-full overflow-hidden border-b border-[#DCE4EC]">
                       <ResilientImage
-                        src={p.image || "/images/asset_real_estate.jpg"}
+                        src={p.image || "/images/commercial-property.png"}
                         alt={p.title}
                         fallbackLabel={p.assetType}
                         className="w-full h-full object-cover"

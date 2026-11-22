@@ -25,7 +25,7 @@ const CATEGORY_GUIDES: Array<{
   {
     id: "crypto",
     title: "Cryptocurrency & Digital Assets",
-    image: "/images/asset_algo_trading.jpg",
+    image: "/images/digital-assets.png",
     summary:
       "Digital assets utilize cryptographic ledgers and decentralized blockchain networks to settle value globally. Cryptocurrency markets trade 24/7 and respond rapidly to liquidity shifts, regulatory headlines, and market sentiment.",
     riskNote: "Risk focus: Elevated price volatility and rapid market swings.",
@@ -33,7 +33,7 @@ const CATEGORY_GUIDES: Array<{
   {
     id: "stock",
     title: "Stocks & Company Shares",
-    image: "/images/hero_digital_liquidity.jpg",
+    image: "/images/global-equities.png",
     summary:
       "Stocks represent ownership stakes in publicly listed corporations. Share prices are influenced by company earnings, industry competitiveness, interest-rate policy, and broader economic developments researched before allocation.",
     riskNote: "Risk focus: Equity market fluctuations and corporate performance risk.",
@@ -41,7 +41,7 @@ const CATEGORY_GUIDES: Array<{
   {
     id: "estate",
     title: "Commercial Real Estate",
-    image: "/images/asset_real_estate.jpg",
+    image: "/images/commercial-property.png",
     summary:
       "Property mandates and syndicated holdings focus on physical commercial spaces where returns consider tenancy stability, potential rental income, and property valuation changes—requiring careful due diligence on each listing.",
     riskNote: "Risk focus: Occupancy changes, appraisal shifts, and longer holding horizons.",

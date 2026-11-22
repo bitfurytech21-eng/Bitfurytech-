@@ -359,7 +359,7 @@ export function createAdminRouter(): Router {
       occupancyPct: Math.min(100, Math.max(0, Number(b.occupancyPct ?? 95) || 0)),
       status: b.status === "Fully Subscribed" ? "Fully Subscribed" : "Open",
       published: b.published !== false,
-      image: String(b.image ?? "/images/asset_real_estate.jpg").trim().slice(0, 200),
+      image: String(b.image ?? "/images/commercial-property.png").trim().slice(0, 200),
       summary: String(b.summary ?? "").trim().slice(0, 600),
       ...(typeof b.supportingDocUrl === "string" && b.supportingDocUrl.trim()
         ? { supportingDocUrl: b.supportingDocUrl.trim().slice(0, 200) }
@@ -424,7 +424,7 @@ export function createAdminRouter(): Router {
       occupancyPct: Math.min(100, Math.max(0, Number(b.occupancyPct ?? existing.occupancyPct ?? 95) || 0)),
       status: b.status === "Fully Subscribed" ? "Fully Subscribed" : "Open",
       published: typeof b.published === "boolean" ? b.published : existing.published !== false,
-      image: String(b.image ?? existing.image ?? "/images/asset_real_estate.jpg").trim().slice(0, 200),
+      image: String(b.image ?? existing.image ?? "/images/commercial-property.png").trim().slice(0, 200),
       summary: String(b.summary ?? existing.summary ?? "").trim().slice(0, 600),
       ...(typeof b.supportingDocUrl === "string"
         ? { supportingDocUrl: b.supportingDocUrl.trim().slice(0, 200) }
@@ -548,7 +548,7 @@ export function createAdminRouter(): Router {
           ? b.availabilityStatus
           : "Open",
       published: b.published !== false,
-      image: String(b.image ?? "/images/hero_institutional_wealth.jpg").trim().slice(0, 200),
+      image: String(b.image ?? "/images/hero-private-capital.png").trim().slice(0, 200),
     };
 
     if (!fields.name || !fields.description || !fields.returnTerms) {

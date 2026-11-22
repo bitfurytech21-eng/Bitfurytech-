@@ -315,7 +315,7 @@ export function DashboardPropertiesPage() {
             <Card key={p.id} className="overflow-hidden flex flex-col justify-between">
               <div>
                 <img
-                  src={p.image || "/images/asset_real_estate.jpg"}
+                  src={p.image || "/images/commercial-property.png"}
                   alt={p.title}
                   referrerPolicy="no-referrer"
                   className="h-44 w-full object-cover border-b border-slate-200"
