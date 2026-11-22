@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Mail, MapPin, ShieldCheck, Users } from "lucide-react";
+import { FileText, Mail, MapPin, ShieldCheck, Users } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
@@ -180,6 +180,37 @@ export default function About() {
                 over account activity.
               </p>
             </div>
+          </section>
+
+          <section
+            aria-labelledby="company-document-heading"
+            className="flex flex-col gap-5 rounded-xl border border-[#DCE4EC] bg-[#F6F8FA] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-[#1B4962] shadow-sm">
+                <FileText aria-hidden="true" className="h-5 w-5" />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                  Company document
+                </p>
+                <h2 id="company-document-heading" className="text-lg font-heading font-bold text-[#102030]">
+                  Company information document
+                </h2>
+                <p className="max-w-2xl text-xs leading-relaxed text-[#5A6B7C]">
+                  This PDF was linked as the company number document on the previous website. Its
+                  contents have not been independently verified.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/documents/bitfury-company-certificate.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md bg-[#1B4962] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#14374B]"
+            >
+              View certificate (PDF)
+            </a>
           </section>
 
           {/* Published Company Numbers */}

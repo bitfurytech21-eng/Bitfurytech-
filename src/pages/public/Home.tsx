@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
+import CompanyLogoSlideshow from "../../components/CompanyLogoSlideshow";
 import ResilientImage from "../../components/ResilientImage";
 import TradingViewTickerTape from "../../components/TradingViewTickerTape";
 import {
@@ -1398,6 +1399,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <CompanyLogoSlideshow />
     </PublicLayout>
   );
 }
