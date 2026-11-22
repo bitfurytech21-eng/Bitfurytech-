@@ -41,6 +41,16 @@ export const betterAuthInstance = betterAuth({
   secret,
   database: databasePool ?? undefined,
   trustedOrigins,
+  user: {
+    additionalFields: {
+      username: {
+        type: "string",
+        required: true,
+        input: true,
+        returned: true,
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
