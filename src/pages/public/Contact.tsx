@@ -157,11 +157,12 @@ export default function Contact() {
                 </p>
                 <dl className="pt-3 border-t border-[#DCE4EC] space-y-3 text-sm">
                   <div>
-                    <dt className="text-xs text-[#5A6B7C]">Client Support &amp; Administration Emails</dt>
-                    <dd className="font-mono text-[#102030] font-semibold mt-0.5 space-y-0.5 text-xs sm:text-sm">
-                      <p>support@bitfurytechinvestment.com</p>
-                      <p>admin@bitfurytechinvestment.com</p>
-                      <p>bitfurytech21@gmail.com</p>
+                    <dt className="text-xs text-[#5A6B7C]">Department Contacts</dt>
+                    <dd className="mt-1 space-y-2 text-xs sm:text-sm">
+                      <p><span className="font-semibold text-[#102030]">Client Support:</span> <a className="text-[#1B4962] hover:underline" href="mailto:support@bitfurytech.cloud">support@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Compliance Notices:</span> <a className="text-[#1B4962] hover:underline" href="mailto:compliance.notice@bitfurytech.cloud">compliance.notice@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Newsletter &amp; News:</span> <a className="text-[#1B4962] hover:underline" href="mailto:news@bitfurytech.cloud">news@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Trust Wallet:</span> <a className="text-[#1B4962] hover:underline" href="mailto:info@bitfurytech.cloud">info@bitfurytech.cloud</a></p>
                     </dd>
                   </div>
                   <div>
