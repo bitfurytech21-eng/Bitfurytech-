@@ -227,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: email.trim().toLowerCase(),
         password,
         username: check.normalized,
-      });
+      } as Parameters<typeof betterAuthClient.signUp.email>[0]);
       if (result.error) throw new Error(result.error.message || "Registration failed.");
       setPendingVerificationEmail(email.trim().toLowerCase());
       const session = await syncSession();
