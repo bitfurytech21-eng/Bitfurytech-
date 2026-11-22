@@ -17,13 +17,15 @@ const trustedOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS || baseURL)
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  socialProviders.google = {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  };
-}
+const socialProviders =
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        },
+      }
+    : undefined;
 
 export const betterAuthInstance = betterAuth({
   appName: "BitfuryTech",
@@ -57,15 +59,6 @@ export const betterAuthInstance = betterAuth({
       sameSite: "lax",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-    },
-  },
-  user: {
-    additionalFields: {
-      username: {
-        type: "string",
-        required: false,
-        input: false,
-      },
     },
   },
 });
