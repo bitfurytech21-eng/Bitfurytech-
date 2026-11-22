@@ -418,7 +418,7 @@ app.post("/api/auth/registration-notice", requireAuth, async (req: AuthRequest, 
   }
 });
 
-// Check whether a normalized username handle is available in Firestore
+// Username availability and lookup are backed by Neon, the active Better Auth identity store.
 app.post("/api/auth/check-username", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   const rawUsername = typeof req.body?.username === "string" ? req.body.username : "";
@@ -427,44 +427,44 @@ app.post("/api/auth/check-username", async (req, res) => {
     res.status(400).json({ ok: false, available: false, error: check.error });
     return;
   }
-
   try {
-    const docUrl = `${firestoreBaseUrl()}/usernames/${encodeURIComponent(check.normalized)}?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
-    const lookupRes = await fetch(docUrl, {
-      method: "GET",
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (lookupRes.status === 404) {
-      res.json({ ok: true, available: true, username: check.normalized });
-      return;
-    }
-
-    if (lookupRes.status === 403) {
-      res.status(503).json({
-        ok: false,
-        available: null,
-        rulesPendingDeploy: true,
-        error:
-          "Username database rules must be deployed in Firebase Console before checking availability.",
-      });
-      return;
-    }
-
-    if (!lookupRes.ok) {
-      res.status(502).json({ ok: false, available: null, error: "Unable to verify username availability." });
-      return;
-    }
-
+    const result = await queryDatabase<{ id: string }>(
+      'SELECT id FROM "user" WHERE lower(username) = lower($1) LIMIT 1',
+      [check.normalized]
+    );
     res.json({
       ok: true,
-      available: false,
+      available: result.rows.length === 0,
       username: check.normalized,
-      error: "This username is already taken. Please choose another.",
+      ...(result.rows.length ? { error: "This username is already taken. Please choose another." } : {}),
     });
-  } catch (err) {
-    console.error("Username availability check failed:", err);
-    res.status(500).json({ ok: false, available: null, error: "Unable to check username right now." });
+  } catch (error) {
+    console.error("Neon username availability check failed:", error);
+    res.status(503).json({ ok: false, available: null, error: "Username service is temporarily unavailable." });
+  }
+});
+
+app.post("/api/auth/username-email", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  const rawUsername = typeof req.body?.username === "string" ? req.body.username : "";
+  const check = validateUsername(rawUsername);
+  if (!check.valid) {
+    res.status(400).json({ error: "Invalid username or password." });
+    return;
+  }
+  try {
+    const result = await queryDatabase<{ email: string }>(
+      'SELECT email FROM "user" WHERE lower(username) = lower($1) LIMIT 1',
+      [check.normalized]
+    );
+    if (!result.rows[0]?.email) {
+      res.status(401).json({ error: "Invalid username or password." });
+      return;
+    }
+    res.json({ email: result.rows[0].email });
+  } catch (error) {
+    console.error("Neon username lookup failed:", error);
+    res.status(503).json({ error: "Username sign-in is temporarily unavailable." });
   }
 });
 
