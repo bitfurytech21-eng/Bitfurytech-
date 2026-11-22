@@ -35,7 +35,7 @@
     "vite": "^8.3.8",
     "ws": "^8.23.0",
     "pg": "^8.16.3",
-    "better-auth": "^1.4.18",
+    "better-auth": "^1.7.27",
     "nodemailer": "^7.0.10"
   },
   "devDependencies": {
