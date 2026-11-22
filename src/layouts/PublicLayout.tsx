@@ -429,7 +429,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         <div className="bg-[#112E3E] border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-3 text-xs text-slate-300">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <p>© {new Date().getFullYear()} Bitfury Tech Investment. All rights reserved.</p>
+              <p>© 2020 Bitfury Tech Investment. All rights reserved.</p>
             </div>
           </div>
         </div>
