@@ -6,6 +6,11 @@ on:
     branches:
       - migration/neon-cutover
 
+# Prevent concurrent lockfile writers from racing and rejecting each other's pushes.
+concurrency:
+  group: neon-migration-lockfile-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -18,15 +23,16 @@ jobs:
         with:
           ref: migration/neon-cutover
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Regenerate package lock
-        run: npm install --package-lock-only
+        run: npm install --package-lock-only --ignore-scripts
 
       - name: Commit regenerated lockfile
         run: |
@@ -35,7 +41,9 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add package-lock.json
             git commit -m "chore: regenerate dependency lockfile [skip ci]"
-            git push origin migration/neon-cutover
+            git fetch origin migration/neon-cutover
+            git rebase origin/migration/neon-cutover
+            git push origin HEAD:migration/neon-cutover
           fi
 
       - name: Verify clean install
