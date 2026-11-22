@@ -32,7 +32,7 @@ npm install
 npm run db:migrate
 ```
 
-The migration creates Better Auth's PostgreSQL tables and the initial BitfuryTech relational tables. It does not import Firebase users, change Firebase data, or make any user an administrator.
+The migration creates Better Auth's PostgreSQL tables, BitfuryTech relational tables, and a verified legacy Firebase identity mapping table. It does not import Firebase users or change Firebase data. New Better Auth users receive an investor role and profile automatically; admin access is never granted by signup.
 
 ## Auth endpoints
 
@@ -46,14 +46,18 @@ Email/password sign-up requires email verification. Password reset revokes exist
 
 Administrator access is granted only by a row in `user_roles` with role `admin`. Do not grant admin status based only on an email address or client-side state. Provision the first administrator manually after confirming the user's Better Auth account ID.
 
+## Identity mapping and profile provisioning
+
+The schema creates `legacy_auth_identities` with uniqueness constraints for each Firebase UID and Better Auth user. The table is intentionally empty until a controlled migration verifies both identities. A database trigger creates a default investor profile and investor role for each newly inserted Better Auth user. It does not grant administrator access.
+
 ## Cutover checklist
 
-1. Apply the migration and verify `/api/health/database`.
+1. Back up Neon and Firebase; apply the additive schema on a staging database and verify `/api/health/database`.
 2. Configure SMTP and test registration, verification, sign-in, reset and sign-out on a preview deployment.
-3. Migrate or explicitly reconcile existing Firebase user identities and username mappings.
+3. Export Firebase Auth and Firestore data, reconcile record counts and balances, and create Better Auth accounts. Populate `legacy_auth_identities` only after verifying control of both the old Firebase identity and the new account. Never link identities solely because email strings match.
 4. Move the customer and admin API routes from Firebase ID-token verification to Better Auth sessions.
 5. Move user profiles, documents, uploads, support, deposits, withdrawals, investments and referrals to PostgreSQL/object storage.
 6. Test authorization and financial transaction invariants, then switch the UI.
-7. Only after successful parity checks and backups should Firebase dependencies/configuration be removed.
+7. Only after successful parity checks, financial reconciliation, account recovery tests, document migration, and backups should Firebase dependencies/configuration be removed.
 
 Do not deploy this branch to production as a full authentication replacement yet. The existing application UI and several protected API routes still use Firebase until the remaining migration steps are completed.
