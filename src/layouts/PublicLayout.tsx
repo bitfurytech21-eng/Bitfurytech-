@@ -379,28 +379,14 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
               <Link to="/privacy" className="hover:text-white underline-offset-4 hover:underline">
                 Privacy Policy
               </Link>
-              <Link to="/login" className="text-[#FFD1D8] hover:text-white font-semibold">
-                Client Portal
-              </Link>
             </div>
           </div>
         </div>
 
         <div className="bg-[#112E3E] border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-3 text-xs text-slate-300">
-            <p className="leading-relaxed text-slate-300/90">
-              Important Notice: Website content is for general informational purposes only and is
-              not an offer, solicitation, or personalized investment advice. Investing in stocks,
-              options, futures, digital assets, property, and foreign markets involves substantial
-              risk, including loss of capital. Values and income may fall as well as rise; past
-              performance and testimonials are not reliable indicators of future results. Verify any
-              claimed regulatory authorization directly with the relevant regulator before relying on it.
-            </p>
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10">
               <p>© {new Date().getFullYear()} Bitfury Tech Investment. All rights reserved.</p>
-              <p className="text-center sm:text-right">
-                Indicative mandate rates are non-guaranteed benchmarks subject to market risk.
-              </p>
             </div>
           </div>
         </div>

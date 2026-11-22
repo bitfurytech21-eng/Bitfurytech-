@@ -179,14 +179,6 @@ export default function InvestmentPlans() {
             })}
           </section>
 
-          {/* Risk & Non-Guaranteed Return Disclosure */}
-          <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] px-6 py-4 text-xs text-[#5A6B7C] leading-relaxed">
-            <strong className="text-[#102030]">Important Return &amp; Diversification Notice:</strong>{" "}
-            Investment values can rise or fall, and published daily rates represent non-guaranteed
-            indicative benchmarks only. Diversifying across asset classes and reviewing terms before
-            investing helps align allocations with your personal risk tolerance.
-          </div>
-
           {loading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((n) => (
