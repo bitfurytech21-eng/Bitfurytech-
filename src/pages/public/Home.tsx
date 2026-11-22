@@ -26,7 +26,6 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
-import { LEADERSHIP_TEAM } from "../../data/leadershipTeam";
 import InvestorTestimonials from "../../components/InvestorTestimonials";
 import PaymentMethods from "../../components/PaymentMethods";
 import {
@@ -1031,52 +1030,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 10. Executive Leadership & Compliance Endorsement Policy */}
+      {/* Investor testimonials retained; executive team section removed. */}
       <section className="bg-white border-b border-[#DCE4EC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="max-w-2xl space-y-2">
-              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                Our Experts · Est. 2017
-              </p>
-              <h2 className="text-3xl font-heading font-bold tracking-tight text-[#102030]">
-                Executive Leadership &amp; Governance
-              </h2>
-              <p className="text-sm text-[#5A6B7C]">
-                Founded in 2017 by experienced financial analysts, fund managers, and research
-                scientists committed to transparent multi-market portfolio stewardship.
-              </p>
-            </div>
-            <Link
-              to="/about"
-              className="text-xs font-heading font-bold text-[#1B4962] hover:text-[#B92841] hover:underline whitespace-nowrap"
-            >
-              Meet Full Leadership &amp; IPC
-            </Link>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {LEADERSHIP_TEAM.map((leader) => (
-              <div
-                key={leader.name}
-                className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
-              >
-                <img
-                  src={leader.image}
-                  alt={`${leader.name}, ${leader.role}`}
-                  loading="lazy"
-                  className="aspect-[4/3] w-full object-cover object-top"
-                />
-                <div className="space-y-1.5 p-5">
-                  <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                    {leader.role}
-                  </p>
-                  <h3 className="text-lg font-heading font-bold text-[#102030]">{leader.name}</h3>
-                </div>
-              </div>
-            ))}
-          </div>
-
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <InvestorTestimonials />
         </div>
       </section>
