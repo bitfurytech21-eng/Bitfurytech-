@@ -11,7 +11,7 @@
     "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.20.0",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@supabase/supabase-js": "^2.49.1",
     "@tailwindcss/vite": "^4.3.5",
