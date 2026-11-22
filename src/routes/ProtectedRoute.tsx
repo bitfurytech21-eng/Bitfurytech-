@@ -164,7 +164,7 @@ export default function ProtectedRoute({
     return () => {
       cancelled = true;
     };
-  }, [authReady, backendSession, firebaseUser, idToken, isAdmin, location.pathname, mode, verifyAdminSession]);
+  }, [authReady, backendSession, firebaseUser, isAdmin, location.pathname, mode, verifyAdminSession]);
 
   if (!authReady) {
     return (
