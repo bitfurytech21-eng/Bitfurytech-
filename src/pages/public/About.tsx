@@ -75,21 +75,25 @@ const LEADERSHIP_TEAM = [
   {
     name: "Robb Baldwin",
     role: "President and CEO",
+    image: "/images/leadership/robb-baldwin.webp",
     focus: "Executive leadership, multi-market platform strategy, and institutional governance.",
   },
   {
     name: "Rob Dilbone",
     role: "Managing Director",
+    image: "/images/leadership/rob-dilbone.webp",
     focus: "Portfolio structuring, market expansion, and global custody coordination.",
   },
   {
     name: "Cris Frankel",
     role: "VP of Business Development",
+    image: "/images/leadership/cris-frankel.webp",
     focus: "Institutional client partnerships, multi-asset outreach, and partner onboarding.",
   },
   {
     name: "Scott Victoria",
     role: "Chief Operating Officer",
+    image: "/images/leadership/scott-victoria.webp",
     focus: "Operational risk management, settlement verification, and 24/7 execution oversight.",
   },
 ];
@@ -286,16 +290,24 @@ export default function About() {
               {LEADERSHIP_TEAM.map((exec) => (
                 <div
                   key={exec.name}
-                  className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-2"
+                  className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
                 >
-                  <div className="flex items-center gap-2 text-[#1B4962]">
-                    <Users className="w-4 h-4 text-[#E94D65] shrink-0" />
-                    <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                      {exec.role}
-                    </p>
+                  <img
+                    src={exec.image}
+                    alt={`${exec.name}, ${exec.role}`}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover object-top"
+                  />
+                  <div className="space-y-2 p-5">
+                    <div className="flex items-center gap-2 text-[#1B4962]">
+                      <Users className="w-4 h-4 text-[#E94D65] shrink-0" />
+                      <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                        {exec.role}
+                      </p>
+                    </div>
+                    <h3 className="text-lg font-heading font-bold text-[#102030]">{exec.name}</h3>
+                    <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">{exec.focus}</p>
                   </div>
-                  <h3 className="text-lg font-heading font-bold text-[#102030]">{exec.name}</h3>
-                  <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">{exec.focus}</p>
                 </div>
               ))}
             </div>

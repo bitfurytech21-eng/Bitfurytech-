@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Clock, Hexagon, Mail, Menu, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, Mail, Menu, ShieldCheck, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import LiveSupportWidget from "../components/LiveSupportWidget";
 
@@ -104,10 +104,11 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             to="/"
             className="inline-flex items-center gap-2.5 font-heading font-extrabold tracking-tight text-xl text-[#1B4962] whitespace-nowrap shrink-0"
           >
-            <Hexagon className="w-7 h-7 text-[#E94D65] fill-[#E94D65]/15 shrink-0" />
-            <span>
-              Bitfury<span className="text-[#E94D65]">Tech</span>
-            </span>
+            <img
+              src="/images/brand/bitfurylogo.png"
+              alt="Bitfury Tech Investment"
+              className="h-8 w-auto shrink-0"
+            />
           </Link>
 
           <nav
@@ -236,12 +237,13 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
           <div className="lg:col-span-4 space-y-4">
             <Link
               to="/"
-              className="inline-flex items-center gap-2 font-heading font-extrabold text-xl text-white"
+              className="inline-flex items-center gap-2 rounded-md bg-white px-2 py-1 font-heading font-extrabold text-xl text-white"
             >
-              <Hexagon className="w-6 h-6 text-[#E94D65] fill-[#E94D65]/20 shrink-0" />
-              <span>
-                Bitfury<span className="text-[#E94D65]">Tech</span>
-              </span>
+              <img
+                src="/images/brand/bitfurylogo.png"
+                alt="Bitfury Tech Investment"
+                className="h-8 w-auto shrink-0"
+              />
             </Link>
             <p className="text-sm text-slate-200 leading-relaxed max-w-sm">
               Bitfury Tech Investment is an algorithmic and multi-asset trading firm founded in 2017,
@@ -250,14 +252,27 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             </p>
             <div className="pt-1 text-xs text-slate-300 space-y-1.5">
               <p>171 Crescent Road, Oxford, England, OX4 2NX</p>
-              <p className="flex items-center gap-2">
+              <a
+                href="mailto:admin@bitfurytechinvestment.com"
+                className="flex items-center gap-2 hover:text-white"
+              >
                 <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
                 <span>admin@bitfurytechinvestment.com</span>
-              </p>
-              <p className="flex items-center gap-2">
+              </a>
+              <a
+                href="mailto:support@bitfurytechinvestment.com"
+                className="flex items-center gap-2 hover:text-white"
+              >
                 <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-                <span>support@bitfurytechinvestment.com · bitfurytech21@gmail.com</span>
-              </p>
+                <span>support@bitfurytechinvestment.com</span>
+              </a>
+              <a
+                href="mailto:bitfurytech21@gmail.com"
+                className="flex items-center gap-2 hover:text-white"
+              >
+                <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
+                <span>bitfurytech21@gmail.com</span>
+              </a>
             </div>
           </div>
 
@@ -289,6 +304,11 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
               Corporate &amp; Guide
             </h3>
             <ul className="space-y-2 text-slate-200">
+              <li>
+                <Link to="/" className="hover:text-[#E94D65] transition-colors">
+                  Home
+                </Link>
+              </li>
               <li>
                 <Link to="/about" className="hover:text-[#E94D65] transition-colors">
                   About BitfuryTech
@@ -369,12 +389,12 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         <div className="bg-[#112E3E] border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-3 text-xs text-slate-300">
             <p className="leading-relaxed text-slate-300/90">
-              Important Notice: Bitfury Tech Investment publishes platform materials for
-              informational purposes only, which should not be regarded as a personal financial
-              solicitation. Investing in stocks, options, futures, digital assets, and foreign
-              markets involves substantial risk, and investment income may go down as well as up.
-              Published regulatory and dispute frameworks reference Bitfury Tech Investment filings
-              with The Financial Commission, SEC, IIROC, and CIPF where applicable.
+              Important Notice: Website content is for general informational purposes only and is
+              not an offer, solicitation, or personalized investment advice. Investing in stocks,
+              options, futures, digital assets, property, and foreign markets involves substantial
+              risk, including loss of capital. Values and income may fall as well as rise; past
+              performance and testimonials are not reliable indicators of future results. Verify any
+              claimed regulatory authorization directly with the relevant regulator before relying on it.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10">
               <p>© {new Date().getFullYear()} Bitfury Tech Investment. All rights reserved.</p>

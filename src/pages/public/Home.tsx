@@ -145,10 +145,54 @@ const PORTFOLIO_PRINCIPLES = [
 ];
 
 const LEADERSHIP_TEAM = [
-  { name: "Robb Baldwin", role: "President & CEO" },
-  { name: "Rob Dilbone", role: "Managing Director" },
-  { name: "Cris Frankel", role: "VP of Business Development" },
-  { name: "Scott Victoria", role: "Chief Operating Officer" },
+  {
+    name: "Robb Baldwin",
+    role: "President & CEO",
+    image: "/images/leadership/robb-baldwin.webp",
+  },
+  {
+    name: "Rob Dilbone",
+    role: "Managing Director",
+    image: "/images/leadership/rob-dilbone.webp",
+  },
+  {
+    name: "Cris Frankel",
+    role: "VP of Business Development",
+    image: "/images/leadership/cris-frankel.webp",
+  },
+  {
+    name: "Scott Victoria",
+    role: "Chief Operating Officer",
+    image: "/images/leadership/scott-victoria.webp",
+  },
+];
+
+const LEGACY_REVIEWS = [
+  {
+    name: "Jenifer Smart",
+    quote:
+      "I have never trusted any investment platform before, but Bitfury Tech Investments changed everything. They manage my assets and funds.",
+  },
+  {
+    name: "Mr. Kelvin",
+    quote:
+      "I am happy I found Bitfury Tech Investments. They keep exceeding my expectations, and I have found deposits and withdrawals quick.",
+  },
+  {
+    name: "Richard",
+    quote:
+      "I appreciate the insights shared in each trading session report and look forward to continued investments together.",
+  },
+  {
+    name: "Michal Abraham",
+    quote:
+      "I received my investment account update this morning, and I am pleased with the work being done. I would like to invest more in future opportunities.",
+  },
+  {
+    name: "Joseph Bricks",
+    quote:
+      "For me, investing is about trust, ability, affinity and availability. I have found the team attentive to detail and focused on their clients.",
+  },
 ];
 
 const PUBLISHED_MILESTONES = [
@@ -656,6 +700,34 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          <section className="grid items-center gap-8 rounded-2xl border border-[#DCE4EC] bg-white p-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:p-7 lg:grid-cols-12">
+            <div className="space-y-3 lg:col-span-4">
+              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                Company Introduction
+              </p>
+              <h3 className="text-2xl font-heading font-bold tracking-tight text-[#102030]">
+                A closer look at Bitfury Tech Investment
+              </h3>
+              <p className="text-sm leading-relaxed text-[#5A6B7C]">
+                Watch the company introduction from Bitfury Tech Investment&apos;s original website.
+                Investment involves risk, and outcomes are never guaranteed.
+              </p>
+            </div>
+            <div className="lg:col-span-8">
+              <video
+                controls
+                playsInline
+                preload="none"
+                poster="/images/hero_institutional_wealth.jpg"
+                aria-label="Bitfury Tech Investment company introduction video"
+                className="aspect-video w-full rounded-xl bg-slate-950 object-cover"
+              >
+                <source src="/videos/bitfurytechinvestment.mp4" type="video/mp4" />
+                Your browser does not support HTML video.
+              </video>
+            </div>
+          </section>
         </div>
       </section>
 
@@ -1095,37 +1167,65 @@ export default function Home() {
             {LEADERSHIP_TEAM.map((leader) => (
               <div
                 key={leader.name}
-                className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-1.5"
+                className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
               >
-                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                  {leader.role}
-                </p>
-                <h3 className="text-lg font-heading font-bold text-[#102030]">{leader.name}</h3>
+                <img
+                  src={leader.image}
+                  alt={`${leader.name}, ${leader.role}`}
+                  loading="lazy"
+                  className="aspect-[4/3] w-full object-cover object-top"
+                />
+                <div className="space-y-1.5 p-5">
+                  <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                    {leader.role}
+                  </p>
+                  <h3 className="text-lg font-heading font-bold text-[#102030]">{leader.name}</h3>
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <div className="flex items-center gap-2 text-[#1B4962]">
-                <MessageSquareQuote className="w-5 h-5 text-[#E94D65] shrink-0" />
-                <h3 className="text-base font-heading font-bold text-[#102030]">
-                  Compliance-Verified Endorsement Policy
+          <section aria-labelledby="legacy-reviews-title" className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-2">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                  Investor Feedback
+                </p>
+                <h3 id="legacy-reviews-title" className="text-2xl font-heading font-bold text-[#102030]">
+                  Reviews from Bitfury Tech&apos;s previous website
                 </h3>
               </div>
-              <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                Bitfury Tech Investment displays only written client reviews approved through
-                settlement verification—never unverified quotes or synthetic ratings. Verified
-                participants may submit account feedback for compliance review at any time.
-              </p>
+              <Link to="/contact" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+                Contact our team
+              </Link>
             </div>
-            <Link
-              to="/contact"
-              className={buttonClasses({ variant: "secondary", size: "md" })}
-            >
-              Submit Verified Feedback
-            </Link>
-          </div>
+            <p className="max-w-4xl text-xs leading-relaxed text-[#5A6B7C]">
+              These excerpts are reproduced from the previous public website and have not been
+              independently verified. They are individual opinions, not representative results or
+              guarantees. Investing involves risk and outcomes vary.
+            </p>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {LEGACY_REVIEWS.map((review) => (
+                <article
+                  key={review.name}
+                  className="flex flex-col justify-between gap-5 rounded-xl border border-[#DCE4EC] bg-white p-6 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
+                >
+                  <div className="flex items-center gap-2 text-[#1B4962]">
+                    <MessageSquareQuote aria-hidden="true" className="h-5 w-5 shrink-0 text-[#E94D65]" />
+                    <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                      Edited source-site excerpt
+                    </span>
+                  </div>
+                  <blockquote className="text-sm leading-relaxed text-[#3B4C5E]">
+                    {review.quote}
+                  </blockquote>
+                  <cite className="not-italic text-sm font-heading font-bold text-[#102030]">
+                    {review.name}
+                  </cite>
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
       </section>
 
