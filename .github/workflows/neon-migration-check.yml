@@ -1,0 +1,33 @@
+name: Neon migration build check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "server.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "render.yaml"
+      - ".github/workflows/neon-migration-check.yml"
+  push:
+    branches: ["migration/neon-cutover"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies and reconcile lockfile in CI
+        run: npm install
+      - name: Build application
+        run: npm run build
