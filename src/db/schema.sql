@@ -213,3 +213,28 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS audit_logs_created_idx ON audit_logs(created_at DESC);
+
+-- Provision a least-privilege investor role and profile for every new Better Auth user.
+-- The trigger runs in the same PostgreSQL transaction as Better Auth's user insert.
+CREATE OR REPLACE FUNCTION bitfurytech_provision_user()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO user_profiles (user_id)
+  VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  INSERT INTO user_roles (user_id, role)
+  VALUES (NEW.id, 'investor')
+  ON CONFLICT (user_id, role) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS bitfurytech_user_provision_after_insert ON "user";
+CREATE TRIGGER bitfurytech_user_provision_after_insert
+AFTER INSERT ON "user"
+FOR EACH ROW
+EXECUTE FUNCTION bitfurytech_provision_user();
