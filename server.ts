@@ -27,6 +27,10 @@ import {
 import { validateUsername } from "./src/lib/username.ts";
 import { enqueueMailEvent } from "./src/services/mailOutbox.ts";
 import firebaseConfig from "./firebase-applet-config.json" with { type: "json" };
+import { queryDatabase } from "./src/db/pool.ts";
+import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
+import { betterAuthInstance } from "./src/lib/better-auth.ts";
+import { requireBetterAuth, requireBetterAdmin, resolveBetterAuthRole, type BetterAuthRequest } from "./src/middleware/betterAuth.ts";
 
 dotenv.config();
 
@@ -36,6 +40,81 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === "production";
+
+// Better Auth is isolated under /api/better-auth and runs before express.json() so it can read the request body.
+app.all("/api/better-auth/*splat", toNodeHandler(betterAuthInstance));
+
+app.get("/api/account/session", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  try {
+    const session = await betterAuthInstance.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    if (!session) {
+      res.status(401).json({ authenticated: false });
+      return;
+    }
+    const roleResult = await queryDatabase<{ role: string }>(
+      "SELECT role FROM user_roles WHERE user_id = $1 ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'support' THEN 1 ELSE 2 END LIMIT 1",
+      [session.user.id]
+    ).catch(() => ({ rows: [] } as { rows: { role: string }[] }));
+    const role = roleResult.rows[0]?.role ?? "investor";
+    res.json({
+      authenticated: true,
+      user: {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        emailVerified: session.user.emailVerified,
+        role,
+        isAdmin: role === "admin" && session.user.emailVerified,
+      },
+      session: {
+        expiresAt: session.session.expiresAt,
+      },
+    });
+  } catch (error) {
+    console.error("Better Auth session lookup failed:", error);
+    res.status(503).json({ authenticated: false, error: "Unable to verify account session." });
+  }
+});
+
+// Better Auth session endpoints. The existing Firebase-backed API remains in place during staged migration.
+app.get("/api/auth/better-session", requireBetterAuth, async (req: BetterAuthRequest, res) => {
+  const session = req.betterAuthSession;
+  if (!session) {
+    res.status(401).json({ authenticated: false });
+    return;
+  }
+  try {
+    const role = await resolveBetterAuthRole(session.user.id);
+    res.json({
+      authenticated: true,
+      user: {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        emailVerified: session.user.emailVerified,
+        role,
+        isAdmin: role === "admin" && session.user.emailVerified,
+      },
+      session: { expiresAt: session.session.expiresAt },
+    });
+  } catch (error) {
+    console.error("Better Auth role lookup failed:", error);
+    res.status(503).json({ authenticated: false, error: "Unable to verify account permissions." });
+  }
+});
+
+app.get("/api/auth/better-admin-check", requireBetterAuth, requireBetterAdmin, (req: BetterAuthRequest, res) => {
+  res.json({
+    ok: true,
+    userId: req.betterAuthSession?.user.id,
+    email: req.betterAuthSession?.user.email ?? null,
+    isAdmin: true,
+    role: "admin",
+  });
+});
 
 app.use(express.json({ limit: "6mb" }));
 
@@ -53,6 +132,20 @@ app.use(
 // Health check endpoint
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "bitfurytech" });
+});
+
+app.get("/api/health/database", async (_req, res) => {
+  try {
+    await queryDatabase("SELECT 1 AS connected");
+    res.json({ ok: true, database: "connected" });
+  } catch (error) {
+    console.error("Database health check failed:", error);
+    res.status(503).json({
+      ok: false,
+      database: "unavailable",
+      error: "Database connection is not ready.",
+    });
+  }
 });
 
 interface MarketTickerQuote {
