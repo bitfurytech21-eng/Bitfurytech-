@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileText, Mail, MapPin, ShieldCheck, Users } from "lucide-react";
+import { FileText, Mail, MapPin, ShieldCheck } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
@@ -68,33 +68,6 @@ const VALUES = [
   {
     title: "Responsible Risk Awareness",
     body: "We communicate clearly that asset prices fluctuate, values can rise or fall, and no investment mandate offers guaranteed outcomes.",
-  },
-];
-
-const LEADERSHIP_TEAM = [
-  {
-    name: "Robb Baldwin",
-    role: "President and CEO",
-    image: "/images/leadership/robb-baldwin.webp",
-    focus: "Executive leadership, multi-market platform strategy, and institutional governance.",
-  },
-  {
-    name: "Rob Dilbone",
-    role: "Managing Director",
-    image: "/images/leadership/rob-dilbone.webp",
-    focus: "Portfolio structuring, market expansion, and global custody coordination.",
-  },
-  {
-    name: "Cris Frankel",
-    role: "VP of Business Development",
-    image: "/images/leadership/cris-frankel.webp",
-    focus: "Institutional client partnerships, multi-asset outreach, and partner onboarding.",
-  },
-  {
-    name: "Scott Victoria",
-    role: "Chief Operating Officer",
-    image: "/images/leadership/scott-victoria.webp",
-    focus: "Operational risk management, settlement verification, and 24/7 execution oversight.",
   },
 ];
 
@@ -296,49 +269,6 @@ export default function About() {
                   <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">
                     {sol.description}
                   </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Executive Leadership Team */}
-          <section className="space-y-6 border-b border-[#DCE4EC] pb-14">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div className="space-y-2">
-                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                  Executive Leadership
-                </p>
-                <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#102030]">
-                  Our Experts &amp; Governance Team
-                </h2>
-              </div>
-              <p className="text-xs text-[#5A6B7C] max-w-md">
-                Bitfury Tech Investment is led by seasoned financial operators committed to
-                structured risk brackets and client custody standards.
-              </p>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {LEADERSHIP_TEAM.map((exec) => (
-                <div
-                  key={exec.name}
-                  className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
-                >
-                  <img
-                    src={exec.image}
-                    alt={`${exec.name}, ${exec.role}`}
-                    loading="lazy"
-                    className="aspect-[4/3] w-full object-cover object-top"
-                  />
-                  <div className="space-y-2 p-5">
-                    <div className="flex items-center gap-2 text-[#1B4962]">
-                      <Users className="w-4 h-4 text-[#E94D65] shrink-0" />
-                      <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                        {exec.role}
-                      </p>
-                    </div>
-                    <h3 className="text-lg font-heading font-bold text-[#102030]">{exec.name}</h3>
-                    <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">{exec.focus}</p>
-                  </div>
                 </div>
               ))}
             </div>
