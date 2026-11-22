@@ -11,13 +11,13 @@ import {
 import { formatUsd } from "../../trading/tradingPage";
 
 const GALLERY_FALLBACKS = [
-  "/images/asset_real_estate.jpg",
+  "/images/commercial-property.jpg",
   "/images/hero_commercial_skyline.jpg",
   "/images/property_gallery_lobby.jpg",
 ];
 
 function getPropertyGallery(p: PropertyOffering): string[] {
-  const lead = p.image || "/images/asset_real_estate.jpg";
+  const lead = p.image || "/images/commercial-property.jpg";
   const all = [lead, ...GALLERY_FALLBACKS];
   return Array.from(new Set(all));
 }

@@ -6,6 +6,7 @@ import About from "../pages/public/About";
 import ServicesPage from "../pages/public/ServicesPage";
 import InvestmentPlans from "../pages/public/InvestmentPlans";
 import InvestmentPlanDetail from "../pages/public/InvestmentPlanDetail";
+import AssetClassPage from "../pages/public/AssetClassPage";
 import PropertiesPage from "../pages/public/PropertiesPage";
 import HowItWorks from "../pages/public/HowItWorks";
 import FAQ from "../pages/public/FAQ";
@@ -39,6 +40,8 @@ import AdminInvestmentPlans from "../pages/admin/InvestmentPlans";
 import AdminDeposits from "../pages/admin/Deposits";
 import AdminWithdrawals from "../pages/admin/Withdrawals";
 import AdminInvestments from "../pages/admin/Investments";
+import { AdminNotificationsPage } from "../pages/admin/AdminPages";
+import EmailTemplatesPage from "../pages/admin/EmailTemplatesPage";
 import {
   AdminDocumentsPage,
   AdminReferralsPage,
@@ -87,6 +90,7 @@ export default function AppRoutes() {
       <Route path="/services" element={<ServicesPage />} />
       <Route path="/investments-catalog" element={<InvestmentPlans />} />
       <Route path="/investments-catalog/:planId" element={<InvestmentPlanDetail />} />
+      <Route path="/sectors/:assetClass" element={<AssetClassPage />} />
       <Route path="/plans" element={<InvestmentPlans />} />
       <Route path="/plans/:planId" element={<InvestmentPlanDetail />} />
       <Route path="/properties" element={<PropertiesPage />} />
@@ -140,7 +144,8 @@ export default function AppRoutes() {
         <Route path="/admin/documents" element={<AdminDocumentsPage />} />
         <Route path="/admin/support" element={<AdminSupportPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
-        <Route path="/admin/notifications" element={<Navigate to="/admin/settings" replace />} />
+        <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
+        <Route path="/admin/email-templates" element={<EmailTemplatesPage />} />
       </Route>
 
       {/* Catch-all 404 */}

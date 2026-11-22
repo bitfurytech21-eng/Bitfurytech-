@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -18,6 +19,7 @@ import {
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { validateUsername } from "../lib/username";
 import { validateAllocation } from "../trading/tradingPage";
+import type { MailTemplateEvent } from "./mailTemplates";
 
 export interface UserAccount {
   uid: string;
@@ -74,6 +76,26 @@ export interface NotificationMessage {
   title: string;
   body: string;
   read: boolean;
+  createdAt?: Timestamp;
+}
+
+export interface EmailTemplateRecord {
+  eventType: MailTemplateEvent;
+  subject: string;
+  body: string;
+  enabled: boolean;
+  updatedBy: string;
+  updatedAt?: Timestamp;
+}
+
+export interface EmailOutboxRecord {
+  id: string;
+  userId: string;
+  recipient: string;
+  eventType: MailTemplateEvent;
+  subject: string;
+  body: string;
+  status: "awaiting_provider";
   createdAt?: Timestamp;
 }
 
@@ -197,7 +219,8 @@ export async function ensureUserAccount(
 
 export function subscribeUserProfile(
   uid: string,
-  onData: (account: UserAccount | null) => void
+  onData: (account: UserAccount | null) => void,
+  onError?: (error: unknown) => void
 ): () => void {
   const path = `users/${uid}`;
   return onSnapshot(
@@ -206,9 +229,82 @@ export function subscribeUserProfile(
       onData(snap.exists() ? (snap.data() as UserAccount) : null);
     },
     (error) => {
+      if (onError) {
+        onError(error);
+        return;
+      }
       handleFirestoreError(error, OperationType.GET, path);
     }
   );
+}
+
+export function subscribeEmailTemplates(
+  onData: (templates: EmailTemplateRecord[]) => void,
+  onError?: (error: unknown) => void
+): () => void {
+  return onSnapshot(
+    collection(db, "emailTemplates"),
+    (snap) => {
+      onData(
+        snap.docs.map((item) => ({
+          ...(item.data() as Omit<EmailTemplateRecord, "eventType">),
+          eventType: item.id as MailTemplateEvent,
+        }))
+      );
+    },
+    (error) => {
+      if (onError) onError(error);
+      else handleFirestoreError(error, OperationType.LIST, "emailTemplates");
+    }
+  );
+}
+
+export function subscribeEmailOutbox(
+  onData: (messages: EmailOutboxRecord[]) => void,
+  onError?: (error: unknown) => void
+): () => void {
+  const messagesQuery = query(
+    collection(db, "emailOutbox"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+  return onSnapshot(
+    messagesQuery,
+    (snap) => {
+      onData(
+        snap.docs.map((item) => ({
+          id: item.id,
+          ...(item.data() as Omit<EmailOutboxRecord, "id">),
+        }))
+      );
+    },
+    (error) => {
+      if (onError) onError(error);
+      else handleFirestoreError(error, OperationType.LIST, "emailOutbox");
+    }
+  );
+}
+
+export async function saveEmailTemplate(
+  eventType: MailTemplateEvent,
+  subject: string,
+  body: string,
+  enabled: boolean,
+  adminUid: string
+): Promise<void> {
+  const path = `emailTemplates/${eventType}`;
+  try {
+    await setDoc(doc(db, "emailTemplates", eventType), {
+      eventType,
+      subject: subject.trim().slice(0, 160),
+      body: body.trim().slice(0, 3000),
+      enabled,
+      updatedBy: adminUid,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
 }
 
 export async function updateUserProfileFields(

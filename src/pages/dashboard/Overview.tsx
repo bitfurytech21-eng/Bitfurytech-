@@ -57,7 +57,7 @@ function OverviewSkeleton() {
 }
 
 export default function Overview() {
-  const { firebaseUser, idToken } = useAuth();
+  const { firebaseUser, idToken, profile } = useAuth();
   const [data, setData] = useState<DashboardOverviewDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -98,7 +98,7 @@ export default function Overview() {
   return (
     <DashboardLayout
       title="Overview"
-      subtitle="Monitor your available balance, cumulative investments, earnings, pending payments, active holdings, and recent ledger activity in one place."
+      subtitle="Your account, investment performance, and settlement activity at a glance."
       actions={
         <>
           <Button
@@ -130,62 +130,89 @@ export default function Overview() {
           onRetry={() => void loadOverview(false)}
         />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
+          <section
+            aria-label="Investor account snapshot"
+            className="flex flex-col gap-5 rounded-lg bg-[#112E3E] px-5 py-5 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6"
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B9D1DE]">
+                Investor account
+              </p>
+              <h2 className="mt-1.5 text-xl font-bold font-heading tracking-tight sm:text-2xl">
+                Welcome back, {profile?.displayName || firebaseUser?.displayName || "Investor"}
+              </h2>
+              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-slate-300">
+                Your portfolio activity, settlements, and account figures are ready to review.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-4 border-t border-white/15 pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/10 text-[#B9D1DE]">
+                <Wallet className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-300">Portfolio synced</p>
+                <p className="mt-0.5 text-sm font-semibold text-white">
+                  {formatIsoDate(data.syncedAt)}
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* Primary Financial Figures (server-verified) */}
           <section
             aria-label="Primary financial metrics"
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
+            className="grid grid-cols-1 min-[390px]:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4"
           >
-            <Card padding="md" className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-medium text-[#5A6B7C]">
-                <span>Available Account Balance</span>
-                <Wallet className="w-4 h-4 text-[#1B4962]" />
+            <Card padding="md" className="space-y-2 border-[#1B4962] bg-[#1B4962] text-white shadow-sm">
+              <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-200">
+                <span>Available Balance</span>
+                <Wallet className="h-4 w-4 shrink-0 text-[#B9D1DE]" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-bold font-mono tabular-nums text-[#102030]">
+              <p className="text-xl font-bold font-mono tabular-nums text-white sm:text-2xl">
                 {formatUsd(data.metrics.availableBalance)}
               </p>
-              <p className="text-xs text-[#5A6B7C]">
-                Total deposited: <span className="font-mono tabular-nums">{formatUsd(data.metrics.totalDeposit)}</span>
+              <p className="text-xs text-slate-300">
+                Deposited <span className="font-mono tabular-nums">{formatUsd(data.metrics.totalDeposit)}</span>
               </p>
             </Card>
 
-            <Card padding="md" className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-medium text-[#5A6B7C]">
+            <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#5A6B7C]">
                 <span>Total Invested</span>
-                <TrendingUp className="w-4 h-4 text-[#E94D65]" />
+                <TrendingUp className="h-4 w-4 shrink-0 text-[#E94D65]" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-bold font-mono tabular-nums text-[#102030]">
+              <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 {formatUsd(data.metrics.totalInvested)}
               </p>
-              <p className="text-xs text-slate-500">
-                Active principal:{" "}
-                <span className="font-mono tabular-nums">{formatUsd(data.metrics.activeInvested)}</span>
+              <p className="text-xs text-[#5A6B7C]">
+                Active principal <span className="font-mono tabular-nums">{formatUsd(data.metrics.activeInvested)}</span>
               </p>
             </Card>
 
-            <Card padding="md" className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#5A6B7C]">
                 <span>Total Earnings</span>
-                <Coins className="w-4 h-4 text-emerald-600" />
+                <Coins className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+              <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 {formatUsd(data.metrics.totalEarnings)}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#5A6B7C]">
                 Profit <span className="font-mono tabular-nums">{formatUsd(data.metrics.totalProfit)}</span> · Referral{" "}
                 <span className="font-mono tabular-nums">{formatUsd(data.metrics.referralBonus)}</span>
               </p>
             </Card>
 
-            <Card padding="md" className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#5A6B7C]">
                 <span>Pending Payments</span>
-                <Clock className="w-4 h-4 text-amber-600" />
+                <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-bold font-mono tabular-nums text-slate-900">
+              <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 {formatUsd(data.metrics.pendingPayments)}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#5A6B7C]">
                 {data.metrics.pendingCount} pending settlement{data.metrics.pendingCount === 1 ? "" : "s"}
               </p>
             </Card>

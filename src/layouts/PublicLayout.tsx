@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Clock, Mail, Menu, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, Mail, Menu, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import LiveSupportWidget from "../components/LiveSupportWidget";
+import LanguageTranslateWidget from "../components/LanguageTranslateWidget";
+import { LEADERSHIP_TEAM } from "../data/leadershipTeam";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -67,36 +69,6 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
 
   return (
     <div className="min-h-screen bg-white text-[#102030] flex flex-col">
-      {/* Top Contact & Information Bar */}
-      <div className="bg-[#1B4962] text-white border-b border-white/15">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-10 py-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1.5 text-xs">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-slate-100">
-            <a
-              href="mailto:support@bitfurytechinvestment.com"
-              className="inline-flex items-center gap-1.5 hover:text-[#E94D65] transition-colors whitespace-nowrap"
-            >
-              <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-              <span>support@bitfurytechinvestment.com</span>
-            </a>
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-200 whitespace-nowrap">
-              <Clock className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-              <span>50+ Global Markets · Quantitative &amp; Multi-Asset Custody</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 text-slate-100">
-            <Link to="/faq" className="hover:text-white underline-offset-4 hover:underline whitespace-nowrap">
-              Investor FAQ
-            </Link>
-            <span className="text-white/30" aria-hidden="true">|</span>
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-              <span>Segregated Custody Ledger</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Navigation Header */}
       <header className="sticky top-0 z-40 bg-white/98 backdrop-blur border-b border-[#DCE4EC] shadow-[0_1px_6px_rgba(16,32,48,0.04)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-6">
@@ -233,6 +205,47 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
 
       {/* Multi-Column Corporate Footer */}
       <footer className="bg-[#1B4962] text-slate-200 border-t border-[#14374B]">
+        <section aria-labelledby="footer-team-heading" className="border-b border-white/10 bg-[#14374B]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#F08A9A]">
+                  Bitfury Tech Investment
+                </p>
+                <h2 id="footer-team-heading" className="mt-1 font-heading text-xl font-bold text-white">
+                  Meet the team
+                </h2>
+              </div>
+              <Link
+                to="/about"
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-white hover:text-[#F08A9A]"
+              >
+                About the company <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+              {LEADERSHIP_TEAM.map((member) => (
+                <li
+                  key={member.name}
+                  className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-3"
+                >
+                  <img
+                    src={member.image}
+                    alt={`Portrait of ${member.name}`}
+                    loading="lazy"
+                    className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/15"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{member.name}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-300">
+                      {member.role}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-4 space-y-4">
             <Link
@@ -379,33 +392,20 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
               <Link to="/privacy" className="hover:text-white underline-offset-4 hover:underline">
                 Privacy Policy
               </Link>
-              <Link to="/login" className="text-[#FFD1D8] hover:text-white font-semibold">
-                Client Portal
-              </Link>
             </div>
           </div>
         </div>
 
         <div className="bg-[#112E3E] border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-3 text-xs text-slate-300">
-            <p className="leading-relaxed text-slate-300/90">
-              Important Notice: Website content is for general informational purposes only and is
-              not an offer, solicitation, or personalized investment advice. Investing in stocks,
-              options, futures, digital assets, property, and foreign markets involves substantial
-              risk, including loss of capital. Values and income may fall as well as rise; past
-              performance and testimonials are not reliable indicators of future results. Verify any
-              claimed regulatory authorization directly with the relevant regulator before relying on it.
-            </p>
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <p>© {new Date().getFullYear()} Bitfury Tech Investment. All rights reserved.</p>
-              <p className="text-center sm:text-right">
-                Indicative mandate rates are non-guaranteed benchmarks subject to market risk.
-              </p>
+              <p>© 2020 Bitfury Tech Investment. All rights reserved.</p>
             </div>
           </div>
         </div>
       </footer>
 
+      <LanguageTranslateWidget />
       <LiveSupportWidget />
     </div>
   );

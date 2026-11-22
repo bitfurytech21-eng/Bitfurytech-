@@ -144,7 +144,7 @@ export default function About() {
 
           <div className="lg:col-span-5 min-h-[260px] rounded-[5px] overflow-hidden border border-white/20 bg-[#14374B]">
             <ResilientImage
-              src="/images/hero_institutional_wealth.jpg"
+              src="/images/hero-private-capital.jpg"
               alt="BitfuryTech institutional wealth workspace"
               fallbackLabel="BitfuryTech Corporate Profile"
               className="w-full h-full object-cover"

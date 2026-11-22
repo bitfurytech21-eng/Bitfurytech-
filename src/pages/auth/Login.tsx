@@ -116,7 +116,7 @@ export default function Login() {
       {/* Left Branded Column */}
       <aside className="lg:col-span-5 bg-[#1B4962] text-white relative overflow-hidden flex flex-col justify-between p-8 sm:p-12 border-b lg:border-b-0 lg:border-r border-[#14374B]">
         <img
-          src="/images/hero_institutional_wealth.jpg"
+          src="/images/hero-private-capital.jpg"
           alt="BitfuryTech institutional wealth workspace"
           referrerPolicy="no-referrer"
           className="absolute inset-0 w-full h-full object-cover opacity-20"

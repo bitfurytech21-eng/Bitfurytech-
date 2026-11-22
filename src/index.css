@@ -193,6 +193,25 @@
   background-color: var(--bf-secondary-hover);
 }
 
+.language-translate-widget .goog-te-gadget {
+  color: var(--bf-text-muted) !important;
+  font-family: var(--bf-font-body) !important;
+  font-size: 10px !important;
+}
+
+.language-translate-widget .goog-te-combo {
+  display: block;
+  width: min(14rem, calc(100vw - 5.5rem));
+  min-height: 44px;
+  margin: 0 !important;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid var(--bf-border-strong);
+  border-radius: 0.375rem;
+  background-color: #fff;
+  color: var(--bf-text);
+  font: inherit;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

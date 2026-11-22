@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   ArrowDownCircle,
   ArrowUpRight,
+  Bell,
   Building2,
   FileText,
   FolderOpen,
@@ -11,6 +12,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Mail,
   Settings,
   Share2,
   Shield,
@@ -38,6 +40,8 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin/referrals", label: "Referrals", icon: Share2 },
   { to: "/admin/documents", label: "Documents", icon: FolderOpen },
   { to: "/admin/support", label: "Support", icon: LifeBuoy },
+  { to: "/admin/notifications", label: "Broadcasts", icon: Bell },
+  { to: "/admin/email-templates", label: "Email Templates", icon: Mail },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
