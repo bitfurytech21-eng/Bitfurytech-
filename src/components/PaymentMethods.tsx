@@ -24,10 +24,10 @@ export default function PaymentMethods() {
             Available settlement methods
           </h3>
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            {PAYMENT_METHODS.map((method) => (
+            {PAYMENT_METHODS.map((method, index) => (
               <li
                 key={method.name}
-                className="bf-reveal flex min-h-28 flex-col items-center justify-center gap-3 rounded-xl border border-[#DCE4EC] bg-white p-4 text-center shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#E94D65]/60 hover:shadow-lg"
+                className="bf-reveal flex min-h-28 flex-col items-center justify-center gap-3 rounded-xl border border-[#DCE4EC] bg-white p-4 text-center shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#E94D65]/60 hover:shadow-lg" style={{ animationDelay: `${index * 110}ms` }}
               >
                 {method.image ? (
                   <img src={method.image} alt="" className="h-10 w-10 object-contain" loading="lazy" />
