@@ -164,7 +164,6 @@ app.get("/api/health/migration", async (_req, res) => {
          ('public.verification'),
          ('public.user_profiles'),
          ('public.user_roles'),
-         ('public.legacy_auth_identities'),
          ('public.investment_plans'),
          ('public.investments'),
          ('public.transactions'),
