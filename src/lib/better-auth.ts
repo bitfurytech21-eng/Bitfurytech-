@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
-import { databasePool } from "./db/pool.ts";
+import { databasePool } from "../db/pool.ts";
+import { sendBetterAuthEmail } from "../services/betterAuthMailer.ts";
 
 const baseURL = process.env.BETTER_AUTH_URL || process.env.VITE_SITE_URL || "http://localhost:3000";
 const secret = process.env.BETTER_AUTH_SECRET;
@@ -36,8 +37,18 @@ export const betterAuthInstance = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
     autoSignIn: false,
-    // Verification email delivery must be configured before enabling this gate.
-    requireEmailVerification: false,
+    requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendBetterAuthEmail("reset", user.email, url);
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendBetterAuthEmail("verify", user.email, url);
+    },
   },
   socialProviders,
   advanced: {
