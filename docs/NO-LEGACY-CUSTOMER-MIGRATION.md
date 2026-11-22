@@ -57,3 +57,8 @@ middleware and API routes. This document defines the required final state; it do
 claim those modules have already been replaced. Do not delete Firebase packages or
 configuration until the replacement code compiles and the repository-wide Firebase scan
 is clean.
+
+
+## Financial-core hardening migration
+
+Apply `src/db/financial-core.sql` after the base schema. It adds wallet reservation records, per-user idempotency keys, audit events, and a database trigger preventing ledger-entry updates/deletes. Every financial state transition must run in one SQL transaction, lock the wallet row with `SELECT ... FOR UPDATE`, and insert balanced ledger entries before committing. Never expose direct wallet or ledger writes to browser clients.
