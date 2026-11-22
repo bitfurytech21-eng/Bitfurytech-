@@ -1,0 +1,48 @@
+name: Regenerate lockfile and verify migration branch
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - migration/neon-cutover
+    paths:
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: migration/neon-cutover
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Regenerate package lock
+        run: npm install --package-lock-only
+
+      - name: Commit regenerated lockfile
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: regenerate dependency lockfile [skip ci]"
+            git push origin migration/neon-cutover
+          fi
+
+      - name: Verify clean install
+        run: npm ci
+
+      - name: Build production frontend
+        run: npm run build
