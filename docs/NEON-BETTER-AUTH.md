@@ -32,7 +32,7 @@ npm install
 npm run db:migrate
 ```
 
-The migration creates Better Auth's PostgreSQL tables and the initial BitfuryTech relational tables. It does not import Firebase users, change Firebase data, or make any user an administrator.
+The migration creates Better Auth's PostgreSQL tables, the initial BitfuryTech relational tables, and `legacy_auth_identities`, an explicit bridge for verified Firebase UID-to-Better Auth user mappings. It does not import Firebase users, change Firebase data, automatically link accounts by matching email, or make any user an administrator.
 
 ## Auth endpoints
 
@@ -46,11 +46,15 @@ Email/password sign-up requires email verification. Password reset revokes exist
 
 Administrator access is granted only by a row in `user_roles` with role `admin`. Do not grant admin status based only on an email address or client-side state. Provision the first administrator manually after confirming the user's Better Auth account ID.
 
+## Dependency lockfile
+
+The current `package-lock.json` on the migration branch is out of sync with `package.json`. Before enabling a clean-install deployment, run `npm install --package-lock-only` from the repository root, review the resulting lockfile diff, commit it to `migration/neon-postgres`, and verify `npm ci` plus `npm run build`. Do not hand-edit lockfile dependency entries.
+
 ## Cutover checklist
 
 1. Apply the migration and verify `/api/health/database`.
 2. Configure SMTP and test registration, verification, sign-in, reset and sign-out on a preview deployment.
-3. Migrate or explicitly reconcile existing Firebase user identities and username mappings.
+3. Create and verify Better Auth accounts, then populate `legacy_auth_identities` only after confirming control of both the existing Firebase identity and the new account. Never link identities solely because email strings match; reconcile usernames and profile records as part of the same controlled migration.
 4. Move the customer and admin API routes from Firebase ID-token verification to Better Auth sessions.
 5. Move user profiles, documents, uploads, support, deposits, withdrawals, investments and referrals to PostgreSQL/object storage.
 6. Test authorization and financial transaction invariants, then switch the UI.
