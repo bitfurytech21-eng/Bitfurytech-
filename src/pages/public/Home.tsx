@@ -400,15 +400,16 @@ export default function Home() {
   return (
     <PublicLayout>
       {/* 1. Homepage Introduction & Rotating Hero Banner */}
-      <section aria-label="Featured investment overview" className="relative bg-[#1B4962] text-white overflow-hidden">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-20 grid lg:grid-cols-12 gap-10 items-stretch">
-          <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
-            <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
+      <section aria-label="Featured investment overview" className="relative isolate overflow-hidden bg-[#102f43] text-white">
+        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_12%_12%,rgba(233,77,101,0.2),transparent_36%),linear-gradient(115deg,#102f43_0%,#1B4962_58%,#112e3e_100%)]" />
+        <div className="relative mx-auto grid max-w-7xl items-stretch gap-10 px-4 py-14 sm:px-6 lg:grid-cols-12 lg:px-8 lg:py-24">
+          <div className="flex flex-col justify-center space-y-6 lg:col-span-7">
+            <p className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[11px] font-heading font-bold uppercase tracking-[0.16em] text-[#ffd0d7]">
               {activeSlide.kicker}
             </p>
             <h1
-              className="font-heading font-bold tracking-tight text-white text-balance leading-[1.08]"
-              style={{ fontSize: "clamp(2.25rem, 4vw, 3.5rem)" }}
+              className="max-w-3xl font-heading font-bold tracking-[-0.035em] text-white text-balance leading-[1.04]"
+              style={{ fontSize: "clamp(2.5rem, 5vw, 4.35rem)" }}
             >
               {activeSlide.headline}
             </h1>
@@ -444,7 +445,7 @@ export default function Home() {
             </div>
 
             {/* Banner Slide Controls */}
-            <div className="flex items-center gap-4 pt-3">
+            <div className="flex items-center gap-4 pt-3" aria-label="Hero carousel controls">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -483,7 +484,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:col-span-5 relative min-h-[280px] lg:min-h-[420px] rounded-[5px] overflow-hidden border border-white/20 bg-[#14374B]">
+          <div className="relative min-h-[300px] overflow-hidden rounded-2xl border border-white/15 bg-[#14374B] shadow-[0_28px_80px_rgba(4,18,29,0.35)] lg:col-span-5 lg:min-h-[460px]">
             <ResilientImage
               src={activeSlide.image}
               alt={activeSlide.imageAlt}
@@ -491,7 +492,7 @@ export default function Home() {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#112E3E]/90 via-[#112E3E]/20 to-transparent" />
-            <div className="absolute bottom-5 left-5 right-5 text-xs text-slate-200">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#102f43]/95 via-[#102f43]/65 to-transparent px-6 pb-6 pt-20 text-xs text-slate-200 sm:px-8 sm:pb-8">
               <p className="font-heading font-bold text-white text-sm">{activeSlide.kicker}</p>
               <p className="text-slate-200 mt-1">
                 Cryptocurrency · Stocks · Commercial Real Estate
