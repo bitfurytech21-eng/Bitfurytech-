@@ -6,6 +6,7 @@ import ResilientImage from "../../components/ResilientImage";
 import { Button, buttonClasses } from "../../components/ui";
 import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
 import { formatUsd, MandateCategory } from "../../trading/tradingPage";
+import { getAssetClassGuide } from "./assetClassData";
 
 const CATEGORY_FILTERS: Array<{ id: MandateCategory | "all"; label: string }> = [
   { id: "all", label: "All Categories" },
@@ -157,23 +158,21 @@ export default function InvestmentPlans() {
                       <p className="text-[11px] font-medium text-[#1B4962] pt-1">{guide.riskNote}</p>
                     </div>
                   </div>
-                  <div className="px-5 pb-4 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleCategoryChange(selected ? "all" : guide.id)}
-                      className="text-xs font-heading font-bold text-[#B92841] hover:underline cursor-pointer"
-                    >
-                      {selected ? "Show All Categories" : `Filter ${guide.title.split(" ")[0]}`}
-                    </button>
-                    {guide.id === "estate" && (
-                      <Link
-                        to="/properties"
-                        className="text-xs font-heading font-bold text-[#1B4962] hover:underline"
-                      >
-                        Browse Properties →
-                      </Link>
-                    )}
-                  </div>
+                  <div className="px-5 pb-4 flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleCategoryChange(selected ? "all" : guide.id)}
+                    className="min-h-11 text-xs font-heading font-bold text-[#B92841] hover:underline cursor-pointer"
+                  >
+                    {selected ? "Show All Categories" : `Filter ${guide.title.split(" ")[0]}`}
+                  </button>
+                  <Link
+                    to={`/sectors/${getAssetClassGuide(guide.id)?.slug}`}
+                    className="min-h-11 inline-flex items-center text-xs font-heading font-bold text-[#1B4962] hover:underline"
+                  >
+                    Sector guide <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
+                  </Link>
+                </div>
                 </div>
               );
             })}

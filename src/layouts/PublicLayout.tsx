@@ -3,6 +3,8 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Clock, Mail, Menu, ShieldCheck, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import LiveSupportWidget from "../components/LiveSupportWidget";
+import LanguageTranslateWidget from "../components/LanguageTranslateWidget";
+import { LEADERSHIP_TEAM } from "../data/leadershipTeam";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -233,6 +235,47 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
 
       {/* Multi-Column Corporate Footer */}
       <footer className="bg-[#1B4962] text-slate-200 border-t border-[#14374B]">
+        <section aria-labelledby="footer-team-heading" className="border-b border-white/10 bg-[#14374B]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#F08A9A]">
+                  Bitfury Tech Investment
+                </p>
+                <h2 id="footer-team-heading" className="mt-1 font-heading text-xl font-bold text-white">
+                  Meet the team
+                </h2>
+              </div>
+              <Link
+                to="/about"
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-white hover:text-[#F08A9A]"
+              >
+                About the company <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+              {LEADERSHIP_TEAM.map((member) => (
+                <li
+                  key={member.name}
+                  className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-3"
+                >
+                  <img
+                    src={member.image}
+                    alt={`Portrait of ${member.name}`}
+                    loading="lazy"
+                    className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/15"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{member.name}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-300">
+                      {member.role}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-4 space-y-4">
             <Link
@@ -392,6 +435,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         </div>
       </footer>
 
+      <LanguageTranslateWidget />
       <LiveSupportWidget />
     </div>
   );

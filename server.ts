@@ -25,6 +25,7 @@ import {
   type FirestoreDocument,
 } from "./src/services/firestoreRestClient.ts";
 import { validateUsername } from "./src/lib/username.ts";
+import { enqueueMailEvent } from "./src/services/mailOutbox.ts";
 import firebaseConfig from "./firebase-applet-config.json" with { type: "json" };
 
 dotenv.config();
@@ -246,6 +247,29 @@ app.get("/api/auth/admin-check", requireAuth, requireAdmin, (req: AuthRequest, r
 app.post("/api/auth/logout", (_req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   res.json({ ok: true, cleared: true });
+});
+
+app.post("/api/auth/registration-notice", requireAuth, async (req: AuthRequest, res) => {
+  if (!req.user || !req.rawIdToken || !req.user.email) {
+    res.status(401).json({ ok: false, error: "Authenticated email session required." });
+    return;
+  }
+
+  try {
+    const queued = await enqueueMailEvent({
+      eventType: "client_registration",
+      userId: req.user.uid,
+      recipient: req.user.email,
+      rawToken: req.rawIdToken,
+      values: {
+        firstName: String(req.user.name || req.user.email.split("@")[0]).split(" ")[0],
+      },
+    });
+    res.status(202).json({ ok: true, queued, deliveryStatus: queued ? "awaiting_provider" : "disabled" });
+  } catch (error) {
+    console.error("Registration mail event could not be queued:", error);
+    res.status(202).json({ ok: true, queued: false, deliveryStatus: "awaiting_provider" });
+  }
 });
 
 // Check whether a normalized username handle is available in Firestore

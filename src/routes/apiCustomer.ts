@@ -30,6 +30,7 @@ import {
   releaseInFlightLock,
   saveIdempotentResult,
 } from "../services/idempotencyService.ts";
+import { enqueueMailEvent } from "../services/mailOutbox.ts";
 import {
   getMandateById,
   INVESTMENT_MANDATES,
@@ -715,6 +716,20 @@ export function createCustomerRouter(): Router {
         rawToken
       );
 
+      await enqueueMailEvent({
+        eventType: "deposit_initiated",
+        userId: uid,
+        recipient: String(req.user.email || ""),
+        rawToken,
+        values: {
+          firstName: String(req.user.name || req.user.email || "Investor").split(/[ @]/)[0],
+          amount: `$${amount.toFixed(2)}`,
+          method: rail.label,
+          reference: refCode,
+          status: "Pending",
+        },
+      }).catch((error) => console.error("Deposit mail event queue failed:", error));
+
       const responsePayload = {
         ok: true,
         deposit: {
@@ -904,6 +919,20 @@ export function createCustomerRouter(): Router {
         },
         rawToken
       );
+
+      await enqueueMailEvent({
+        eventType: "withdrawal_initiated",
+        userId: uid,
+        recipient: String(userDoc.email || req.user.email || ""),
+        rawToken,
+        values: {
+          firstName: String(userDoc.displayName || req.user.name || req.user.email || "Investor").split(" ")[0],
+          amount: `$${requested.toFixed(2)}`,
+          method,
+          reference: refCode,
+          status: "Pending",
+        },
+      }).catch((error) => console.error("Withdrawal mail event queue failed:", error));
 
       const payload = {
         ok: true,

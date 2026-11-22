@@ -238,17 +238,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        await ensureUserAccount(
-          user.uid,
-          user.email || "",
-          user.displayName || "BitfuryTech Investor"
-        );
-        if (cancelled) return;
+        try {
+          await ensureUserAccount(
+            user.uid,
+            user.email || "",
+            user.displayName || "BitfuryTech Investor"
+          );
+          if (cancelled) return;
 
-        unsubProfile = subscribeUserProfile(user.uid, (account) => {
-          setProfile(account);
+          unsubProfile = subscribeUserProfile(
+            user.uid,
+            (account) => {
+              setProfile(account);
+              setAuthError(null);
+              setAuthReady(true);
+            },
+            (error) => {
+              console.error("Firestore user profile subscription failed:", error);
+              setProfile(null);
+              setAuthError(
+                "You are signed in, but your account profile could not be loaded from Firestore. Check the database rules and try again."
+              );
+              setAuthReady(true);
+            }
+          );
+        } catch (error) {
+          console.error("Firestore user profile initialization failed:", error);
+          if (cancelled) return;
+          setProfile(null);
+          setAuthError(
+            "You are signed in, but your account profile could not be initialized in Firestore. Check the database rules and try again."
+          );
           setAuthReady(true);
-        });
+        }
       } catch (err) {
         console.error("Auth token/session verification error:", err);
         if (cancelled) return;
@@ -409,11 +431,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        await ensureUserAccount(
-          cred.user.uid,
-          cred.user.email || "",
-          cred.user.displayName || "BitfuryTech Investor"
-        );
+        try {
+          await ensureUserAccount(
+            cred.user.uid,
+            cred.user.email || "",
+            cred.user.displayName || "BitfuryTech Investor"
+          );
+        } catch (error) {
+          console.error("Firestore profile initialization failed after sign-in:", error);
+          setAuthError(
+            "You are signed in, but your account profile could not be initialized in Firestore. Check the database rules and try again."
+          );
+        }
 
         return { ok: true, session, needsVerification: false };
       } catch (err) {
@@ -507,6 +536,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         await sendEmailVerification(cred.user);
+        void fetch("/api/auth/registration-notice", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch((error) => {
+          console.warn("Registration mail event could not be queued:", error);
+        });
 
         const session = await fetchBackendSession(token);
         setIdToken(token);
@@ -613,11 +648,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setBackendSession(session);
 
       if (cred.user.emailVerified) {
-        await ensureUserAccount(
-          cred.user.uid,
-          cred.user.email || "",
-          cred.user.displayName || "BitfuryTech Investor"
-        );
+        try {
+          await ensureUserAccount(
+            cred.user.uid,
+            cred.user.email || "",
+            cred.user.displayName || "BitfuryTech Investor"
+          );
+        } catch (error) {
+          console.error("Firestore profile initialization failed after Google sign-in:", error);
+          setAuthError(
+            "You are signed in, but your account profile could not be initialized in Firestore. Check the database rules and try again."
+          );
+        }
       }
 
       return { ok: true, session, needsVerification: !cred.user.emailVerified };

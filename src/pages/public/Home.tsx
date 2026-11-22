@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  ArrowLeftRight,
   ArrowRight,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Coins,
+  HandCoins,
+  Handshake,
   Mail,
-  MessageSquareQuote,
   ShieldCheck,
 } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
@@ -23,11 +26,15 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
+import { LEADERSHIP_TEAM } from "../../data/leadershipTeam";
+import InvestorTestimonials from "../../components/InvestorTestimonials";
+import PaymentMethods from "../../components/PaymentMethods";
 import {
   PropertyOffering,
   subscribeProperties,
 } from "../../services/firestoreService";
 import { formatUsd, MandateCategory } from "../../trading/tradingPage";
+import { ASSET_CLASS_GUIDES } from "./assetClassData";
 
 const HERO_SLIDES = [
   {
@@ -80,7 +87,7 @@ const SECTOR_BLOCKS = [
       "Explore digital assets built on decentralized blockchain networks, including Bitcoin, Ethereum, and USD-pegged liquidity pools. Cryptocurrency markets operate continuously and can experience sharp price volatility, network congestion, and liquidity shifts, making disciplined position sizing and risk awareness essential.",
     riskNote: "High market volatility & digital asset price risk",
     image: "/images/asset_algo_trading.jpg",
-    to: "/investments-catalog?category=crypto",
+    to: "/sectors/crypto",
   },
   {
     index: "02",
@@ -90,7 +97,7 @@ const SECTOR_BLOCKS = [
       "Access structured equity mandates centered on publicly traded company shares across global markets. Share ownership exposes capital to corporate earnings performance, sector demand, interest-rate expectations, and broader economic developments that can cause stock values to rise or decline.",
     riskNote: "Equity market, earnings & macroeconomic risk",
     image: "/images/hero_digital_liquidity.jpg",
-    to: "/investments-catalog?category=stock",
+    to: "/sectors/stocks",
   },
   {
     index: "03",
@@ -100,7 +107,7 @@ const SECTOR_BLOCKS = [
       "Review commercial property offerings and asset-backed real estate mandates. Property participation considers potential rental income, tenant occupancy stability, and long-term property value changes—always review full valuation, location, and offering terms before committing capital.",
     riskNote: "Tenancy, valuation & property liquidity risk",
     image: "/images/asset_real_estate.jpg",
-    to: "/properties",
+    to: "/sectors/real-estate",
   },
 ];
 
@@ -145,69 +152,11 @@ const PORTFOLIO_PRINCIPLES = [
   },
 ];
 
-const LEADERSHIP_TEAM = [
-  {
-    name: "Robb Baldwin",
-    role: "President & CEO",
-    image: "/images/leadership/robb-baldwin.webp",
-  },
-  {
-    name: "Rob Dilbone",
-    role: "Managing Director",
-    image: "/images/leadership/rob-dilbone.webp",
-  },
-  {
-    name: "Cris Frankel",
-    role: "VP of Business Development",
-    image: "/images/leadership/cris-frankel.webp",
-  },
-  {
-    name: "Scott Victoria",
-    role: "Chief Operating Officer",
-    image: "/images/leadership/scott-victoria.webp",
-  },
-];
-
-const LEGACY_REVIEWS = [
-  {
-    name: "Jenifer Smart",
-    quote:
-      "I have never trusted any investment platform before, but Bitfury Tech Investments changed everything. They manage my assets and funds.",
-  },
-  {
-    name: "Mr. Kelvin",
-    quote:
-      "I am happy I found Bitfury Tech Investments. They keep exceeding my expectations, and I have found deposits and withdrawals quick.",
-  },
-  {
-    name: "Richard",
-    quote:
-      "I appreciate the insights shared in each trading session report and look forward to continued investments together.",
-  },
-  {
-    name: "Michal Abraham",
-    quote:
-      "I received my investment account update this morning, and I am pleased with the work being done. I would like to invest more in future opportunities.",
-  },
-  {
-    name: "Joseph Bricks",
-    quote:
-      "For me, investing is about trust, ability, affinity and availability. I have found the team attentive to detail and focused on their clients.",
-  },
-];
-
 const PUBLISHED_MILESTONES = [
-  { label: "Total Members", value: "1,865+" },
-  { label: "Total Returns Distributed", value: "$604,585" },
-  { label: "Total Transactions", value: "4,180+" },
-  { label: "Total Deposited", value: "$695,535" },
-];
-
-const CATEGORY_TABS: Array<{ id: MandateCategory | "all"; label: string }> = [
-  { id: "all", label: "All Mandates" },
-  { id: "crypto", label: "Cryptocurrency" },
-  { id: "stock", label: "Stocks" },
-  { id: "estate", label: "Real Estate" },
+  { label: "Total Members", value: "1,865+", icon: Handshake },
+  { label: "Total Returns Distributed", value: "$604,585", icon: HandCoins },
+  { label: "Total Transactions", value: "4,180+", icon: ArrowLeftRight },
+  { label: "Total Deposited", value: "$695,535", icon: Coins },
 ];
 
 const WHY_CHOOSE_ITEMS = [
@@ -309,12 +258,10 @@ const HOME_FAQS = [
 
 export default function Home() {
   const { firebaseUser } = useAuth();
-  const { plans, loading: plansLoading, error: plansError, reload: reloadPlans } =
-    useInvestmentPlans();
+  const { plans, loading: plansLoading, error: plansError } = useInvestmentPlans();
 
   const [slideIdx, setSlideIdx] = useState(0);
 
-  const [filter, setFilter] = useState<MandateCategory | "all">("all");
   const [properties, setProperties] = useState<PropertyOffering[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -345,11 +292,6 @@ export default function Home() {
     });
     return () => unsub();
   }, []);
-
-  const visibleMandates = useMemo(() => {
-    if (filter === "all") return plans;
-    return plans.filter((m) => m.category === filter);
-  }, [filter, plans]);
 
   const featuredProperties = useMemo(
     () => properties.filter((p) => p.published !== false).slice(0, 3),
@@ -732,144 +674,76 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. Featured Investment Opportunities (Live Backend Source) */}
-      <section className="bg-white border-b border-[#DCE4EC]">
+      {/* 5. Featured Opportunities Grouped by Asset Class */}
+      <section className="bg-white border-b border-[#DCE4EC]" aria-labelledby="featured-sectors-heading">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                Investment Opportunities
-              </p>
-              <h2 className="text-3xl font-heading font-bold tracking-tight text-[#102030]">
-                Featured Mandate Tiers
-              </h2>
-              <p className="text-sm text-[#5A6B7C]">
-                Live mandate specifications retrieved from the BitfuryTech portfolio catalog. Target
-                rates represent non-guaranteed mandate benchmarks.
-              </p>
-            </div>
-
-            <div
-              role="tablist"
-              aria-label="Filter investment mandates by category"
-              className="flex flex-wrap gap-1 p-1 bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] self-start"
-            >
-              {CATEGORY_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === tab.id}
-                  onClick={() => setFilter(tab.id)}
-                  className={`px-3.5 py-2 rounded-none text-xs font-heading font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                    filter === tab.id
-                      ? "bg-[#E94D65] text-white"
-                      : "text-[#1B4962] hover:bg-white"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          <div className="max-w-3xl space-y-2">
+            <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+              Featured investment areas
+            </p>
+            <h2 id="featured-sectors-heading" className="text-3xl font-heading font-bold tracking-tight text-[#102030]">
+              Three sectors, three different value drivers
+            </h2>
+            <p className="text-sm leading-relaxed text-[#5A6B7C]">
+              Explore what the company describes in each market, how returns may be generated, and the risks to examine. Mandates are grouped by asset class below; no return is promised.
+            </p>
           </div>
 
-          {plansLoading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((n) => (
-                <div
-                  key={n}
-                  className="h-80 rounded-[5px] bg-[#F6F8FA] border border-[#DCE4EC] animate-pulse"
-                />
-              ))}
-            </div>
-          ) : plansError ? (
-            <div className="bg-[#FFF1F2] border border-[#FECDD3] rounded-[5px] p-6 flex flex-wrap items-center justify-between gap-4">
-              <p className="text-sm text-[#9F1239]">{plansError}</p>
-              <Button variant="primary" size="sm" onClick={reloadPlans}>
-                Retry Loading Plans
-              </Button>
-            </div>
-          ) : visibleMandates.length === 0 ? (
-            <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-8 text-center">
-              <p className="text-sm text-[#5A6B7C]">
-                No investment plans are currently active in this category.
-              </p>
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {visibleMandates.map((m) => (
-                <article
-                  key={m.id}
-                  className="bg-white border border-[#DCE4EC] rounded-[5px] overflow-hidden flex flex-col justify-between shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
-                >
-                  <div>
-                    <div className="h-44 w-full overflow-hidden border-b border-[#DCE4EC]">
-                      <ResilientImage
-                        src={m.image}
-                        alt={`${m.name} — ${m.categoryLabel}`}
-                        fallbackLabel={m.categoryLabel}
-                        className="w-full h-full object-cover"
-                      />
+          <div className="grid gap-5 md:grid-cols-3">
+            {ASSET_CLASS_GUIDES.map((guide, index) => {
+              const groupPlans = plans.filter((plan) => plan.category === guide.id);
+              return (
+                <article key={guide.id} className="flex flex-col overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
+                  <ResilientImage
+                    src={guide.image}
+                    alt=""
+                    fallbackLabel={guide.title}
+                    className="h-40 w-full border-b border-[#DCE4EC] object-cover"
+                  />
+                  <div className="flex flex-1 flex-col gap-5 p-5 sm:p-6">
+                    <div>
+                      <p className="text-xs font-mono font-semibold text-[#B92841]">0{index + 1} · {guide.label}</p>
+                      <h3 className="mt-2 text-lg font-heading font-bold text-[#102030]">{guide.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-[#5A6B7C]">{guide.approach}</p>
                     </div>
-                    <div className="p-6 space-y-4">
-                      <div className="text-xs text-[#5A6B7C]">
-                        <span className="font-semibold text-[#B92841]">{m.categoryLabel}</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>{m.durationDays}-Day Cycle</span>
-                      </div>
-
-                      <div>
-                        <h3 className="text-xl font-heading font-bold text-[#102030]">{m.name}</h3>
-                        <p className="text-xs text-[#5A6B7C] mt-1">{m.audience}</p>
-                      </div>
-
-                      <dl className="space-y-2 border-y border-[#DCE4EC] py-4 text-xs">
-                        <div className="flex justify-between gap-2">
-                          <dt className="text-[#5A6B7C]">Indicative Daily Target</dt>
-                          <dd className="font-mono tabular-nums font-semibold text-[#B92841]">
-                            {m.dailyRatePct}% (Non-Guaranteed)
-                          </dd>
-                        </div>
-                        {typeof m.monthlyRatePct === "number" && (
-                          <div className="flex justify-between gap-2">
-                            <dt className="text-[#5A6B7C]">Monthly Benchmark</dt>
-                            <dd className="font-mono tabular-nums font-semibold text-[#102030]">
-                              {m.monthlyRatePct}% · {m.referralBonusPct ?? 5}% Referral
-                            </dd>
-                          </div>
-                        )}
-                        <div className="flex justify-between gap-2">
-                          <dt className="text-[#5A6B7C]">Entry Range</dt>
-                          <dd className="font-mono tabular-nums font-semibold text-[#102030]">
-                            {formatUsd(m.minDeposit)} – {formatUsd(m.maxDeposit)}
-                          </dd>
-                        </div>
-                        <div className="flex justify-between gap-2">
-                          <dt className="text-[#5A6B7C]">Settlement Rail</dt>
-                          <dd className="text-[#102030] text-right">{m.settlementRail}</dd>
-                        </div>
-                      </dl>
+                    <div className="rounded-lg bg-[#F6F8FA] p-4">
+                      <h4 className="text-xs font-heading font-bold text-[#102030]">Potential value drivers</h4>
+                      <ul className="mt-2 space-y-2">
+                        {guide.valueDrivers.slice(0, 2).map((driver) => (
+                          <li key={driver} className="text-xs leading-relaxed text-[#5A6B7C]">{driver}</li>
+                        ))}
+                      </ul>
                     </div>
-                  </div>
-
-                  <div className="px-6 pb-6 flex items-center gap-3">
-                    <Link
-                      to={`/investments-catalog/${m.id}`}
-                      className={`flex-1 ${buttonClasses({ variant: "primary", size: "sm" })}`}
-                    >
-                      See Details
-                    </Link>
-                    <Link
-                      to={`/investments?plan=${m.id}`}
-                      className={buttonClasses({ variant: "secondary", size: "sm" })}
-                    >
-                      Allocate
-                    </Link>
+                    <div>
+                      <h4 className="text-xs font-heading font-bold uppercase tracking-wide text-[#1B4962]">Mandates in this group</h4>
+                      {plansLoading ? (
+                        <p className="mt-2 text-xs text-[#5A6B7C]">Loading current mandate groups…</p>
+                      ) : plansError ? (
+                        <p className="mt-2 text-xs text-[#5A6B7C]">Current mandate list is temporarily unavailable.</p>
+                      ) : groupPlans.length ? (
+                        <ul className="mt-2 space-y-1.5">
+                          {groupPlans.slice(0, 3).map((plan) => (
+                            <li key={plan.id} className="text-xs text-[#46596B]">{plan.name}</li>
+                          ))}
+                          {groupPlans.length > 3 && <li className="text-xs text-[#667789]">And {groupPlans.length - 3} more</li>}
+                        </ul>
+                      ) : (
+                        <p className="mt-2 text-xs text-[#5A6B7C]">No active mandates are currently listed.</p>
+                      )}
+                    </div>
+                    <div className="mt-auto flex flex-col gap-2 border-t border-[#DCE4EC] pt-4">
+                      <Link to={`/sectors/${guide.slug}`} className={buttonClasses({ variant: "primary", size: "sm" })}>
+                        Read sector guide <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Link>
+                      <Link to={`/investments-catalog?category=${guide.id}`} className="inline-flex min-h-11 items-center justify-center text-xs font-heading font-bold text-[#1B4962] hover:text-[#B92841]">
+                        View grouped mandates
+                      </Link>
+                    </div>
                   </div>
                 </article>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -1011,26 +885,43 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="border-t border-white/15 pt-8 space-y-4">
-            <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-              Bitfury Tech Investment Historical Platform Numbers
+        </div>
+      </section>
+
+      <section aria-labelledby="our-numbers-heading" className="bg-[#FBFAFC]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+          <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
+            <span aria-hidden="true" className="h-2 w-24 bg-[#58A363]" />
+            <h2 id="our-numbers-heading" className="mt-6 font-heading text-4xl font-bold tracking-tight text-[#121212] sm:text-5xl">
+              Our <span className="text-[#58A363]">Numbers</span>
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-[#5B5B61] sm:text-base">
+              Historical figures as reported by the company; not independently audited.
             </p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {PUBLISHED_MILESTONES.map((item) => (
-                <div
+          </div>
+          <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-7 lg:mt-14 lg:gap-10">
+            {PUBLISHED_MILESTONES.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <article
                   key={item.label}
-                  className="bg-white/5 border border-white/15 rounded-[5px] p-5 space-y-1"
+                  className={`flex min-h-[210px] flex-col items-center justify-center rounded-3xl border border-[#F0EDF4] bg-white px-5 py-7 text-center shadow-[0_18px_48px_rgba(64,51,89,0.08)] sm:min-h-[250px] sm:py-9 ${
+                    index % 2 === 1 ? "lg:translate-y-8" : ""
+                  }`}
                 >
-                  <p className="text-xs text-slate-200">{item.label}</p>
-                  <p className="text-2xl font-bold font-mono tabular-nums text-white">
+                  <Icon aria-hidden="true" className="mb-5 h-14 w-14 text-[#513A76] sm:h-16 sm:w-16" strokeWidth={1.5} />
+                  <p className="text-lg font-medium text-[#3F3F46] sm:text-xl">{item.label}</p>
+                  <p className="mt-2 text-3xl font-extrabold tabular-nums text-[#1B2353] sm:text-4xl">
                     {item.value}
                   </p>
-                </div>
-              ))}
-            </div>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
+
+      <PaymentMethods />
 
       {/* 8. Why Choose BitfuryTech? (8 Clear Pillars) */}
       <section className="bg-white border-b border-[#DCE4EC]">
@@ -1186,47 +1077,7 @@ export default function Home() {
             ))}
           </div>
 
-          <section aria-labelledby="legacy-reviews-title" className="space-y-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div className="space-y-2">
-                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                  Investor Feedback
-                </p>
-                <h3 id="legacy-reviews-title" className="text-2xl font-heading font-bold text-[#102030]">
-                  Reviews from Bitfury Tech&apos;s previous website
-                </h3>
-              </div>
-              <Link to="/contact" className={buttonClasses({ variant: "secondary", size: "sm" })}>
-                Contact our team
-              </Link>
-            </div>
-            <p className="max-w-4xl text-xs leading-relaxed text-[#5A6B7C]">
-              These excerpts are reproduced from the previous public website and have not been
-              independently verified. They are individual opinions, not representative results or
-              guarantees. Investing involves risk and outcomes vary.
-            </p>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {LEGACY_REVIEWS.map((review) => (
-                <article
-                  key={review.name}
-                  className="flex flex-col justify-between gap-5 rounded-xl border border-[#DCE4EC] bg-white p-6 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
-                >
-                  <div className="flex items-center gap-2 text-[#1B4962]">
-                    <MessageSquareQuote aria-hidden="true" className="h-5 w-5 shrink-0 text-[#E94D65]" />
-                    <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                      Edited source-site excerpt
-                    </span>
-                  </div>
-                  <blockquote className="text-sm leading-relaxed text-[#3B4C5E]">
-                    {review.quote}
-                  </blockquote>
-                  <cite className="not-italic text-sm font-heading font-bold text-[#102030]">
-                    {review.name}
-                  </cite>
-                </article>
-              ))}
-            </div>
-          </section>
+          <InvestorTestimonials />
         </div>
       </section>
 

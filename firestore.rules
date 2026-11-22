@@ -604,5 +604,74 @@ service cloud.firestore {
         incoming().updatedAt == request.time;
       allow delete: if false;
     }
+
+    function isValidMailTemplate(data, eventType) {
+      return data.keys().hasAll(['eventType', 'subject', 'body', 'enabled', 'updatedBy', 'updatedAt']) &&
+        data.keys().hasOnly(['eventType', 'subject', 'body', 'enabled', 'updatedBy', 'updatedAt']) &&
+        eventType in [
+          'client_registration', 'deposit_initiated', 'deposit_approved', 'deposit_rejected',
+          'withdrawal_initiated', 'withdrawal_approved', 'withdrawal_rejected', 'daily_roi',
+          'newsletter_signup', 'kyc_status', 'email_verification', 'password_reset'
+        ] &&
+        data.eventType == eventType &&
+        data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 160 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 3000 &&
+        data.enabled is bool &&
+        data.updatedBy is string && data.updatedBy.size() >= 1 && data.updatedBy.size() <= 128 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMailOutbox(data) {
+      return data.keys().hasAll(['userId', 'recipient', 'eventType', 'subject', 'body', 'status', 'createdAt']) &&
+        data.keys().hasOnly(['userId', 'recipient', 'eventType', 'subject', 'body', 'status', 'createdAt']) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.recipient is string && data.recipient.size() >= 3 && data.recipient.size() <= 200 &&
+        data.recipient.matches('.*@.*\\..*') &&
+        data.eventType in [
+          'client_registration', 'deposit_initiated', 'deposit_approved', 'deposit_rejected',
+          'withdrawal_initiated', 'withdrawal_approved', 'withdrawal_rejected'
+        ] &&
+        data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 160 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 3000 &&
+        data.status == 'awaiting_provider' &&
+        data.createdAt is timestamp;
+    }
+
+    match /emailTemplates/{eventType} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin() &&
+        isValidId(eventType) &&
+        isValidMailTemplate(incoming(), eventType) &&
+        incoming().updatedBy == request.auth.uid &&
+        incoming().updatedAt == request.time;
+      allow update: if isAdmin() &&
+        isValidId(eventType) &&
+        isValidMailTemplate(incoming(), eventType) &&
+        incoming().updatedBy == request.auth.uid &&
+        incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /emailOutbox/{messageId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(messageId) &&
+        isValidMailOutbox(incoming()) &&
+        incoming().createdAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            isSignedIn() &&
+            incoming().userId == request.auth.uid &&
+            incoming().recipient == request.auth.token.email &&
+            (
+              (isVerifiedUser() && incoming().eventType in [
+                'deposit_initiated', 'withdrawal_initiated'
+              ]) ||
+              (!isVerifiedUser() && incoming().eventType == 'client_registration')
+            )
+          )
+        );
+      allow update, delete: if false;
+    }
   }
 }
