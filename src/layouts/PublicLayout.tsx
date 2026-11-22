@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Clock, Mail, Menu, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, Mail, Menu, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import LiveSupportWidget from "../components/LiveSupportWidget";
 import LanguageTranslateWidget from "../components/LanguageTranslateWidget";
@@ -69,36 +69,6 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
 
   return (
     <div className="min-h-screen bg-white text-[#102030] flex flex-col">
-      {/* Top Contact & Information Bar */}
-      <div className="bg-[#1B4962] text-white border-b border-white/15">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-10 py-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1.5 text-xs">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-slate-100">
-            <a
-              href="mailto:support@bitfurytechinvestment.com"
-              className="inline-flex items-center gap-1.5 hover:text-[#E94D65] transition-colors whitespace-nowrap"
-            >
-              <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-              <span>support@bitfurytechinvestment.com</span>
-            </a>
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-200 whitespace-nowrap">
-              <Clock className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-              <span>50+ Global Markets · Quantitative &amp; Multi-Asset Custody</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 text-slate-100">
-            <Link to="/faq" className="hover:text-white underline-offset-4 hover:underline whitespace-nowrap">
-              Investor FAQ
-            </Link>
-            <span className="text-white/30" aria-hidden="true">|</span>
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-              <span>Segregated Custody Ledger</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Navigation Header */}
       <header className="sticky top-0 z-40 bg-white/98 backdrop-blur border-b border-[#DCE4EC] shadow-[0_1px_6px_rgba(16,32,48,0.04)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-6">
