@@ -27,7 +27,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 export const betterAuthInstance = betterAuth({
   appName: "BitfuryTech",
   baseURL,
-  basePath: "/api/auth",
+  basePath: "/api/better-auth",
   secret,
   database: databasePool ?? undefined,
   trustedOrigins,
