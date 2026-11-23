@@ -55,11 +55,7 @@ app.get("/api/account/session", async (req, res) => {
       res.status(401).json({ authenticated: false });
       return;
     }
-    const roleResult = await queryDatabase<{ role: string }>(
-      "SELECT role FROM user_roles WHERE user_id = $1 ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'support' THEN 1 ELSE 2 END LIMIT 1",
-      [session.user.id]
-    ).catch(() => ({ rows: [] } as { rows: { role: string }[] }));
-    const role = roleResult.rows[0]?.role ?? "investor";
+    const role = await resolveBetterAuthRole(session.user.id, session.user.email);
     res.json({
       authenticated: true,
       user: {
@@ -88,7 +84,7 @@ app.get("/api/auth/better-session", requireBetterAuth, async (req: BetterAuthReq
     return;
   }
   try {
-    const role = await resolveBetterAuthRole(session.user.id);
+    const role = await resolveBetterAuthRole(session.user.id, session.user.email);
     res.json({
       authenticated: true,
       user: {
@@ -908,6 +904,36 @@ app.post("/api/newsletter", async (req, res) => {
       ok: false,
       error: "Unable to save newsletter subscription right now.",
     });
+  }
+});
+
+/** Better Auth protected admin landing data, registered ahead of the legacy Firebase router. */
+app.get("/api/admin/overview", requireBetterAuth, requireBetterAdmin, async (_req: BetterAuthRequest, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  try {
+    const [users, active, invested, pendingD, pendingW, amountD, amountW, newUsers, properties, inquiries, recentTx, audit] = await Promise.all([
+      queryDatabase("SELECT COUNT(*)::text AS count FROM \"user\""),
+      queryDatabase("SELECT COUNT(*)::text AS count FROM investments WHERE lower(status) = 'active'"),
+      queryDatabase("SELECT COALESCE(SUM(principal), 0)::text AS total FROM investments"),
+      queryDatabase("SELECT COUNT(*)::text AS count FROM transactions WHERE lower(type) = 'deposit' AND lower(status) IN ('pending','processing')"),
+      queryDatabase("SELECT COUNT(*)::text AS count FROM transactions WHERE lower(type) = 'withdrawal' AND lower(status) IN ('pending','processing')"),
+      queryDatabase("SELECT COALESCE(SUM(amount), 0)::text AS total FROM transactions WHERE lower(type) = 'deposit' AND lower(status) IN ('pending','processing')"),
+      queryDatabase("SELECT COALESCE(SUM(amount), 0)::text AS total FROM transactions WHERE lower(type) = 'withdrawal' AND lower(status) IN ('pending','processing')"),
+      queryDatabase("SELECT COUNT(*)::text AS count FROM \"user\" WHERE \"createdAt\" >= now() - interval '7 days'"),
+      queryDatabase("SELECT COUNT(*)::text AS count FROM properties"),
+      queryDatabase("SELECT COUNT(*)::text AS count FROM inquiries"),
+      queryDatabase("SELECT t.id, u.email, t.type, t.method, t.amount::text, t.reference, t.status, t.created_at FROM transactions t JOIN \"user\" u ON u.id = t.user_id ORDER BY t.created_at DESC LIMIT 10"),
+      queryDatabase("SELECT id::text, action, target_type, target_id, details, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8")
+    ]);
+    const n = (v: unknown) => Number(v || 0);
+    res.json({
+      stats: { totalCustomers: n(users.rows[0]?.count), activeInvestmentsCount: n(active.rows[0]?.count), totalInvested: n(invested.rows[0]?.total), pendingDepositsCount: n(pendingD.rows[0]?.count), pendingDepositsAmount: n(amountD.rows[0]?.total), pendingWithdrawalsCount: n(pendingW.rows[0]?.count), pendingWithdrawalsAmount: n(amountW.rows[0]?.total), newRegistrations: n(newUsers.rows[0]?.count), propertiesCount: n(properties.rows[0]?.count), inquiriesCount: n(inquiries.rows[0]?.count) },
+      recentTransactions: recentTx.rows.map((t: any) => ({ id: t.id, userEmail: t.email, type: t.type, method: t.method || "", amount: n(t.amount), reference: t.reference || "", status: t.status, createdAt: t.created_at })),
+      recentAuditLogs: audit.rows.map((a: any) => ({ id: a.id, actorEmail: "Administrator", action: a.action, targetType: a.target_type, targetId: a.target_id || "", summary: typeof a.details === "string" ? a.details : JSON.stringify(a.details || {}), createdAt: a.created_at }))
+    });
+  } catch (error) {
+    console.error("Neon admin overview failed:", error);
+    res.status(503).json({ error: "Unable to load administrator overview from Neon." });
   }
 });
 

@@ -35,11 +35,16 @@ export async function requireBetterAuth(
   }
 }
 
-export async function resolveBetterAuthRole(userId: string): Promise<"admin" | "support" | "investor"> {
+const BOOTSTRAP_ADMIN_EMAIL = (process.env.BITFURYTECH_ADMIN_EMAIL || "bitfurytech21@gmail.com").trim().toLowerCase();
+
+export async function resolveBetterAuthRole(userId: string, email?: string | null): Promise<"admin" | "support" | "investor"> {
   const result = await queryDatabase<{ role: "admin" | "support" | "investor" }>(
     "SELECT role FROM user_roles WHERE user_id = $1 ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'support' THEN 1 ELSE 2 END LIMIT 1",
     [userId]
   );
+  // The explicitly configured bootstrap identity takes precedence over the default
+  // investor role created automatically for every new account.
+  if (email && email.trim().toLowerCase() === BOOTSTRAP_ADMIN_EMAIL) return "admin";
   return result.rows[0]?.role ?? "investor";
 }
 
@@ -75,7 +80,7 @@ export async function requireBetterAdmin(
     return;
   }
   try {
-    const role = await resolveBetterAuthRole(req.betterAuthSession.user.id);
+    const role = await resolveBetterAuthRole(req.betterAuthSession.user.id, req.betterAuthSession.user.email);
     req.betterAuthRole = role;
     if (role !== "admin") {
       res.status(403).json({ error: "Administrator authorization required." });

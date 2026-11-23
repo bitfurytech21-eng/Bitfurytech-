@@ -23,8 +23,7 @@ import {
   StatusText,
   TableColumn,
 } from "../../components/ui";
-import { useAuth } from "../../hooks/useAuth";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 interface AdminOverviewResponse {
@@ -62,7 +61,6 @@ interface AdminOverviewResponse {
 }
 
 export default function AdminOverview() {
-  const { firebaseUser, idToken } = useAuth();
   const [data, setData] = useState<AdminOverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,13 +68,11 @@ export default function AdminOverview() {
 
   const loadOverview = useCallback(
     async (isRefresh = false) => {
-      if (!firebaseUser) return;
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const res = await apiRequest<AdminOverviewResponse>("/api/admin/overview", token);
+        const res = await sessionApiRequest<AdminOverviewResponse>("/api/admin/overview");
         setData(res);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load admin metrics.");
@@ -85,7 +81,7 @@ export default function AdminOverview() {
         setRefreshing(false);
       }
     },
-    [firebaseUser, idToken]
+    []
   );
 
   useEffect(() => {
