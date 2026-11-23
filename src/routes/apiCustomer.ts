@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { requireBetterAuth, requireBetterVerifiedEmail, type BetterAuthRequest } from "../middleware/betterAuth.ts";
+import { getNeonDashboardOverview, getNeonCustomerInvestments, getNeonCustomerTransactions } from "../services/neonDashboardService.ts";
 import {
   requireAuth,
   requireVerifiedEmail,
@@ -227,6 +229,66 @@ function buildUserUpdateFields(
 
 export function createCustomerRouter(): Router {
   const router = Router();
+
+  // Better Auth cookie-protected financial reads. Register before the legacy Firebase
+  // middleware so these routes never require a Firebase ID token.
+  const requireVerifiedBetterSession = [requireBetterAuth, requireBetterVerifiedEmail] as const;
+
+  router.get("/dashboard/overview", ...requireVerifiedBetterSession, async (req: BetterAuthRequest, res) => {
+    const userId = req.betterAuthSession?.user.id;
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+    try {
+      const overview = await getNeonDashboardOverview(userId);
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.json(overview);
+    } catch (error) {
+      console.error("Neon dashboard overview fetch failed:", error);
+      res.status(503).json({ error: "Unable to load financial overview from the account ledger." });
+    }
+  });
+
+  router.get("/dashboard/investments", ...requireVerifiedBetterSession, async (req: BetterAuthRequest, res) => {
+    const userId = req.betterAuthSession?.user.id;
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+    try {
+      const payload = await getNeonCustomerInvestments(userId);
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.json(payload);
+    } catch (error) {
+      console.error("Neon dashboard investments fetch failed:", error);
+      res.status(503).json({ error: "Unable to load investment records." });
+    }
+  });
+
+  router.get("/transactions", ...requireVerifiedBetterSession, async (req: BetterAuthRequest, res) => {
+    const userId = req.betterAuthSession?.user.id;
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+    try {
+      const transactions = await getNeonCustomerTransactions(userId);
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.json({ transactions });
+    } catch (error) {
+      console.error("Neon customer transactions fetch failed:", error);
+      res.status(503).json({ error: "Unable to load transaction history." });
+    }
+  });
+
+  router.get("/deposits/methods", ...requireVerifiedBetterSession, (_req, res) => {
+    res.json({ methods: DEPOSIT_RAILS });
+  });
+
+  router.get("/withdrawals/config", ...requireVerifiedBetterSession, (_req, res) => {
+    res.json(WITHDRAWAL_CONFIG);
+  });
 
   router.use(requireAuth, requireVerifiedEmail);
 

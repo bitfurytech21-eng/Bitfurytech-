@@ -16,14 +16,14 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import {
-  apiRequest,
+  sessionApiRequest,
   DashboardTransactionDTO,
   formatIsoDate,
 } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 export default function Transactions() {
-  const { firebaseUser, idToken } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [transactions, setTransactions] = useState<DashboardTransactionDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,14 +36,12 @@ export default function Transactions() {
   const [selectedTx, setSelectedTx] = useState<DashboardTransactionDTO | null>(null);
 
   const loadTransactions = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!authReady || !backendSession) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ transactions: DashboardTransactionDTO[] }>(
-        "/api/transactions",
-        token
+      const res = await sessionApiRequest<{ transactions: DashboardTransactionDTO[] }>(
+        "/api/transactions"
       );
       setTransactions(res.transactions);
     } catch (err) {
@@ -51,7 +49,7 @@ export default function Transactions() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [backendSession, authReady]);
 
   useEffect(() => {
     void loadTransactions();

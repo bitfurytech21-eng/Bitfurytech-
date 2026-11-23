@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import {
   apiRequest,
+  sessionApiRequest,
   DashboardTransactionDTO,
   DepositRailDTO,
   formatIsoDate,
@@ -28,7 +29,7 @@ function makeDepositKey(): string {
 }
 
 export default function Deposit() {
-  const { firebaseUser, idToken, profile } = useAuth();
+  const { firebaseUser, idToken, backendSession, authReady, profile } = useAuth();
   const [methods, setMethods] = useState<DepositRailDTO[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState<string>(
     profile?.preferredRail || "USDT (TRC20)"
@@ -51,13 +52,12 @@ export default function Deposit() {
   } | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!authReady || !backendSession) return;
     setLoading(true);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
       const [railsRes, txRes] = await Promise.all([
-        apiRequest<{ methods: DepositRailDTO[] }>("/api/deposits/methods", token),
-        apiRequest<{ transactions: DashboardTransactionDTO[] }>("/api/transactions", token),
+        sessionApiRequest<{ methods: DepositRailDTO[] }>("/api/deposits/methods"),
+        sessionApiRequest<{ transactions: DashboardTransactionDTO[] }>("/api/transactions"),
       ]);
       setMethods(railsRes.methods);
       if (railsRes.methods.length > 0 && !railsRes.methods.some((m) => m.id === selectedMethodId)) {
@@ -69,7 +69,7 @@ export default function Deposit() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken, selectedMethodId]);
+  }, [backendSession, authReady, selectedMethodId]);
 
   useEffect(() => {
     void loadData();
