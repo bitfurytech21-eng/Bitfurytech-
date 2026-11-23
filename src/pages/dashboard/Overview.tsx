@@ -170,7 +170,7 @@ export default function Overview() {
                 <Wallet className="h-4 w-4 shrink-0 text-[#B9D1DE]" aria-hidden="true" />
               </div>
               <p className="text-xl font-bold font-mono tabular-nums text-white sm:text-2xl">
-                {<FinancialAmount value={data.metrics.availableBalance} size="md" />}
+                {<FinancialAmount value={data.metrics.availableBalance} size="lg" />}
               </p>
               <p className="text-xs text-slate-300">
                 Deposited <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalDeposit} size="md" />}</span>
@@ -183,7 +183,7 @@ export default function Overview() {
                 <TrendingUp className="h-4 w-4 shrink-0 text-[#E94D65]" aria-hidden="true" />
               </div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {<FinancialAmount value={data.metrics.totalInvested} size="md" />}
+                {<FinancialAmount value={data.metrics.totalInvested} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
                 Active principal <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.activeInvested} size="md" />}</span>
@@ -196,7 +196,7 @@ export default function Overview() {
                 <Coins className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
               </div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {<FinancialAmount value={data.metrics.totalEarnings} size="md" />}
+                {<FinancialAmount value={data.metrics.totalEarnings} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
                 Profit <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalProfit} size="md" />}</span> · Referral{" "}
@@ -210,7 +210,7 @@ export default function Overview() {
                 <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
               </div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {<FinancialAmount value={data.metrics.pendingPayments} size="md" />}
+                {<FinancialAmount value={data.metrics.pendingPayments} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
                 {data.metrics.pendingCount} pending settlement{data.metrics.pendingCount === 1 ? "" : "s"}
