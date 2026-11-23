@@ -21,6 +21,7 @@ export async function sendDailyRecordedReturnSummaries(reportDate: string): Prom
      JOIN "user" u ON u.id = t.user_id
      WHERE t.type = 'return'
        AND t.status = 'completed'
+       AND t.currency = 'USD'
        AND (t.created_at AT TIME ZONE 'UTC')::date = $1::date
      GROUP BY t.user_id, u.email, u.name
      HAVING SUM(t.amount) > 0`,
