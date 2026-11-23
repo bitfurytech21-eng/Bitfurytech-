@@ -2,6 +2,8 @@ import { Router } from "express";
 import { requireBetterAuth, requireBetterAdmin } from "../middleware/betterAuth.ts";
 import { databasePool, queryDatabase } from "../db/pool.ts";
 import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 type Row = Record<string, unknown>;
 
@@ -379,6 +381,51 @@ export function createBetterAuthAdminRouter(): Router {
       res.json({ ok: true });
     } catch (error) {
       res.status(502).json({ error: "Unable to delete property." });
+    }
+  });
+
+
+  router.post("/uploads", async (req, res) => {
+    const kind = req.body?.kind === "document" ? "documents" : "properties";
+    const fileNameRaw = textValue(req.body?.fileName, "asset");
+    const dataUrl = textValue(req.body?.dataUrl);
+    const match = dataUrl.match(/^data:([a-zA-Z0-9/+.-]+);base64,([A-Za-z0-9+/=]+)$/);
+    if (!match) {
+      res.status(400).json({ error: "Invalid base64 upload payload." });
+      return;
+    }
+    const mime = match[1].toLowerCase();
+    const buffer = Buffer.from(match[2], "base64");
+    const maxBytes = kind === "properties" ? 2 * 1024 * 1024 : 3 * 1024 * 1024;
+    if (!buffer.length || buffer.length > maxBytes) {
+      res.status(400).json({ error: "Uploaded file exceeds the allowed size limit." });
+      return;
+    }
+    const allowed: Record<string, string> = kind === "properties"
+      ? { "image/jpeg": ".jpg", "image/jpg": ".jpg", "image/png": ".png", "image/webp": ".webp" }
+      : { "application/pdf": ".pdf", "text/plain": ".txt", "image/jpeg": ".jpg", "image/png": ".png" };
+    const ext = allowed[mime];
+    if (!ext) {
+      res.status(400).json({ error: "Unsupported upload file type." });
+      return;
+    }
+    const safeBase = fileNameRaw.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40) || "asset";
+    const finalName = `${safeBase}_${Date.now()}_${randomUUID().slice(0, 6)}${ext}`;
+    const targetDir = path.resolve(process.cwd(), "uploads", kind);
+    const target = path.resolve(targetDir, finalName);
+    if (!target.startsWith(targetDir + path.sep)) {
+      res.status(400).json({ error: "Invalid upload path." });
+      return;
+    }
+    try {
+      await fs.mkdir(targetDir, { recursive: true });
+      await fs.writeFile(target, buffer, { flag: "wx" });
+      const url = `/uploads/${kind}/${finalName}`;
+      await recordAudit(req as BetterAuthRequest, kind === "properties" ? "UPLOAD_PROPERTY_IMAGE" : "UPLOAD_SUPPORTING_DOC", "upload", finalName, { url, mime });
+      res.status(201).json({ ok: true, url, fileName: finalName });
+    } catch (error) {
+      console.error("Neon admin upload failed:", error);
+      res.status(500).json({ error: "Unable to persist uploaded file." });
     }
   });
 
