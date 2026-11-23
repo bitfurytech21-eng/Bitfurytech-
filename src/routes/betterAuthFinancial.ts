@@ -334,6 +334,8 @@ export function createBetterAuthFinancialRouter(): Router {
         let maxCap = Number.MAX_SAFE_INTEGER;
         let dailyRatePct = 0;
         let durationDays = 30;
+        let paymentFrequency = "At maturity";
+        let settlementRail = "USD";
         let termsSummary = "";
         let propertyId: string | null = null;
         if (targetType === "property") {
@@ -359,13 +361,15 @@ export function createBetterAuthFinancialRouter(): Router {
             planId = String(row.id); planName = String(row.name); category = String(row.category);
             unitPrice = Number(row.min_deposit); maxCap = row.max_deposit == null ? Number.MAX_SAFE_INTEGER : Number(row.max_deposit);
             dailyRatePct = Number(row.daily_rate_pct ?? 0); durationDays = Number(row.duration_days);
+            paymentFrequency = String(data.paymentFrequency ?? "At maturity");
+            settlementRail = String(data.settlementRail ?? "USD");
             termsSummary = String(data.returnTerms ?? row.description ?? "");
           } else {
             plan = INVESTMENT_MANDATES.find((item) => item.id === targetId) ?? null;
             if (!plan) throw httpError("Selected investment plan does not exist.", 404);
             planId = null; planName = plan.name; category = plan.category;
             unitPrice = plan.minDeposit; maxCap = plan.maxDeposit; dailyRatePct = plan.dailyRatePct;
-            durationDays = plan.durationDays; termsSummary = plan.returnTerms;
+            durationDays = plan.durationDays; paymentFrequency = plan.paymentFrequency || "At maturity"; settlementRail = plan.settlementRail || "USD"; termsSummary = plan.returnTerms;
           }
         }
         const principal = money(amountBased ? Number(amountInput) : units * unitPrice);
@@ -379,7 +383,7 @@ export function createBetterAuthFinancialRouter(): Router {
         const investmentId = randomUUID();
         const transactionId = randomUUID();
         const reference = makeReference("INV");
-        const snapshot = { name: planName, category, categoryLabel: category === "estate" ? "Real Estate" : category === "stock" ? "Global Equities" : "Digital Assets", dailyRatePct, durationDays, returnTerms: termsSummary, propertyId };
+        const snapshot = { name: planName, category, categoryLabel: category === "estate" ? "Real Estate" : category === "stock" ? "Global Equities" : "Digital Assets", dailyRatePct, durationDays, paymentFrequency, settlementRail, returnTerms: termsSummary, propertyId };
         await client.query("UPDATE wallets SET available_balance=available_balance-$2,updated_at=now() WHERE user_id=$1 AND currency='USD'", [user.id, totalCost]);
         await client.query(
           "INSERT INTO investments(id,user_id,plan_id,plan_snapshot,principal,currency,status,started_at,matures_at) VALUES($1,$2,$3,$4::jsonb,$5,'USD','active',now(),now()+($6::text||' days')::interval)",
