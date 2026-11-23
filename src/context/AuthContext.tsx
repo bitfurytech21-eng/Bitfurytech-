@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!email) throw new Error("Enter your registered email address to resend verification.");
     const result = await betterAuthClient.sendVerificationEmail({
       email,
-      callbackURL: window.location.origin,
+      callbackURL: `${window.location.origin}/dashboard`,
     });
     if (result.error) throw new Error(result.error.message || "Unable to send verification email.");
   }, [backendSession?.email, pendingVerificationEmail]);
