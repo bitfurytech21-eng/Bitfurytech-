@@ -21,7 +21,6 @@ interface CustomerOption {
   email: string;
   displayName: string;
   username: string;
-  role: string;
 }
 
 interface ManualPaymentAssignment {
@@ -72,7 +71,7 @@ export default function FinancialApprovalCenter() {
             "/api/admin/manual-payment-assignments"
           ),
         ]);
-        setCustomers(customerResponse.customers.filter((customer) => customer.role !== "admin"));
+        setCustomers(customerResponse.customers);
         setAssignments(assignmentResponse.assignments);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load financial assignments.");
