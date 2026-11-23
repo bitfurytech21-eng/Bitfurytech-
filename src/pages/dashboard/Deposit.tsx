@@ -86,7 +86,7 @@ export default function Deposit() {
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed < activeRail.minDeposit) {
       setError(
-        `Enter at least $<FinancialAmount value={activeRail.minDeposit} /> for ${activeRail.label}.`
+        `Enter at least ${formatUsd(activeRail.minDeposit)} for ${activeRail.label}.`
       );
       return;
     }
@@ -256,7 +256,7 @@ export default function Deposit() {
                   label="Deposit Amount (USD)"
                   hint={
                     activeRail
-                      ? `Minimum $<FinancialAmount value={activeRail.minDeposit} />`
+                      ? `Minimum ${formatUsd(activeRail.minDeposit)}`
                       : undefined
                   }
                 >
