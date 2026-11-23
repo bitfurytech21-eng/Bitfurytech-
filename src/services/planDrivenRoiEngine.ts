@@ -1,0 +1,29 @@
+import { randomUUID } from "node:crypto";
+import { databasePool } from "../db/pool.ts";
+import { enqueueMailEvent } from "./mailOutbox.ts";
+type Inv = { id:string; user_id:string; email:string; name:string; principal:string|number; started_at:Date|string; matures_at:Date|string; plan_snapshot:Record<string,unknown> };
+const day=(v:Date|string)=>{const d=new Date(v);return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));};
+const keyDate=(d:Date)=>d.toISOString().slice(0,10);
+function freq(v:unknown):"daily"|"weekly"|"monthly"|"maturity"|null {const s=String(v??"").toLowerCase();if(s.includes("matur")||s.includes("end of term"))return "maturity";if(s.includes("weekly"))return "weekly";if(s.includes("monthly"))return "monthly";if(s.includes("daily payout")||s.includes("daily distribution")||s.includes("daily payment"))return "daily";return null;}
+function due(f:"daily"|"weekly"|"monthly"|"maturity",start:Date,today:Date,matured:boolean){if(matured)return true;if(f==="maturity")return false;const n=Math.floor((today.getTime()-start.getTime())/86400000);if(f==="daily")return n>=1;if(f==="weekly")return n>0&&n%7===0;return today.getUTCDate()===start.getUTCDate()&&today>start;}
+export async function processPlanDrivenRoi(asOf=new Date()){
+ if(!databasePool)return;const today=day(asOf);const accrualDate=new Date(today.getTime()-86400000);
+ const result=await databasePool.query<Inv>("SELECT i.id,i.user_id,u.email,u.name,i.principal,i.started_at,i.matures_at,i.plan_snapshot FROM investments i JOIN \"user\" u ON u.id=i.user_id WHERE i.status='active' AND i.plan_id IS NOT NULL AND i.currency='USD' AND i.started_at IS NOT NULL AND i.matures_at IS NOT NULL ORDER BY i.started_at");
+ for(const inv of result.rows){const snap=inv.plan_snapshot??{};const rate=Number(snap.dailyRatePct);const principal=Number(inv.principal);const f=freq(snap.paymentFrequency);const start=day(inv.started_at);const maturity=day(inv.matures_at);
+  if(!Number.isFinite(rate)||rate<=0||rate>100||principal<=0||!f){console.warn("ROI skipped: unsupported or incomplete plan terms",inv.id);continue;}
+  let paid:number|null=null;const client=await databasePool.connect();
+  try{await client.query("BEGIN");await client.query("SELECT pg_advisory_xact_lock(hashtext($1))",["roi:"+inv.id]);const locked=await client.query("SELECT status FROM investments WHERE id=$1 FOR UPDATE",[inv.id]);if(!locked.rows[0]||locked.rows[0].status!=="active"){await client.query("COMMIT");continue;}
+   if(accrualDate>=start&&accrualDate<maturity){const value=Number((principal*rate/100).toFixed(2));await client.query("INSERT INTO roi_accruals(investment_id,user_id,accrual_date,amount,currency) VALUES($1,$2,$3::date,$4,'USD') ON CONFLICT(investment_id,accrual_date) DO NOTHING",[inv.id,inv.user_id,keyDate(accrualDate),value]);}
+   const matured=today>=maturity;if(due(f,start,today,matured)){const sum=await client.query("SELECT COALESCE(SUM(amount),0)::numeric(20,2) AS total FROM roi_accruals WHERE investment_id=$1 AND paid_at IS NULL",[inv.id]);const amount=Number(sum.rows[0]?.total??0);
+    if(amount>0){const txid=randomUUID();const idem="roi:"+inv.id+":"+keyDate(today);const ref="ROI-"+inv.id.slice(-8).toUpperCase()+"-"+keyDate(today).replace(/-/g,"");
+     const ins=await client.query("INSERT INTO transactions(id,user_id,type,amount,currency,method,reference,status,idempotency_key,metadata) VALUES($1,$2,'return',$3,'USD','Investment ROI',$4,'completed',$5,$6::jsonb) ON CONFLICT(idempotency_key) DO NOTHING RETURNING id",[txid,inv.user_id,amount,ref,idem,JSON.stringify({investmentId:inv.id,planName:String(snap.name??"Investment"),payoutFrequency:f,periodEnd:keyDate(today),engine:"plan-driven-roi-v1"})]);
+     if(ins.rowCount){await client.query("INSERT INTO wallets(user_id,currency,available_balance) VALUES($1,'USD',$2) ON CONFLICT(user_id,currency) DO UPDATE SET available_balance=wallets.available_balance+EXCLUDED.available_balance,updated_at=now()",[inv.user_id,amount]);
+      await client.query("INSERT INTO ledger_entries(transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES($1,$2,'platform_custody','debit',$3,'USD','Plan ROI payout'),($1,$2,'customer_available','credit',$3,'USD','Plan ROI payout')",[txid,inv.user_id,amount]);
+      await client.query("UPDATE roi_accruals SET payout_transaction_id=$2,paid_at=now() WHERE investment_id=$1 AND paid_at IS NULL",[inv.id,txid]);
+      await client.query("INSERT INTO notifications(id,user_id,category,title,body) VALUES($1,$2,'investment','Investment return credited',$3)",[randomUUID(),inv.user_id,"USD "+amount.toFixed(2)+" credited from "+String(snap.name??"your investment")]);paid=amount;}}}
+   if(matured)await client.query("UPDATE investments SET status='completed',updated_at=now() WHERE id=$1 AND status='active'",[inv.id]);await client.query("COMMIT");
+  }catch(e){await client.query("ROLLBACK").catch(()=>undefined);console.error("ROI engine processing failed",inv.id,e);}finally{client.release();}
+  if(paid!==null)await enqueueMailEvent({eventType:"daily_roi",userId:inv.user_id,recipient:inv.email,values:{firstName:inv.name.trim().split(" ")[0]||"Investor",amount:paid.toFixed(2),reportDate:keyDate(today)}}).catch(e=>console.error("ROI payout email failed",inv.id,e));
+ }
+}
+export function startPlanDrivenRoiEngine(){if(process.env.PLAN_DRIVEN_ROI_ENABLED==="false")return;let running=false;const run=async()=>{if(running)return;running=true;try{await processPlanDrivenRoi();}catch(e){console.error("ROI engine run failed",e);}finally{running=false;}};const now=new Date();const next=new Date();next.setUTCHours(0,10,0,0);if(next<=now)next.setUTCDate(next.getUTCDate()+1);setTimeout(()=>{void run();setInterval(()=>void run(),86400000);},next.getTime()-now.getTime());setInterval(()=>void run(),900000);console.info("Plan-driven ROI engine scheduled at 00:10 UTC.");}
