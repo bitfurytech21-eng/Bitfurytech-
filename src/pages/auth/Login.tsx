@@ -39,6 +39,7 @@ export default function Login() {
     authError,
     clearAuthError,
     signInWithEmail,
+    resendVerificationEmail,
     signInWithGoogle,
   } = useAuth();
 
@@ -52,9 +53,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [verificationRequired, setVerificationRequired] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState<string | null>(null);
+  const [resendingVerification, setResendingVerification] = useState(false);
 
   useEffect(() => {
-    if (authReady && firebaseUser && backendSession) {
+    if (authReady && firebaseUser && backendSession && backendSession.emailVerified) {
       navigate(resolveAuthorizedDestination(backendSession, fromPath), {
         replace: true,
       });
@@ -90,11 +94,38 @@ export default function Login() {
       return;
     }
 
+    setVerificationRequired(false);
+    setVerificationNotice(null);
     const result = await signInWithEmail(trimmed, password, rememberMe);
-    if (result.ok) {
-      navigate(resolveAuthorizedDestination(result.session, fromPath), {
-        replace: true,
-      });
+    if (result.needsVerification) {
+      setVerificationRequired(true);
+      setLocalError(result.error || "Verify your email address before continuing.");
+      return;
+    }
+    if (!result.ok) {
+      setLocalError(result.error || "We could not sign you in. Please check your details and try again.");
+      return;
+    }
+    navigate(resolveAuthorizedDestination(result.session, fromPath), {
+      replace: true,
+    });
+  };
+
+  const handleResendVerification = async () => {
+    const email = identifier.trim().toLowerCase();
+    if (!email.includes("@")) {
+      setVerificationNotice("Enter your registered email address above, then try again.");
+      return;
+    }
+    setResendingVerification(true);
+    setVerificationNotice(null);
+    try {
+      await resendVerificationEmail(email);
+      setVerificationNotice("Verification email sent. Check your inbox and spam folder, open the link, then return here and sign in again.");
+    } catch (error) {
+      setVerificationNotice(error instanceof Error ? error.message : "Unable to resend the verification email. Please try again.");
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -189,6 +220,22 @@ export default function Login() {
               authorized portal.
             </p>
           </div>
+
+          {verificationRequired && (
+            <div role="status" className="rounded-[5px] bg-[#FFF8E8] border border-[#E7C66A] px-4 py-3 space-y-3 text-xs text-[#674B12]">
+              <p className="font-semibold">Email verification is required</p>
+              <p>We cannot open your dashboard until your registered email is verified. Resend the verification link and open it from the same email account.</p>
+              {verificationNotice && <p className="leading-relaxed">{verificationNotice}</p>}
+              <button
+                type="button"
+                disabled={resendingVerification || authBusy}
+                onClick={() => void handleResendVerification()}
+                className="inline-flex items-center justify-center bg-[#1B4962] hover:bg-[#14374B] disabled:opacity-60 text-white font-semibold px-4 py-2.5 rounded-none"
+              >
+                {resendingVerification ? "Sending..." : "Resend verification email"}
+              </button>
+            </div>
+          )}
 
           {displayedError && (
             <div
