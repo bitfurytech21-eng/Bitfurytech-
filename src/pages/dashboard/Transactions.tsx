@@ -1,6 +1,5 @@
 import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import FinancialAmount from "../../components/FinancialAmount";
 import { Download, Eye, RefreshCw, Search } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
