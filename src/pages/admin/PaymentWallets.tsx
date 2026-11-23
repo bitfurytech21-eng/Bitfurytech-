@@ -82,20 +82,20 @@ export default function PaymentWalletsPage() {
               <CardHeader title={wallet.label} subtitle={wallet.currency} action={<WalletCards className="h-4 w-4 text-slate-400" />} />
               <CardBody>
                 <div className="space-y-4">
-                  <FormField id={"network-" + wallet.id} label="Network / Payment Rail">
-                    <TextInput id={"network-" + wallet.id} value={wallet.network} onChange={(e) => updateWallet(wallet.id, { network: e.target.value })} />
+                  <FormField id={"network-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} label="Network / Payment Rail">
+                    <TextInput id={"network-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} value={wallet.network} onChange={(e) => updateWallet(wallet.id, { network: e.target.value })} />
                   </FormField>
-                  <FormField id={"address-" + wallet.id} label="Receiving Wallet Address / Bank Details" hint="This is shown to customers as the official payment destination.">
-                    <textarea id={"address-" + wallet.id} rows={3} value={wallet.walletAddress} onChange={(e) => updateWallet(wallet.id, { walletAddress: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1B4962]" placeholder="Enter the verified receiving address or bank account details" />
+                  <FormField id={"address-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} label="Receiving Wallet Address / Bank Details" hint="This is shown to customers as the official payment destination.">
+                    <textarea id={"address-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} rows={3} value={wallet.walletAddress} onChange={(e) => updateWallet(wallet.id, { walletAddress: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1B4962]" placeholder="Enter the verified receiving address or bank account details" />
                   </FormField>
-                  <FormField id={"minimum-" + wallet.id} label="Minimum Deposit (USD)">
-                    <TextInput id={"minimum-" + wallet.id} type="number" numeric min="1" step="0.01" value={String(wallet.minDeposit)} onChange={(e) => updateWallet(wallet.id, { minDeposit: Number(e.target.value) })} />
+                  <FormField id={"minimum-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} label="Minimum Deposit (USD)">
+                    <TextInput id={"minimum-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} type="number" numeric min="1" step="0.01" value={String(wallet.minDeposit)} onChange={(e) => updateWallet(wallet.id, { minDeposit: Number(e.target.value) })} />
                   </FormField>
-                  <FormField id={"instructions-" + wallet.id} label="Payment Instructions">
-                    <textarea id={"instructions-" + wallet.id} rows={2} value={wallet.instructions} onChange={(e) => updateWallet(wallet.id, { instructions: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1B4962]" />
+                  <FormField id={"instructions-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} label="Payment Instructions">
+                    <textarea id={"instructions-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} rows={2} value={wallet.instructions} onChange={(e) => updateWallet(wallet.id, { instructions: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1B4962]" />
                   </FormField>
-                  <FormField id={"confirmation-" + wallet.id} label="Customer Confirmation Message">
-                    <textarea id={"confirmation-" + wallet.id} rows={2} value={wallet.confirmationInfo} onChange={(e) => updateWallet(wallet.id, { confirmationInfo: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1B4962]" />
+                  <FormField id={"confirmation-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} label="Customer Confirmation Message">
+                    <textarea id={"confirmation-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} rows={2} value={wallet.confirmationInfo} onChange={(e) => updateWallet(wallet.id, { confirmationInfo: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1B4962]" />
                   </FormField>
                   <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                     <input type="checkbox" checked={wallet.enabled} onChange={(e) => updateWallet(wallet.id, { enabled: e.target.checked })} />
