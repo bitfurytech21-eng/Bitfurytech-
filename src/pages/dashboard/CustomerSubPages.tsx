@@ -50,7 +50,17 @@ import {
 } from "../../trading/tradingPage";
 
 export function InvestmentOpportunitiesPage() {
-  const { profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
+  const [availableBalance, setAvailableBalance] = useState(0);
+
+  useEffect(() => {
+    if (!authReady || !backendSession) return;
+    let active = true;
+    void fetchDashboardOverview().then((overview) => {
+      if (active) setAvailableBalance(overview.metrics.availableBalance);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [authReady, backendSession]);
   const [categoryFilter, setCategoryFilter] = useState<"all" | MandateCategory>("all");
   const [inspectMandate, setInspectMandate] = useState<InvestmentMandate | null>(null);
 
@@ -100,7 +110,7 @@ export function InvestmentOpportunitiesPage() {
         <p className="text-xs text-slate-600">
           Available Custody Balance:{" "}
           <span className="font-mono tabular-nums font-semibold text-slate-900">
-            <FinancialAmount value={profile?.walletBalance ?? 0} />
+            <FinancialAmount value={availableBalance} />
           </span>
         </p>
       </div>
