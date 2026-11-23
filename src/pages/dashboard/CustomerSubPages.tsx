@@ -1,6 +1,5 @@
 import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -110,7 +109,7 @@ export function InvestmentOpportunitiesPage() {
         <p className="text-xs text-slate-600">
           Available Custody Balance:{" "}
           <span className="font-mono tabular-nums font-semibold text-slate-900">
-            {<FinancialAmount value={profile?.walletBalance ?? 0} size="md" />}
+            {<FinancialAmount value={availableBalance} size="md" />}
           </span>
         </p>
       </div>
