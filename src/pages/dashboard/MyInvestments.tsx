@@ -161,7 +161,7 @@ export default function MyInvestments() {
         parsed
       );
       setAllocateSuccess(
-        `Allocated $<FinancialAmount value={parsed} /> to ${activeMandate.name}. Your ledger and active mandates are updated.`
+        `Allocated ${formatUsd(parsed)} to ${activeMandate.name}. Your ledger and active mandates are updated.`
       );
       setAmount("");
       handleCloseAllocate();
@@ -586,7 +586,7 @@ export default function MyInvestments() {
         open={allocateOpen}
         onClose={handleCloseAllocate}
         title="Allocate Capital to Mandate"
-        description={`Available custody balance: $<FinancialAmount value={availableBalance} />`}
+        description={`Available custody balance: ${formatUsd(availableBalance)}`}
       >
         <form onSubmit={handleAllocateSubmit} className="space-y-4">
           {allocateError && (
