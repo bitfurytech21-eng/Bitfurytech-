@@ -4,10 +4,22 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
+      - "fix/**"
       - migration/neon-cutover
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/neon-lockfile.yml"
+      - "src/**"
+      - "server.ts"
+      - "render.yaml"
 
 concurrency:
-  group: neon-migration-build-${{ github.ref }}
+  group: npm-build-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -17,10 +29,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out migration branch
+      - name: Check out source
         uses: actions/checkout@v4
-        with:
-          ref: migration/neon-cutover
       - name: Set up Node.js and npm
         uses: actions/setup-node@v4
         with:

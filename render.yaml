@@ -4,9 +4,27 @@ services:
     runtime: node
     plan: free
     buildCommand: npm ci --no-audit --no-fund && npm run build
-    startCommand: npm start
+    startCommand: npm run db:migrate && npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
+      - key: DATABASE_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: BETTER_AUTH_TRUSTED_ORIGINS
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.zoho.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false

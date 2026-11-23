@@ -158,7 +158,7 @@ export default function Login() {
           <ul className="space-y-3 pt-4 text-xs text-slate-100 border-t border-white/15">
             <li className="flex items-start gap-2.5">
               <ShieldCheck className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />
-              <span>Role-isolated Firebase authentication and backend session verification</span>
+              <span>Better Auth sessions with server-side PostgreSQL verification</span>
             </li>
             <li className="flex items-start gap-2.5">
               <Lock className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />

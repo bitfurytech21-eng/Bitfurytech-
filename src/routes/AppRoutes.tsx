@@ -15,6 +15,7 @@ import { PrivacyPage, TermsPage } from "../pages/public/LegalPages";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
+import ResetPassword from "../pages/auth/ResetPassword";
 import Overview from "../pages/dashboard/Overview";
 import { WalletPage } from "../pages/app/WalletFinancePages";
 import MyInvestments from "../pages/dashboard/MyInvestments";
@@ -105,6 +106,7 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Route>
 
       {/* 3. Customer Route Group */}
