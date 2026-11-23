@@ -99,7 +99,31 @@ export function createBetterAuthFinancialRouter(): Router {
   const router = Router();
   router.use(requireBetterAuth, requireBetterVerifiedEmail);
 
-  router.get("/deposits/methods", (_req, res) => res.json({ methods: DEPOSIT_RAILS }));
+  router.get("/deposits/methods", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ methods: [] });
+      return;
+    }
+    try {
+      const result = await databasePool!.query(
+        "SELECT method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info FROM platform_payment_wallets WHERE enabled=true AND length(trim(wallet_address)) >= 6 ORDER BY method_id"
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res.json({
+        methods: result.rows.map((row) => ({
+          id: String(row.method_id), label: String(row.label), currency: String(row.currency),
+          network: String(row.network), minDeposit: Number(row.min_deposit),
+          instructions: String(row.instructions ?? ""),
+          custodyDestination: String(row.wallet_address),
+          confirmationInfo: String(row.confirmation_info ?? ""),
+        })),
+      });
+    } catch (error) {
+      console.error("Configured payment methods could not be loaded:", error);
+      res.status(503).json({ error: "Payment methods are temporarily unavailable." });
+    }
+  });
   router.get("/withdrawals/config", (_req, res) => res.json(WITHDRAWAL_CONFIG));
 
   router.get("/investments/catalog", async (_req, res) => {
@@ -152,8 +176,32 @@ export function createBetterAuthFinancialRouter(): Router {
     const amount = Number(body.amount);
     const referenceInput = cleanText(body.reference, 120).replace(/[^a-zA-Z0-9_-]/g, "");
     const key = cleanText(body.idempotencyKey, 128);
-    const rail = DEPOSIT_RAILS.find((item) => item.id === method || item.label === method);
-    if (!rail) { res.status(400).json({ error: "Selected payment method is not supported." }); return; }
+    let rail: (typeof DEPOSIT_RAILS)[number] | {
+      id: string; label: string; currency: string; network: string; minDeposit: number;
+      instructions: string; custodyDestination: string; confirmationInfo: string;
+    } | undefined;
+    if (isDatabaseConfigured) {
+      try {
+        const configured = await databasePool!.query(
+          "SELECT method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info FROM platform_payment_wallets WHERE method_id=$1 AND enabled=true AND length(trim(wallet_address)) >= 6",
+          [method]
+        );
+        const row = configured.rows[0];
+        if (row) {
+          rail = {
+            id: String(row.method_id), label: String(row.label), currency: String(row.currency),
+            network: String(row.network), minDeposit: Number(row.min_deposit),
+            instructions: String(row.instructions ?? ""), custodyDestination: String(row.wallet_address),
+            confirmationInfo: String(row.confirmation_info ?? ""),
+          };
+        }
+      } catch (error) {
+        console.error("Deposit wallet lookup failed:", error);
+        res.status(503).json({ error: "Payment method settings are unavailable." });
+        return;
+      }
+    }
+    if (!rail) { res.status(400).json({ error: "This payment method is not enabled or its receiving address has not been configured." }); return; }
     if (!key || key.length < 8) { res.status(400).json({ error: "A valid idempotency key is required." }); return; }
     if (!Number.isFinite(amount) || amount < rail.minDeposit || amount > 10_000_000) { res.status(400).json({ error: `Deposit amount for ${rail.label} must be at least $${rail.minDeposit.toLocaleString()}.` }); return; }
     if (!isDatabaseConfigured) {
