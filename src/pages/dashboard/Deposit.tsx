@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDownCircle, CheckCircle2, RefreshCw } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -86,7 +87,7 @@ export default function Deposit() {
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed < activeRail.minDeposit) {
       setError(
-        `Enter at least ${formatUsd(activeRail.minDeposit)} for ${activeRail.label}.`
+        `Enter at least $<FinancialAmount value={activeRail.minDeposit} size="md" /> for ${activeRail.label}.`
       );
       return;
     }
@@ -150,7 +151,7 @@ export default function Deposit() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-slate-900">
-          {formatUsd(tx.amount)}
+          <FinancialAmount value={tx.amount} size="md" />
         </span>
       ),
     },
@@ -199,7 +200,7 @@ export default function Deposit() {
                       <p>
                         Reference:{" "}
                         <span className="font-mono font-semibold">{submittedNotice.reference}</span>{" "}
-                        · {formatUsd(submittedNotice.amount)} ({submittedNotice.currency}) via{" "}
+                        · <FinancialAmount value={submittedNotice.amount} size="md" /> ({submittedNotice.currency}) via{" "}
                         {submittedNotice.method}
                       </p>
                       <p>{submittedNotice.confirmationInfo}</p>
@@ -220,7 +221,7 @@ export default function Deposit() {
                 >
                   {methods.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.label} ({m.currency}) — Min {formatUsd(m.minDeposit)}
+                      {m.label} ({m.currency}) — Min <FinancialAmount value={m.minDeposit} size="md" />
                     </option>
                   ))}
                 </SelectInput>
@@ -257,7 +258,7 @@ export default function Deposit() {
                   label="Deposit Amount (USD)"
                   hint={
                     activeRail
-                      ? `Minimum ${formatUsd(activeRail.minDeposit)}`
+                      ? `Minimum $<FinancialAmount value={activeRail.minDeposit} size="md" />`
                       : undefined
                   }
                 >
@@ -303,7 +304,7 @@ export default function Deposit() {
             <div>
               <p className="text-slate-500">Verified Available Balance</p>
               <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {formatUsd(profile?.walletBalance ?? 0)}
+                <FinancialAmount value={profile?.walletBalance ?? 0} size="md" />
               </p>
             </div>
             <div className="pt-3 border-t border-slate-200 space-y-2 text-slate-600 leading-relaxed">
