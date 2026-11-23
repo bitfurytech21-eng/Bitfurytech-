@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "fs/promises";
 import path from "path";
 import { Router } from "express";
@@ -21,6 +22,7 @@ import {
   type FirestoreValue,
 } from "../services/firestoreRestClient.ts";
 import { INVESTMENT_MANDATES } from "../trading/tradingPage.ts";
+import { MANUAL_PAYMENT_METHODS } from "../trading/manualPaymentMethods.ts";
 
 const UPLOAD_ROOT = path.resolve(process.cwd(), "uploads");
 
@@ -597,6 +599,148 @@ export function createAdminRouter(): Router {
       res.status(502).json({
         error: "Unable to persist investment plan. Check Firestore rules deployment.",
       });
+    }
+  });
+
+  // Manual payment assignments are recorded separately from deposit approvals.
+  router.get("/manual-payment-assignments", async (req: AuthRequest, res) => {
+    if (!req.rawIdToken) {
+      res.status(401).json({ error: "Unauthorized." });
+      return;
+    }
+    try {
+      const assignments = await runFirestoreQuery(
+        "manualPaymentAssignments",
+        null,
+        req.rawIdToken
+      );
+      assignments.sort((a, b) => {
+        const dateA = typeof a.createdAt === "string" ? Date.parse(a.createdAt) || 0 : 0;
+        const dateB = typeof b.createdAt === "string" ? Date.parse(b.createdAt) || 0 : 0;
+        return dateB - dateA;
+      });
+      res.json({ assignments });
+    } catch (err) {
+      console.error("Manual payment assignment fetch failed:", err);
+      res.status(502).json({ error: "Unable to load manual payment assignments." });
+    }
+  });
+
+  router.post("/manual-payment-assignments", async (req: AuthRequest, res) => {
+    if (!req.rawIdToken || !req.user) {
+      res.status(401).json({ error: "Unauthorized." });
+      return;
+    }
+
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+    const methodId = typeof body.method === "string" ? body.method.trim() : "";
+    const method = MANUAL_PAYMENT_METHODS.find((item) => item.id === methodId);
+    const amount = Number(body.amount);
+    const destination = typeof body.destination === "string" ? body.destination.trim() : "";
+    const network = typeof body.network === "string" ? body.network.trim() : "";
+    const reference = typeof body.reference === "string" ? body.reference.trim() : "";
+    const note = typeof body.note === "string" ? body.note.trim() : "";
+
+    if (!/^[a-zA-Z0-9_-]{1,128}$/.test(userId)) {
+      res.status(400).json({ error: "Select a valid customer account." });
+      return;
+    }
+    if (!method) {
+      res.status(400).json({ error: "Select one of the available payment methods." });
+      return;
+    }
+    if (
+      !Number.isFinite(amount) ||
+      amount < 0.01 ||
+      amount > 10_000_000 ||
+      Math.abs(amount - Number(amount.toFixed(2))) > 0.0000001
+    ) {
+      res.status(400).json({ error: "Payment amount must be a valid USD amount with up to two decimals." });
+      return;
+    }
+    if (destination.length < 3 || destination.length > 220 || destination.includes("\r") || destination.includes("\n")) {
+      res.status(400).json({ error: "Enter a valid payment destination (maximum 220 characters)." });
+      return;
+    }
+    if (network !== method.network) {
+      res.status(400).json({ error: "The selected network does not match the payment method." });
+      return;
+    }
+    if (reference.length < 3 || reference.length > 120 || reference.includes("\r") || reference.includes("\n")) {
+      res.status(400).json({ error: "Enter a valid transaction hash or payment reference." });
+      return;
+    }
+    if (note.length > 500) {
+      res.status(400).json({ error: "Internal note must be 500 characters or fewer." });
+      return;
+    }
+
+    try {
+      const customer = await getFirestoreDoc("users", userId, req.rawIdToken);
+      if (!customer || customer.role === "admin") {
+        res.status(404).json({ error: "Customer account not found." });
+        return;
+      }
+      const userEmail = String(customer.email ?? "").trim().slice(0, 200);
+      const customerName = String(customer.displayName ?? customer.username ?? "Investor").trim().slice(0, 160);
+      if (!userEmail) {
+        res.status(400).json({ error: "Customer account has no email address." });
+        return;
+      }
+
+      const assignmentId = `fpa_${createHash("sha256")
+        .update(`${userId}:${method.id}:${reference.toLowerCase()}`)
+        .digest("hex")
+        .slice(0, 40)}`;
+      const fields = {
+        userId,
+        userEmail,
+        customerName,
+        method: method.id,
+        amount: Number(amount.toFixed(2)),
+        destination,
+        network: method.network,
+        reference,
+        note,
+        status: "Assigned",
+        createdByUid: req.user.uid,
+        createdByEmail: String(req.user.email ?? "").slice(0, 200),
+      };
+
+      await commitFirestoreWrites(
+        [
+          {
+            collection: "manualPaymentAssignments",
+            docId: assignmentId,
+            fields,
+            serverTimestamps: ["createdAt", "updatedAt"],
+            precondition: { exists: false },
+          },
+        ],
+        req.rawIdToken
+      );
+      await writeAdminAuditLog(
+        req,
+        "CREATE_MANUAL_PAYMENT_ASSIGNMENT",
+        "manualPaymentAssignment",
+        assignmentId,
+        `Assigned ${method.id} payment instructions to ${userEmail}; reference ${reference}.`
+      );
+      res.status(201).json({
+        assignment: {
+          id: assignmentId,
+          ...fields,
+          createdAt: new Date().toISOString(),
+        },
+      });
+    } catch (err) {
+      if ((err as { status?: number })?.status === 409) {
+        res.status(409).json({ error: "This customer already has an assignment with that reference." });
+        return;
+      }
+      console.error("Manual payment assignment save failed:", err);
+      res.status(502).json({ error: "Unable to save manual payment assignment." });
     }
   });
 

@@ -563,6 +563,40 @@ service cloud.firestore {
       allow delete: if isAdmin() && isValidId(docId);
     }
 
+    match /manualPaymentAssignments/{assignmentId} {
+      allow get, list: if isAdmin() && isValidId(assignmentId);
+      allow create: if isAdmin() &&
+        isValidId(assignmentId) &&
+        incoming().keys().hasAll([
+          'userId', 'userEmail', 'customerName', 'method', 'amount', 'destination',
+          'network', 'reference', 'note', 'status', 'createdByUid', 'createdByEmail',
+          'createdAt', 'updatedAt'
+        ]) &&
+        incoming().keys().hasOnly([
+          'userId', 'userEmail', 'customerName', 'method', 'amount', 'destination',
+          'network', 'reference', 'note', 'status', 'createdByUid', 'createdByEmail',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(incoming().userId) &&
+        incoming().userEmail is string && incoming().userEmail.size() <= 200 &&
+        incoming().customerName is string && incoming().customerName.size() > 0 && incoming().customerName.size() <= 160 &&
+        incoming().method in ['USDT (TRC20)', 'Bitcoin (BTC)', 'Ethereum (ETH)', 'Bank Wire'] &&
+        ((incoming().method == 'USDT (TRC20)' && incoming().network == 'TRON (TRC20)') ||
+          (incoming().method == 'Bitcoin (BTC)' && incoming().network == 'Bitcoin Mainnet') ||
+          (incoming().method == 'Ethereum (ETH)' && incoming().network == 'Ethereum Mainnet (ERC20)') ||
+          (incoming().method == 'Bank Wire' && incoming().network == 'SWIFT / Fedwire')) &&
+        incoming().amount is number && incoming().amount >= 0.01 && incoming().amount <= 10000000 &&
+        incoming().destination is string && incoming().destination.size() >= 3 && incoming().destination.size() <= 220 &&
+        incoming().network is string && incoming().network.size() > 0 && incoming().network.size() <= 60 &&
+        incoming().reference is string && incoming().reference.size() >= 3 && incoming().reference.size() <= 120 &&
+        incoming().note is string && incoming().note.size() <= 500 &&
+        incoming().status == 'Assigned' &&
+        incoming().createdByUid == request.auth.uid &&
+        incoming().createdByEmail is string && incoming().createdByEmail.size() <= 200 &&
+        incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update, delete: if false;
+    }
+
     match /auditLogs/{logId} {
       allow get: if isAdmin() && isValidId(logId);
       allow list: if isBootstrapAdmin();
