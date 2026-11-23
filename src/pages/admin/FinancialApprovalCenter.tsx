@@ -12,8 +12,7 @@ import {
   TextAreaInput,
   TextInput,
 } from "../../components/ui";
-import { useAuth } from "../../hooks/useAuth";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 import { MANUAL_PAYMENT_METHODS } from "../../trading/manualPaymentMethods";
 
@@ -41,7 +40,6 @@ interface ManualPaymentAssignment {
 }
 
 export default function FinancialApprovalCenter() {
-  const { firebaseUser, idToken } = useAuth();
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [assignments, setAssignments] = useState<ManualPaymentAssignment[]>([]);
   const [customerId, setCustomerId] = useState("");
@@ -63,18 +61,15 @@ export default function FinancialApprovalCenter() {
 
   const loadCenter = useCallback(
     async (isRefresh = false) => {
-      if (!firebaseUser) return;
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
 
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
         const [customerResponse, assignmentResponse] = await Promise.all([
-          apiRequest<{ customers: CustomerOption[] }>("/api/admin/customers", token),
-          apiRequest<{ assignments: ManualPaymentAssignment[] }>(
-            "/api/admin/manual-payment-assignments",
-            token
+          sessionApiRequest<{ customers: CustomerOption[] }>("/api/admin/customers"),
+          sessionApiRequest<{ assignments: ManualPaymentAssignment[] }>(
+            "/api/admin/manual-payment-assignments"
           ),
         ]);
         setCustomers(customerResponse.customers.filter((customer) => customer.role !== "admin"));
@@ -86,7 +81,7 @@ export default function FinancialApprovalCenter() {
         setRefreshing(false);
       }
     },
-    [firebaseUser, idToken]
+    []
   );
 
   useEffect(() => {
@@ -116,7 +111,6 @@ export default function FinancialApprovalCenter() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!firebaseUser) return;
     if (!customerId) {
       setBanner({ tone: "error", text: "Choose a customer before creating a payment assignment." });
       return;
@@ -125,10 +119,8 @@ export default function FinancialApprovalCenter() {
     setSaving(true);
     setBanner(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const response = await apiRequest<{ assignment: ManualPaymentAssignment }>(
+      const response = await sessionApiRequest<{ assignment: ManualPaymentAssignment }>(
         "/api/admin/manual-payment-assignments",
-        token,
         {
           method: "POST",
           body: JSON.stringify({
