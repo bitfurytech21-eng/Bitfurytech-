@@ -10,6 +10,8 @@ import { createBetterAuthAdminRouter } from "./src/routes/betterAuthAdmin.ts";
 import { createBetterAuthFinancialRouter } from "./src/routes/betterAuthFinancial.ts";
 import { createSupportRouter } from "./src/routes/apiSupport.ts";
 import { attachSupportWebSocketServer } from "./src/services/supportWebSocketServer.ts";
+import { enqueueMailEvent } from "./src/services/mailOutbox.ts";
+import { startDailyRoiEmailScheduler } from "./src/services/dailyRoiEmailScheduler.ts";
 import { validateUsername } from "./src/lib/username.ts";
 import { isDatabaseConfigured, queryDatabase } from "./src/db/pool.ts";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
@@ -643,26 +645,52 @@ app.post("/api/newsletter", async (req, res) => {
   const message =
     "Subscribed to BitfuryTech institutional briefings, mandate announcements, and property releases.";
 
-  if (!isDatabaseConfigured) {
-    const saved = addMockInquiry({
-      id: subscriptionId,
-      name: "Newsletter Subscriber",
-      email,
-      subject: topic,
-      message,
-    });
-    res.status(201).json({ ok: true, subscriptionId: saved.id, subscribedAt: saved.createdAt });
-    return;
-  }
   try {
-    await queryDatabase(
-      "INSERT INTO inquiries (id, name, email, topic, message) VALUES ($1, $2, $3, $4, $5)",
-      [subscriptionId, "Newsletter Subscriber", email, topic, message]
-    );
+    let isNewSubscription = true;
+    let subscribedAt = new Date().toISOString();
+
+    if (!isDatabaseConfigured) {
+      const saved = addMockInquiry({
+        id: subscriptionId,
+        name: "Newsletter Subscriber",
+        email,
+        subject: topic,
+        message,
+      });
+      subscribedAt = saved.createdAt;
+    } else {
+      const saved = await queryDatabase<{ id: string; subscribed_at: Date | string }>(
+        `INSERT INTO newsletter_subscribers (id, email)
+         VALUES ($1, $2)
+         ON CONFLICT (email) DO NOTHING
+         RETURNING id, subscribed_at`,
+        [subscriptionId, email]
+      );
+      isNewSubscription = saved.rowCount > 0;
+      if (saved.rows[0]?.subscribed_at) {
+        subscribedAt = new Date(saved.rows[0].subscribed_at).toISOString();
+      }
+    }
+
+    let emailSent = false;
+    if (isNewSubscription) {
+      try {
+        emailSent = await enqueueMailEvent({
+          eventType: "newsletter_signup",
+          userId: `newsletter:${email}`,
+          recipient: email,
+          values: { email },
+        });
+      } catch (mailError) {
+        console.error("Newsletter confirmation email failed:", mailError);
+      }
+    }
     res.status(201).json({
       ok: true,
       subscriptionId,
-      subscribedAt: new Date().toISOString(),
+      subscribedAt,
+      alreadySubscribed: !isNewSubscription,
+      emailSent,
     });
   } catch (err) {
     console.error("Newsletter subscription error:", err);
@@ -737,6 +765,7 @@ async function startServer() {
 
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`BitfuryTech server listening on http://0.0.0.0:${PORT}`);
+    if (isDatabaseConfigured) startDailyRoiEmailScheduler();
   });
 }
 
