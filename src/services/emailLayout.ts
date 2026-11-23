@@ -3,14 +3,14 @@ const EMAIL_LOGO_URL = "https://bitfurytech.cloud/images/brand/bitfurylogo.png";
 /** Extract the supplied message body so every Resend email gets one consistent shell. */
 function extractEmailContent(html: string): string {
   return html
-    .replace(/^\\s*<!doctype[^>]*>/i, "")
-    .replace(/^\\s*<html[^>]*>/i, "")
-    .replace(/<\\/html>\\s*$/i, "")
-    .replace(/<head[^>]*>[\\s\\S]*?<\\/head>/i, "")
+    .replace(/^\s*<!doctype[^>]*>/i, "")
+    .replace(/^\s*<html[^>]*>/i, "")
+    .replace(/<\/html>\s*$/i, "")
+    .replace(/<head[^>]*>[\s\S]*?<\/head>/i, "")
     .replace(/<body[^>]*>/i, "")
-    .replace(/<\\/body>/i, "")
-    .replace(/<a\\b([^>]*)>/gi, (_match, attributes: string) => {
-      if (/\\bstyle\\s*=/i.test(attributes)) return `<a${attributes}>`;
+    .replace(/<\/body>/i, "")
+    .replace(/<a\b([^>]*)>/gi, (_match, attributes: string) => {
+      if (/\bstyle\s*=/i.test(attributes)) return `<a${attributes}>`;
       return `<a${attributes} style="color:#3F8A3F;">`;
     })
     .trim();
