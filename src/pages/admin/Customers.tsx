@@ -14,8 +14,7 @@ import {
   StatusText,
   TableColumn,
 } from "../../components/ui";
-import { useAuth } from "../../hooks/useAuth";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 interface AdminCustomerRow {
@@ -39,7 +38,6 @@ interface AdminCustomerRow {
 }
 
 export default function AdminCustomers() {
-  const { firebaseUser, idToken } = useAuth();
   const [customers, setCustomers] = useState<AdminCustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,16 +52,12 @@ export default function AdminCustomers() {
 
   const loadCustomers = useCallback(
     async (isRefresh = false) => {
-      if (!firebaseUser) return;
-      if (isRefresh) setRefreshing(true);
+            if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const res = await apiRequest<{ customers: AdminCustomerRow[] }>(
-          "/api/admin/customers",
-          token
-        );
+                const res = await sessionApiRequest<{ customers: AdminCustomerRow[] }>(
+          "/api/admin/customers");
         setCustomers(res.customers);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load customer accounts.");
@@ -72,7 +66,7 @@ export default function AdminCustomers() {
         setRefreshing(false);
       }
     },
-    [firebaseUser, idToken]
+    []
   );
 
   useEffect(() => {
@@ -100,12 +94,11 @@ export default function AdminCustomers() {
   };
 
   const handleStatusUpdate = async () => {
-    if (!firebaseUser || !selected) return;
+    if (!selected) return;
     setSavingStatus(true);
     setBanner(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest(`/api/admin/customers/${selected.uid}/status`, token, {
+            await sessionApiRequest(`/api/admin/customers/${selected.uid}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: editStatus }),
       });
