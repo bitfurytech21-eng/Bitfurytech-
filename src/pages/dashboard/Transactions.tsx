@@ -85,7 +85,7 @@ export default function Transactions() {
       `Description:  ${tx.description || tx.method}`,
       `Rail/Method:  ${tx.method}`,
       `Destination:  ${tx.destination}`,
-      `Amount:       $<FinancialAmount value={tx.amount} /> ${tx.currency || "USD"}`,
+      `Amount:       ${formatUsd(tx.amount)} ${tx.currency || "USD"}`,
       `Status:       ${tx.status}`,
       "=================================",
       `Exported:     ${new Date().toISOString()}`,
