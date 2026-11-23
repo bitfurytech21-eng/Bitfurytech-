@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, Eye, RefreshCw, Search } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -84,7 +85,7 @@ export default function Transactions() {
       `Description:  ${tx.description || tx.method}`,
       `Rail/Method:  ${tx.method}`,
       `Destination:  ${tx.destination}`,
-      `Amount:       ${formatUsd(tx.amount)} ${tx.currency || "USD"}`,
+      `Amount:       $<FinancialAmount value={tx.amount} /> ${tx.currency || "USD"}`,
       `Status:       ${tx.status}`,
       "=================================",
       `Exported:     ${new Date().toISOString()}`,
@@ -134,7 +135,7 @@ export default function Transactions() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-slate-900">
-          {formatUsd(tx.amount)}
+          <FinancialAmount value={tx.amount} />
         </span>
       ),
     },
@@ -300,7 +301,7 @@ export default function Transactions() {
             <div>
               <dt className="text-slate-500">Amount</dt>
               <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                {formatUsd(selectedTx.amount)} {selectedTx.currency || "USD"}
+                <FinancialAmount value={selectedTx.amount} /> {selectedTx.currency || "USD"}
               </dd>
             </div>
             <div className="sm:col-span-2">
