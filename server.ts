@@ -411,10 +411,10 @@ app.post("/api/auth/registration-notice", requireAuth, async (req: AuthRequest, 
         firstName: String(req.user.name || req.user.email.split("@")[0]).split(" ")[0],
       },
     });
-    res.status(202).json({ ok: true, queued, deliveryStatus: queued ? "awaiting_provider" : "disabled" });
+    res.status(queued ? 200 : 202).json({ ok: true, sent: queued, deliveryStatus: queued ? "accepted_by_resend" : "disabled" });
   } catch (error) {
     console.error("Registration mail event could not be queued:", error);
-    res.status(202).json({ ok: true, queued: false, deliveryStatus: "awaiting_provider" });
+    res.status(502).json({ ok: false, sent: false, deliveryStatus: "failed" });
   }
 });
 
