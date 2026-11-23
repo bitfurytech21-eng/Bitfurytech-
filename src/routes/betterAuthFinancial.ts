@@ -205,7 +205,7 @@ export function createBetterAuthFinancialRouter(): Router {
         if (requested > available) throw httpError(`Withdrawal amount ($${requested.toFixed(2)}) exceeds available balance ($${available.toFixed(2)}).`, 400, "INSUFFICIENT_FUNDS");
         const id = randomUUID();
         const reference = makeReference("WDR");
-        const response = { ok: true, withdrawal: { id, reference, method, amount: requested, fee, netPayout, method, destination: combinedDestination, status: "Pending", createdAt: new Date().toISOString() } };
+        const response = { ok: true, withdrawal: { id, reference, method, amount: requested, fee, netPayout, destination: combinedDestination, status: "Pending", createdAt: new Date().toISOString() } };
         await client.query("UPDATE wallets SET available_balance=available_balance-$2,reserved_balance=reserved_balance+$2,updated_at=now() WHERE user_id=$1 AND currency='USD'", [user.id, requested]);
         await client.query(
           "INSERT INTO transactions(id,user_id,type,amount,currency,method,destination,reference,status,idempotency_key,metadata) VALUES($1,$2,'withdrawal',$3,'USD',$4,$5,$6,'pending',$7,$8::jsonb)",
