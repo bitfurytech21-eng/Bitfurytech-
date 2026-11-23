@@ -92,7 +92,7 @@ export default function Deposit() {
 
     setSubmitting(true);
     try {
-      const res = await apiRequest<{
+      const res = await sessionApiRequest<{
         ok: boolean;
         deposit: {
           reference: string;
