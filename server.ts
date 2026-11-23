@@ -244,7 +244,8 @@ app.get("/api/health/migration", async (_req, res) => {
          ('public.ledger_entries'),
          ('public.properties'),
          ('public.email_outbox'),
-         ('public.audit_logs')
+         ('public.audit_logs'),
+         ('public.platform_payment_wallets')
        ) AS required(name)`
     );
     const missing = result.rows.filter((row) => !row.present).map((row) => row.name);
