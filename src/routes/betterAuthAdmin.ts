@@ -375,7 +375,7 @@ export function createBetterAuthAdminRouter(): Router {
         res.status(404).json({ error: "Property not found." });
         return;
       }
-      await recordAudit(req as BetterAuthRequest, "DELETE_PROPERTY", "property", id);
+      await recordAudit(req as BetterAuthRequest, "DELETE_PROPERTY", "property", id, {});
       res.json({ ok: true });
     } catch (error) {
       res.status(502).json({ error: "Unable to delete property." });
