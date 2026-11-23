@@ -411,7 +411,7 @@ export default function Invest() {
                       >
                         {plans.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} — {p.categoryLabel} (Min {<FinancialAmount value={p.minDeposit} size="md" />} / unit ·{" "}
+                            {p.name} — {p.categoryLabel} (Min {formatUsd(p.minDeposit)} / unit ·{" "}
                             {p.availabilityStatus})
                           </option>
                         ))}
@@ -435,7 +435,7 @@ export default function Invest() {
                       >
                         {properties.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.title} ({p.location}) — Min {<FinancialAmount value={p.minEntry} size="md" />} / unit ·{" "}
+                            {p.title} ({p.location}) — Min {formatUsd(p.minEntry)} / unit ·{" "}
                             {p.status}
                           </option>
                         ))}
