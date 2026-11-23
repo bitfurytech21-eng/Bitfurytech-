@@ -101,10 +101,12 @@ export function createBetterAuthFinancialRouter(): Router {
         "SELECT id,name,category,description,min_deposit,max_deposit,daily_rate_pct,duration_days,plan_data FROM investment_plans WHERE published=true ORDER BY created_at DESC"
       );
       const plansById = new Map<string, InvestmentMandate>();
-      for (const mandate of INVESTMENT_MANDATES) plansById.set(mandate.id, mandate);
+      const availabilityById = new Map<string, "Open" | "Paused" | "Closed">();
+      for (const mandate of INVESTMENT_MANDATES) { plansById.set(mandate.id, mandate); availabilityById.set(mandate.id, "Open"); }
       for (const row of plansResult.rows) {
         const data = row.plan_data && typeof row.plan_data === "object" ? row.plan_data as Record<string, unknown> : {};
         const availabilityStatus = data.availabilityStatus === "Paused" || data.availabilityStatus === "Closed" ? data.availabilityStatus : "Open";
+        availabilityById.set(String(row.id), availabilityStatus);
         plansById.set(String(row.id), {
           id: String(row.id), name: String(row.name), category: row.category === "stock" || row.category === "estate" ? row.category : "crypto",
           categoryLabel: String(data.categoryLabel ?? row.category), audience: String(data.audience ?? ""),
@@ -124,7 +126,7 @@ export function createBetterAuthFinancialRouter(): Router {
         image: String(row.image_url ?? "/images/commercial-property.jpg"), summary: String(row.summary ?? ""),
       }));
       res.setHeader("Cache-Control", "no-store");
-      res.json({ plans: [...plansById.values()].map((plan) => ({ ...plan, availabilityStatus: "Open", published: true, unitPrice: plan.minDeposit })), properties, feeRatePct: INVESTMENT_FEE_PCT });
+      res.json({ plans: [...plansById.values()].map((plan) => ({ ...plan, availabilityStatus: availabilityById.get(plan.id) ?? "Open", published: true, unitPrice: plan.minDeposit })), properties, feeRatePct: INVESTMENT_FEE_PCT });
     } catch (error) {
       console.error("Neon investment catalog failed:", error);
       res.status(503).json({ error: "Unable to load investment offerings from Neon." });
@@ -199,7 +201,7 @@ export function createBetterAuthFinancialRouter(): Router {
         if (requested > available) throw httpError(`Withdrawal amount ($${requested.toFixed(2)}) exceeds available balance ($${available.toFixed(2)}).`, 400, "INSUFFICIENT_FUNDS");
         const id = randomUUID();
         const reference = makeReference("WDR");
-        const response = { ok: true, withdrawal: { id, reference, method, amount: requested, fee, netPayout, status: "Pending", createdAt: new Date().toISOString() } };
+        const response = { ok: true, withdrawal: { id, reference, method, amount: requested, fee, netPayout, method, destination: combinedDestination, status: "Pending", createdAt: new Date().toISOString() } };
         await client.query("UPDATE wallets SET available_balance=available_balance-$2,reserved_balance=reserved_balance+$2,updated_at=now() WHERE user_id=$1 AND currency='USD'", [user.id, requested]);
         await client.query(
           "INSERT INTO transactions(id,user_id,type,amount,currency,method,destination,reference,status,idempotency_key,metadata) VALUES($1,$2,'withdrawal',$3,'USD',$4,$5,$6,'pending',$7,$8::jsonb)",
@@ -308,7 +310,7 @@ export function createBetterAuthFinancialRouter(): Router {
           [transactionId, user.id, totalCost]
         );
         await client.query("INSERT INTO notifications(id,user_id,category,title,body) VALUES($1,$2,'investment','Investment allocation confirmed',$3)", [randomUUID(), user.id, `Your allocation in ${planName} has been recorded.`]);
-        const response = { ok: true, receipt: { reference, investmentId, transactionId, planId: planId ?? propertyId ?? "", planName, category, units, unitPrice, principal, feeAmount, totalCost, currency: "USD", newWalletBalance: money(available - totalCost), termsSummary, createdAt: new Date().toISOString() } };
+        const response = { ok: true, receipt: { reference, investmentId, transactionId, planId: planId ?? propertyId ?? targetId, planName, category, units, unitPrice, principal, feeAmount, totalCost, currency: "USD", newWalletBalance: money(available - totalCost), termsSummary, createdAt: new Date().toISOString() } };
         await finishIdempotent(client, user.id, key, response);
         return { response, duplicate: false };
       });
