@@ -252,9 +252,12 @@ export function createBetterAuthAdminRouter(): Router {
             "UPDATE wallets SET reserved_balance=reserved_balance-$3, updated_at=now() WHERE user_id=$1 AND currency=$2",
             [tx.user_id, currency, amount]
           );
+          const withdrawalMetadata = tx.metadata && typeof tx.metadata === "object" ? tx.metadata as Record<string, unknown> : {};
+          const fee = Math.min(amount, Math.max(0, Number(withdrawalMetadata.fee ?? 0)));
+          const payout = Math.max(0, amount - fee);
           await client.query(
-            "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'customer_reserved','debit',$3,$4,'Approved reserved withdrawal'),($1,$2,'platform_custody','credit',$3,$4,'Approved withdrawal settlement')",
-            [id, tx.user_id, amount, currency]
+            "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'customer_reserved','debit',$3,$4,'Approved reserved withdrawal'),($1,$2,'platform_custody','credit',$5,$4,'Approved withdrawal payout'),($1,$2,'platform_fees','credit',$6,$4,'Withdrawal processing fee')",
+            [id, tx.user_id, amount, currency, payout, fee]
           );
         } else {
           await client.query(
