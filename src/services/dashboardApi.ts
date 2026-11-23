@@ -140,7 +140,7 @@ export async function sessionApiRequest<T>(url: string, init: RequestInit = {}):
   });
   const body = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) {
-    throw new Error(body.error || `Request failed (${res.status}).`);
+    throw Object.assign(new Error(body.error || `Request failed (${res.status}).`), body);
   }
   return body;
 }
