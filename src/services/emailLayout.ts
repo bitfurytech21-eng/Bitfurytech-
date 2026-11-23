@@ -9,6 +9,10 @@ function extractEmailContent(html: string): string {
     .replace(/<head[^>]*>[\\s\\S]*?<\\/head>/i, "")
     .replace(/<body[^>]*>/i, "")
     .replace(/<\\/body>/i, "")
+    .replace(/<a\\b([^>]*)>/gi, (_match, attributes: string) => {
+      if (/\\bstyle\\s*=/i.test(attributes)) return `<a${attributes}>`;
+      return `<a${attributes} style="color:#3F8A3F;">`;
+    })
     .trim();
 }
 
