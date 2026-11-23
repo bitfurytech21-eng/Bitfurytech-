@@ -24,7 +24,7 @@ import {
   TextInput,
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd, type InvestmentMandate } from "../../trading/tradingPage";
 
 interface CatalogPlan extends InvestmentMandate {
@@ -70,7 +70,7 @@ function makeIdempotencyKey(): string {
 }
 
 export default function Invest() {
-  const { firebaseUser, idToken, profile } = useAuth();
+  const { backendSession, authReady, profile } = useAuth();
   const [searchParams] = useSearchParams();
   const initialPlanParam = searchParams.get("plan");
   const initialPropParam = searchParams.get("property");
@@ -101,16 +101,15 @@ export default function Invest() {
   const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null);
 
   const loadCatalog = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!authReady || !backendSession) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{
+            const res = await apiRequest<{
         plans: CatalogPlan[];
         properties: CatalogProperty[];
         feeRatePct: number;
-      }>("/api/investments/catalog", token);
+      }>("/api/investments/catalog");
       setPlans(res.plans);
       setProperties(res.properties);
       setFeeRatePct(res.feeRatePct ?? 0.5);
@@ -132,7 +131,7 @@ export default function Invest() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken, initialPlanParam, initialPropParam, targetId]);
+  }, [authReady, backendSession, initialPlanParam, initialPropParam, targetId]);
 
   useEffect(() => {
     void loadCatalog();
@@ -211,9 +210,8 @@ export default function Invest() {
       const resolvedId =
         targetType === "property" ? selectedProperty?.id || "" : selectedPlan?.id || "";
 
-      const res = await apiRequest<{ ok: boolean; receipt: PurchaseReceipt }>(
+      const res = await sessionApiRequest<{ ok: boolean; receipt: PurchaseReceipt }>(
         "/api/investments/purchase",
-        token,
         {
           method: "POST",
           body: JSON.stringify({
