@@ -1,12 +1,43 @@
 import { Router } from "express";
-import { requireBetterAuth, requireBetterAdmin } from "../middleware/betterAuth.ts";
+import { requireBetterAuth, requireBetterAdmin, type BetterAuthRequest } from "../middleware/betterAuth.ts";
 import { databasePool, queryDatabase } from "../db/pool.ts";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { INVESTMENT_MANDATES } from "../trading/tradingPage.ts";
 
+
 type Row = Record<string, unknown>;
+
+function textValue(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (value == null) return fallback;
+  return String(value);
+}
+
+function number(value: unknown, fallback = 0): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function auditActor(req: BetterAuthRequest): string {
+  const actorId = req.betterAuthSession?.user.id;
+  if (!actorId) throw new Error("A verified administrator session is required for audit logging.");
+  return actorId;
+}
+
+async function recordAudit(
+  req: BetterAuthRequest,
+  action: string,
+  targetType: string,
+  targetId: string,
+  details: Record<string, unknown>
+): Promise<void> {
+  await queryDatabase(
+    "INSERT INTO audit_logs (actor_user_id, action, target_type, target_id, details) VALUES ($1,$2,$3,$4,$5::jsonb)",
+    [auditActor(req), action, targetType, targetId, JSON.stringify(details)]
+  );
+}
 
 export function createBetterAuthAdminRouter(): Router {
   const router = Router();
