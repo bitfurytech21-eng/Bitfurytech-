@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowDownCircle,
@@ -307,19 +308,19 @@ export default function Invest() {
                 <div>
                   <dt className="text-slate-500">Principal Allocated</dt>
                   <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                    {formatUsd(receipt.principal)}
+                    {<FinancialAmount value={receipt.principal} size="md" />}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Custody Fee ({feeRatePct}%)</dt>
                   <dd className="font-mono tabular-nums font-semibold text-slate-800 mt-0.5">
-                    {formatUsd(receipt.feeAmount)}
+                    {<FinancialAmount value={receipt.feeAmount} size="md" />}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Total Debited · Date</dt>
                   <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                    {formatUsd(receipt.totalCost)} · {formatIsoDate(receipt.createdAt)}
+                    {<FinancialAmount value={receipt.totalCost} size="md" />} · {formatIsoDate(receipt.createdAt)}
                   </dd>
                 </div>
               </dl>
@@ -382,8 +383,8 @@ export default function Invest() {
                       message={
                         <div className="space-y-2">
                           <p>
-                            Your available balance ({formatUsd(availableBalance)}) is lower than the
-                            total order cost ({formatUsd(totalCost)}). Fund your custody wallet to
+                            Your available balance ({<FinancialAmount value={availableBalance} size="md" />}) is lower than the
+                            total order cost ({<FinancialAmount value={totalCost} size="md" />}). Fund your custody wallet to
                             proceed.
                           </p>
                           <Link
@@ -410,7 +411,7 @@ export default function Invest() {
                       >
                         {plans.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} — {p.categoryLabel} (Min {formatUsd(p.minDeposit)} / unit ·{" "}
+                            {p.name} — {p.categoryLabel} (Min {<FinancialAmount value={p.minDeposit} size="md" />} / unit ·{" "}
                             {p.availabilityStatus})
                           </option>
                         ))}
@@ -434,7 +435,7 @@ export default function Invest() {
                       >
                         {properties.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.title} ({p.location}) — Min {formatUsd(p.minEntry)} / unit ·{" "}
+                            {p.title} ({p.location}) — Min {<FinancialAmount value={p.minEntry} size="md" />} / unit ·{" "}
                             {p.status}
                           </option>
                         ))}
@@ -464,7 +465,7 @@ export default function Invest() {
                     <div className="bg-slate-50 border border-slate-200 rounded-md px-3.5 py-2.5 flex flex-col justify-center">
                       <span className="text-xs text-slate-500">Available Wallet Balance</span>
                       <span className="text-base font-bold font-mono tabular-nums text-slate-900 mt-0.5">
-                        {formatUsd(availableBalance)}
+                        {<FinancialAmount value={availableBalance} size="md" />}
                       </span>
                     </div>
                   </div>
@@ -499,7 +500,7 @@ export default function Invest() {
                         className="mt-0.5 w-4 h-4 accent-[#1B4962]"
                       />
                       <span>
-                        I have reviewed the minimum requirement ({formatUsd(minRequirement)}),
+                        I have reviewed the minimum requirement ({<FinancialAmount value={minRequirement} size="md" />}),
                         structuring fee ({feeRatePct}%), and non-guaranteed return disclosure terms.
                       </span>
                     </label>
@@ -512,7 +513,7 @@ export default function Invest() {
                       />
                       <span>
                         I explicitly authorize BitfuryTech to debit{" "}
-                        <strong className="font-mono">{formatUsd(totalCost)}</strong> from my
+                        <strong className="font-mono">{<FinancialAmount value={totalCost} size="md" />}</strong> from my
                         verified custody wallet balance.
                       </span>
                     </label>
@@ -524,7 +525,7 @@ export default function Invest() {
                     disabled={isUnavailable || hasShortfall || exceedsMax}
                     fullWidth
                   >
-                    Confirm &amp; Purchase {units} Unit{units > 1 ? "s" : ""} ({formatUsd(totalCost)})
+                    Confirm &amp; Purchase {units} Unit{units > 1 ? "s" : ""} ({<FinancialAmount value={totalCost} size="md" />})
                   </Button>
                 </form>
               </CardBody>
@@ -549,7 +550,7 @@ export default function Invest() {
                   <div className="flex justify-between">
                     <dt className="text-slate-500">Minimum Entry / Unit Price</dt>
                     <dd className="font-mono tabular-nums font-semibold text-slate-900">
-                      {formatUsd(unitPrice)}
+                      {<FinancialAmount value={unitPrice} size="md" />}
                     </dd>
                   </div>
                   <div className="flex justify-between">
@@ -561,19 +562,19 @@ export default function Invest() {
                   <div className="flex justify-between">
                     <dt className="text-slate-500">Principal Cost</dt>
                     <dd className="font-mono tabular-nums font-semibold text-slate-900">
-                      {formatUsd(principal)}
+                      {<FinancialAmount value={principal} size="md" />}
                     </dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-slate-500">Structuring &amp; Custody Fee ({feeRatePct}%)</dt>
                     <dd className="font-mono tabular-nums text-slate-800">
-                      {formatUsd(feeAmount)}
+                      {<FinancialAmount value={feeAmount} size="md" />}
                     </dd>
                   </div>
                   <div className="flex justify-between pt-3 border-t border-slate-200 text-sm">
                     <dt className="font-bold text-slate-900">Total Investment Cost</dt>
                     <dd className="font-mono tabular-nums font-bold text-slate-900">
-                      {formatUsd(totalCost)}
+                      {<FinancialAmount value={totalCost} size="md" />}
                     </dd>
                   </div>
                   <div className="flex justify-between">
