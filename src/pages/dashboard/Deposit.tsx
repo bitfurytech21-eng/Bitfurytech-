@@ -219,7 +219,7 @@ export default function Deposit() {
                 >
                   {methods.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.label} ({m.currency}) — Min {<FinancialAmount value={m.minDeposit} size="md" />}
+                      {m.label} ({m.currency}) — Min {formatUsd(m.minDeposit)}
                     </option>
                   ))}
                 </SelectInput>
@@ -302,7 +302,7 @@ export default function Deposit() {
             <div>
               <p className="text-slate-500">Verified Available Balance</p>
               <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {<FinancialAmount value={profile?.walletBalance ?? 0} size="md" />}
+                {<FinancialAmount value={profile?.walletBalance ?? 0} size="lg" />}
               </p>
             </div>
             <div className="pt-3 border-t border-slate-200 space-y-2 text-slate-600 leading-relaxed">
