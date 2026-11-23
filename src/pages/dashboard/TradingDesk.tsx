@@ -16,7 +16,6 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { apiRequest } from "../../services/dashboardApi";
 import {
-  formatUsd,
   INVESTMENT_MANDATES,
   type InvestmentMandate,
   type MandateCategory,
