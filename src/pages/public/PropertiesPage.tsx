@@ -4,10 +4,7 @@ import { Images, X } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses, Card, EmptyState } from "../../components/ui";
-import {
-  PropertyOffering,
-  subscribeProperties,
-} from "../../services/firestoreService";
+import { PropertyOffering } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 const GALLERY_FALLBACKS = [
@@ -29,11 +26,20 @@ export default function PropertiesPage() {
   const [galleryIndex, setGalleryIndex] = useState(0);
 
   useEffect(() => {
-    const unsub = subscribeProperties((items) => {
-      setProperties(items);
-      setLoading(false);
-    });
-    return () => unsub();
+    let active = true;
+    fetch("/api/properties", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : { properties: [] }))
+      .then((data: { properties?: PropertyOffering[] }) => {
+        if (!active) return;
+        setProperties(Array.isArray(data.properties) ? data.properties : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const published = useMemo(

@@ -29,10 +29,7 @@ import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
 import InvestorTestimonials from "../../components/InvestorTestimonials";
 import PaymentMethods from "../../components/PaymentMethods";
 import AnimatedStatValue from "../../components/AnimatedStatValue";
-import {
-  PropertyOffering,
-  subscribeProperties,
-} from "../../services/firestoreService";
+import { PropertyOffering } from "../../services/dashboardApi";
 import { formatUsd, MandateCategory } from "../../trading/tradingPage";
 import { ASSET_CLASS_GUIDES } from "./assetClassData";
 
@@ -55,7 +52,7 @@ const HERO_SLIDES = [
     kicker: "Investment Policy Committee & Market Research",
     headline: "Move beyond conventional strategies across Cryptocurrency, Stocks, and Real Estate.",
     description:
-      "Compare 13 transparent mandate tiers governed by our Investment Policy Committee (IPC), inspect monthly benchmarks and referral tiers, and manage custody inside a segregated ledger.",
+      "Compare 15 transparent mandate tiers governed by our Investment Policy Committee (IPC), inspect monthly benchmarks and referral tiers, and manage custody inside a segregated ledger.",
     image: "/images/global-equities.jpg",
     imageAlt: "Institutional multi-asset portfolio management boardroom",
     primaryLabel: "Explore Opportunities",
@@ -257,7 +254,7 @@ const HOME_FAQS = [
 ];
 
 export default function Home() {
-  const { firebaseUser } = useAuth();
+  const { user } = useAuth();
   const { plans, loading: plansLoading, error: plansError } = useInvestmentPlans();
 
   const [slideIdx, setSlideIdx] = useState(0);
@@ -286,11 +283,23 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const unsub = subscribeProperties((items) => {
-      setProperties(items);
+    let active = true;
+    fetch("/api/properties", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : { properties: [] }))
+      .then((data: { properties?: PropertyOffering[] }) => {
+        if (!active) return;
+        setProperties(Array.isArray(data.properties) ? data.properties : []);
+        setPropertiesLoading(false);
+      })
+      .catch(() => {
+        if (active) setLoadingSafe();
+      });
+    function setLoadingSafe() {
       setPropertiesLoading(false);
-    });
-    return () => unsub();
+    }
+    return () => {
+      active = false;
+    };
   }, []);
 
   const featuredProperties = useMemo(
@@ -320,7 +329,7 @@ export default function Home() {
       {
         label: "Published Property Offerings",
         value: propertiesLoading ? "—" : String(properties.length),
-        detail: "Live Firestore real estate catalog",
+        detail: "Live commercial real estate catalog",
       },
     ];
   }, [plans, plansLoading, properties.length, propertiesLoading]);
@@ -405,7 +414,7 @@ export default function Home() {
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              {firebaseUser ? (
+              {user ? (
                 <Link
                   to="/dashboard"
                   className={buttonClasses({ variant: "primary", size: "lg" })}
@@ -424,10 +433,10 @@ export default function Home() {
               )}
 
               <Link
-                to={firebaseUser ? "/investments-catalog" : activeSlide.secondaryTo}
+                to={user ? "/investments-catalog" : activeSlide.secondaryTo}
                 className={buttonClasses({ variant: "outlineDark", size: "lg" })}
               >
-                {firebaseUser ? "Explore Opportunities" : activeSlide.secondaryLabel}
+                {user ? "Explore Opportunities" : activeSlide.secondaryLabel}
               </Link>
             </div>
 
@@ -747,7 +756,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. Featured Property Listings (Live Firestore Collection) */}
+      {/* 6. Featured Property Listings */}
       <section className="bg-[#F6F8FA] border-b border-[#DCE4EC]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -759,7 +768,7 @@ export default function Home() {
                 Featured Property Listings
               </h2>
               <p className="text-sm text-[#5A6B7C]">
-                Commercial real estate offerings synced live from the BitfuryTech Firestore catalog.
+                Commercial real estate offerings synced live from the BitfuryTech catalog.
                 Always inspect occupancy, valuation, and rental assumptions before investing.
               </p>
             </div>
@@ -788,7 +797,7 @@ export default function Home() {
                 </h3>
                 <p className="text-sm text-[#5A6B7C] leading-relaxed">
                   Verified commercial real estate offerings appear here automatically as soon as an
-                  administrator publishes them to Firestore. You can inspect our Real Estate mandate
+                  administrator publishes them to the catalog. You can inspect our Real Estate mandate
                   tiers in the interim.
                 </p>
               </div>
@@ -865,7 +874,7 @@ export default function Home() {
               Published Milestones &amp; Live API Infrastructure
             </h2>
             <p className="text-sm text-slate-200">
-              Live catalog counters computed directly from active mandate definitions and Firestore
+              Live catalog counters computed directly from active mandate definitions and property
               offerings alongside Bitfury Tech Investment&apos;s published operational milestones.
             </p>
           </div>

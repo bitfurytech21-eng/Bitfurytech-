@@ -85,7 +85,7 @@ const FAQ_ITEMS: FaqItem[] = [
     category: "verification",
     question: "How does identity and email verification work?",
     answer:
-      "Account authentication verifies your email identity through Firebase Authentication tokens alongside profile completeness checks in your investor record. Deposit notices, withdrawals, and optional Enhanced Payout Verification flags undergo settlement administrator verification before execution.",
+      "Account authentication verifies your email identity through Better Auth session credentials alongside profile completeness checks in your investor record. Deposit notices, withdrawals, and optional Enhanced Payout Verification flags undergo settlement administrator verification before execution.",
   },
   {
     id: "ver-2",
@@ -127,7 +127,7 @@ const FAQ_ITEMS: FaqItem[] = [
     category: "plans",
     question: "What investment plans are available across Crypto, Stocks, and Real Estate?",
     answer:
-      "Bitfury Tech Investment offers 13 mandate tiers across 30-day cycles: 6 Cryptocurrency plans (Crypto Beginner $200 through Crypto Master Pro $1,000,000), 4 Stock plans (Stock Beginner $1,000 through Stock Premium $1,000,000), and 3 Real Estate plans (Real Estate Beginner $3,000 through Real Estate Executive $5,000,000). Clients may also switch categories without switching fees.",
+      "Bitfury Tech Investment offers 15 mandate tiers across 30-day cycles: 6 Cryptocurrency plans (Crypto Beginner $200 through Crypto Master Pro $1,000,000), 4 Stock plans (Stock Beginner $1,000 through Stock Premium $1,000,000), and 5 Real Estate plans (Real Estate Beginner $3,000 through Real Estate Master Pro $25,000,000). Clients may also switch categories without switching fees.",
   },
   {
     id: "pln-2",
@@ -141,7 +141,7 @@ const FAQ_ITEMS: FaqItem[] = [
     category: "properties",
     question: "Where do commercial property listings come from?",
     answer:
-      "Commercial property offerings shown on the Properties page and Homepage are synced live from Firestore and published exclusively by authorized BitfuryTech administrators.",
+      "Commercial property offerings shown on the Properties page and Homepage are synced live from our PostgreSQL catalog and published exclusively by authorized BitfuryTech administrators.",
   },
   {
     id: "prp-2",
@@ -176,7 +176,7 @@ const FAQ_ITEMS: FaqItem[] = [
     category: "security",
     question: "How is my account data protected from unauthorized access?",
     answer:
-      "All communication runs over HTTPS/SSL protocols, while strict Firestore security rules and server-side token validation isolate user profiles, transactions, investments, and notifications to the owning authenticated UID. You can also update your password or enable the Enhanced Payout Verification Flag in Settings.",
+      "All communication runs over HTTPS/SSL protocols, while strict server-side access controls and session validation isolate user profiles, transactions, investments, and notifications to the owning authenticated user ID. You can also update your password or enable the Enhanced Payout Verification Flag in Settings.",
   },
   {
     id: "sec-2",

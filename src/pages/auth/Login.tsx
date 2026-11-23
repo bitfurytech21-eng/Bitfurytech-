@@ -32,7 +32,7 @@ function resolveAuthorizedDestination(
 
 export default function Login() {
   const {
-    firebaseUser,
+    user,
     backendSession,
     authReady,
     authBusy,
@@ -58,12 +58,12 @@ export default function Login() {
   const [resendingVerification, setResendingVerification] = useState(false);
 
   useEffect(() => {
-    if (authReady && firebaseUser && backendSession && backendSession.emailVerified) {
+    if (authReady && user && backendSession && backendSession.emailVerified) {
       navigate(resolveAuthorizedDestination(backendSession, fromPath), {
         replace: true,
       });
     }
-  }, [authReady, backendSession, firebaseUser, fromPath, navigate]);
+  }, [authReady, backendSession, user, fromPath, navigate]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();

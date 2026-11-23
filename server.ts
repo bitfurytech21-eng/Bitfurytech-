@@ -1,39 +1,33 @@
 import express from "express";
 import http from "http";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import {
-  requireAdmin,
-  requireAuth,
-  resolveSessionPayload,
-  type AuthRequest,
-} from "./src/middleware/auth.ts";
 import { getMandateById, INVESTMENT_MANDATES } from "./src/trading/tradingPage.ts";
 import { createCustomerRouter } from "./src/routes/apiCustomer.ts";
-import { createAdminRouter } from "./src/routes/apiAdmin.ts";
 import { createBetterAuthAdminRouter } from "./src/routes/betterAuthAdmin.ts";
 import { createBetterAuthFinancialRouter } from "./src/routes/betterAuthFinancial.ts";
 import { createSupportRouter } from "./src/routes/apiSupport.ts";
 import { attachSupportWebSocketServer } from "./src/services/supportWebSocketServer.ts";
-import {
-  commitFirestoreWrites,
-  decodeDocument,
-  deleteFirestoreDoc,
-  firestoreBaseUrl,
-  getFirestoreDoc,
-  patchFirestoreFields,
-  runFirestoreQuery,
-  type FirestoreDocument,
-} from "./src/services/firestoreRestClient.ts";
 import { validateUsername } from "./src/lib/username.ts";
-import { enqueueMailEvent } from "./src/services/mailOutbox.ts";
-import firebaseConfig from "./firebase-applet-config.json" with { type: "json" };
-import { queryDatabase } from "./src/db/pool.ts";
+import { isDatabaseConfigured, queryDatabase } from "./src/db/pool.ts";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { betterAuthInstance } from "./src/lib/better-auth.ts";
-import { requireBetterAuth, requireBetterAdmin, resolveBetterAuthRole, type BetterAuthRequest } from "./src/middleware/betterAuth.ts";
+import {
+  requireBetterAuth,
+  requireBetterAdmin,
+  resolveBetterAuthRole,
+  type BetterAuthRequest,
+} from "./src/middleware/betterAuth.ts";
+import {
+  addMockInquiry,
+  getMockAdminData,
+  getMockAdminOverview,
+  getMockCatalog,
+  isMockUsernameAvailable,
+  lookupMockEmailByUsername,
+} from "./src/services/inMemoryFinancialMock.ts";
 
 dotenv.config();
 
@@ -78,7 +72,7 @@ app.get("/api/account/session", async (req, res) => {
   }
 });
 
-// Better Auth session endpoints. The existing Firebase-backed API remains in place during staged migration.
+// Better Auth session endpoints.
 app.get("/api/auth/better-session", requireBetterAuth, async (req: BetterAuthRequest, res) => {
   const session = req.betterAuthSession;
   if (!session) {
@@ -208,6 +202,10 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get("/api/health/database", async (_req, res) => {
+  if (!isDatabaseConfigured) {
+    res.json({ ok: true, database: "in-memory-mock" });
+    return;
+  }
   try {
     await queryDatabase("SELECT 1 AS connected");
     res.json({ ok: true, database: "connected" });
@@ -382,25 +380,38 @@ app.get("/api/market/ticker", async (_req, res) => {
 
 // Public investment mandate definitions (merges admin-published plans with defaults)
 app.get("/api/trading/plans", async (_req, res) => {
+  if (!isDatabaseConfigured) {
+    res.json({ mandates: getMockCatalog(0.5).plans });
+    return;
+  }
   try {
-    const rows = await runFirestoreQuery("investmentPlans", null).catch(() => []);
-    if (rows.length === 0) {
-      res.json({ mandates: INVESTMENT_MANDATES });
-      return;
-    }
+    const result = await queryDatabase<{
+      id: string;
+      name: string;
+      category: string;
+      description: string;
+      min_deposit: string | number;
+      max_deposit: string | number | null;
+      daily_rate_pct: string | number | null;
+      duration_days: number;
+      published: boolean;
+      plan_data: Record<string, unknown> | null;
+    }>(
+      "SELECT id, name, category, description, min_deposit, max_deposit, daily_rate_pct, duration_days, published, plan_data FROM investment_plans ORDER BY created_at DESC"
+    );
     const byId = new Map(INVESTMENT_MANDATES.map((m) => [m.id, m]));
-    for (const r of rows) {
+    for (const r of result.rows) {
       if (r.published === false) {
         byId.delete(r.id);
         continue;
       }
-      const category =
-        r.category === "stock" || r.category === "estate" ? r.category : "crypto";
+      const data = r.plan_data && typeof r.plan_data === "object" ? r.plan_data : {};
+      const category = r.category === "stock" || r.category === "estate" ? r.category : "crypto";
       byId.set(r.id, {
         id: r.id,
         category,
         categoryLabel: String(
-          r.categoryLabel ??
+          data.categoryLabel ??
             (category === "crypto"
               ? "Digital Assets"
               : category === "stock"
@@ -408,20 +419,18 @@ app.get("/api/trading/plans", async (_req, res) => {
                 : "Real Estate")
         ),
         name: String(r.name ?? "Investment Mandate"),
-        audience: String(r.audience ?? "Structured client allocation"),
+        audience: String(data.audience ?? "Structured client allocation"),
         description: String(r.description ?? ""),
-        minDeposit: Number(r.minDeposit ?? 500) || 500,
-        maxDeposit: Number(r.maxDeposit ?? 50000) || 50000,
-        dailyRatePct: Number(r.dailyRatePct ?? 1.5) || 1.5,
-        ...(r.monthlyRatePct !== undefined ? { monthlyRatePct: Number(r.monthlyRatePct) } : {}),
-        ...(r.referralBonusPct !== undefined ? { referralBonusPct: Number(r.referralBonusPct) } : {}),
-        durationDays: Number(r.durationDays ?? 30) || 30,
-        paymentFrequency: String(r.paymentFrequency ?? "Scheduled cycle distribution"),
-        settlementRail: String(r.settlementRail ?? "USDT (TRC20) / Bank Wire"),
-        image: String(r.image ?? "/images/hero_institutional_wealth.jpg"),
-        returnTerms: String(r.returnTerms ?? ""),
-        highlights: Array.isArray(r.highlights)
-          ? r.highlights.map(String)
+        minDeposit: Number(r.min_deposit ?? 500) || 500,
+        maxDeposit: Number(r.max_deposit ?? 50000) || 50000,
+        dailyRatePct: Number(r.daily_rate_pct ?? 1.5) || 1.5,
+        durationDays: Number(r.duration_days ?? 30) || 30,
+        paymentFrequency: String(data.paymentFrequency ?? "Scheduled cycle distribution"),
+        settlementRail: String(data.settlementRail ?? "USDT (TRC20) / Bank Wire"),
+        image: String(data.image ?? "/images/hero_institutional_wealth.jpg"),
+        returnTerms: String(data.returnTerms ?? r.description ?? ""),
+        highlights: Array.isArray(data.highlights)
+          ? data.highlights.map(String)
           : ["Segregated custody tracking", "Verified ledger settlement"],
       });
     }
@@ -440,54 +449,58 @@ app.get("/api/trading/plans/:id", (req, res) => {
   res.json({ mandate });
 });
 
-// Protected session verification endpoint (authoritative server-side token & role resolution)
-app.get("/api/auth/session", requireAuth, async (req: AuthRequest, res) => {
-  if (!req.user || !req.rawIdToken) {
-    res.status(401).json({ error: "Unauthorized: Missing authenticated session." });
-    return;
-  }
-
-  const session = await resolveSessionPayload(req.user, req.rawIdToken);
-  res.json(session);
-});
-
-// Protected administrator verification endpoint (never trusts client-side role checks)
-app.get("/api/auth/admin-check", requireAuth, requireAdmin, (req: AuthRequest, res) => {
-  res.json({
-    ok: true,
-    uid: req.user?.uid,
-    email: req.user?.email ?? null,
-    isAdmin: true,
-    role: "admin",
-  });
-});
-
-// Server-side logout handshake
-app.post("/api/auth/logout", (_req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.json({ ok: true, cleared: true });
-});
-
-app.post("/api/auth/registration-notice", requireAuth, async (req: AuthRequest, res) => {
-  if (!req.user || !req.rawIdToken || !req.user.email) {
-    res.status(401).json({ ok: false, error: "Authenticated email session required." });
-    return;
-  }
-
-  try {
-    const queued = await enqueueMailEvent({
-      eventType: "client_registration",
-      userId: req.user.uid,
-      recipient: req.user.email,
-      rawToken: req.rawIdToken,
-      values: {
-        firstName: String(req.user.name || req.user.email.split("@")[0]).split(" ")[0],
-      },
+// Public published property listings
+app.get("/api/properties", async (_req, res) => {
+  if (!isDatabaseConfigured) {
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      properties: getMockAdminData().properties.filter((p) => p.published !== false),
     });
-    res.status(queued ? 200 : 202).json({ ok: true, sent: queued, deliveryStatus: queued ? "accepted_by_resend" : "disabled" });
+    return;
+  }
+  try {
+    const result = await queryDatabase<{
+      id: string;
+      title: string;
+      location: string;
+      assetType: string;
+      targetYieldPct: string | number | null;
+      minEntry: string | number | null;
+      valuation: string | number | null;
+      occupancyPct: string | number | null;
+      status: string;
+      published: boolean;
+      image: string | null;
+      summary: string | null;
+      supportingDocUrl: string | null;
+      supportingDocName: string | null;
+      createdAt: Date | string;
+    }>(
+      `SELECT id, title, location, asset_type AS "assetType", target_yield_pct AS "targetYieldPct",
+              minimum_entry AS "minEntry", valuation, occupancy_pct AS "occupancyPct", status,
+              COALESCE((property_data->>'published')::boolean, true) AS published,
+              COALESCE(image_url, '/images/commercial-property.jpg') AS image,
+              summary, supporting_document_url AS "supportingDocUrl",
+              property_data->>'supportingDocName' AS "supportingDocName",
+              created_at AS "createdAt"
+       FROM properties
+       WHERE COALESCE((property_data->>'published')::boolean, true) = true
+       ORDER BY created_at DESC`
+    );
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      properties: result.rows.map((r) => ({
+        ...r,
+        targetYieldPct: Number(r.targetYieldPct ?? 0),
+        minEntry: Number(r.minEntry ?? 1000),
+        valuation: Number(r.valuation ?? 0),
+        occupancyPct: Number(r.occupancyPct ?? 0),
+        createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
+      })),
+    });
   } catch (error) {
-    console.error("Registration mail event could not be queued:", error);
-    res.status(502).json({ ok: false, sent: false, deliveryStatus: "failed" });
+    console.error("Public properties fetch failed:", error);
+    res.status(503).json({ error: "Unable to load published property offerings." });
   }
 });
 
@@ -498,6 +511,16 @@ app.post("/api/auth/check-username", async (req, res) => {
   const check = validateUsername(rawUsername);
   if (!check.valid) {
     res.status(400).json({ ok: false, available: false, error: check.error });
+    return;
+  }
+  if (!isDatabaseConfigured) {
+    const available = isMockUsernameAvailable(check.normalized);
+    res.json({
+      ok: true,
+      available,
+      username: check.normalized,
+      ...(!available ? { error: "This username is already taken. Please choose another." } : {}),
+    });
     return;
   }
   try {
@@ -525,6 +548,15 @@ app.post("/api/auth/username-email", async (req, res) => {
     res.status(400).json({ error: "Invalid username or password." });
     return;
   }
+  if (!isDatabaseConfigured) {
+    const email = lookupMockEmailByUsername(check.normalized);
+    if (!email) {
+      res.status(401).json({ error: "Invalid username or password." });
+      return;
+    }
+    res.json({ email });
+    return;
+  }
   try {
     const result = await queryDatabase<{ email: string }>(
       'SELECT email FROM "user" WHERE lower(username) = lower($1) LIMIT 1',
@@ -541,218 +573,7 @@ app.post("/api/auth/username-email", async (req, res) => {
   }
 });
 
-// Authenticated endpoint to reserve/update the caller's unique username in Firestore
-app.post("/api/auth/claim-username", requireAuth, async (req: AuthRequest, res) => {
-  if (!req.user || !req.rawIdToken) {
-    res.status(401).json({ ok: false, error: "Unauthorized." });
-    return;
-  }
-
-  const rawUsername = typeof req.body?.username === "string" ? req.body.username : "";
-  const check = validateUsername(rawUsername);
-  if (!check.valid) {
-    res.status(400).json({ ok: false, error: check.error });
-    return;
-  }
-
-  const username = check.normalized;
-  const uid = req.user.uid;
-  const rawToken = req.rawIdToken;
-  const userEmail = String(req.user.email || "").trim().toLowerCase();
-
-  if (!userEmail) {
-    res.status(400).json({ ok: false, error: "Authenticated account email is required to claim a username." });
-    return;
-  }
-
-  try {
-    const existingTarget = await getFirestoreDoc("usernames", username, rawToken);
-    if (existingTarget && String(existingTarget.uid ?? "") !== uid) {
-      res.status(409).json({ ok: false, error: "This username is already taken. Please choose another." });
-      return;
-    }
-
-    const ownedDocs = await runFirestoreQuery(
-      "usernames",
-      {
-        fieldFilter: {
-          field: { fieldPath: "uid" },
-          op: "EQUAL",
-          value: { stringValue: uid },
-        },
-      },
-      rawToken
-    ).catch(() => []);
-
-    if (existingTarget) {
-      await patchFirestoreFields(
-        "usernames",
-        username,
-        { email: userEmail.slice(0, 200) },
-        rawToken,
-        ["email"],
-        ["updatedAt"]
-      );
-    } else {
-      await commitFirestoreWrites(
-        [
-          {
-            collection: "usernames",
-            docId: username,
-            fields: {
-              username,
-              uid,
-              email: userEmail.slice(0, 200),
-            },
-            serverTimestamps: ["createdAt", "updatedAt"],
-            precondition: { exists: false },
-          },
-        ],
-        rawToken
-      );
-    }
-
-    for (const oldDoc of ownedDocs) {
-      if (oldDoc.id !== username) {
-        await deleteFirestoreDoc("usernames", oldDoc.id, rawToken).catch(() => undefined);
-      }
-    }
-
-    if (req.user.email_verified) {
-      const userDoc = await getFirestoreDoc("users", uid, rawToken).catch(() => null);
-      if (userDoc) {
-        await patchFirestoreFields(
-          "users",
-          uid,
-          { username },
-          rawToken,
-          ["username"],
-          ["updatedAt"]
-        ).catch(() => undefined);
-      }
-    }
-
-    res.json({ ok: true, username });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "";
-    if (msg.includes("403") || msg.includes("PERMISSION_DENIED")) {
-      res.status(503).json({
-        ok: false,
-        rulesPendingDeploy: true,
-        error:
-          "Firestore security rules for usernames have not been deployed to Firebase Console yet.",
-      });
-      return;
-    }
-    console.error("Claim username failed:", err);
-    res.status(500).json({ ok: false, error: "Unable to reserve username in database." });
-  }
-});
-
-// Password-verified username lookup: verifies password with Firebase Auth before resolving login email
-app.post("/api/auth/username-signin", async (req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  const rawUsername = typeof req.body?.username === "string" ? req.body.username : "";
-  const password = typeof req.body?.password === "string" ? req.body.password : "";
-
-  const check = validateUsername(rawUsername);
-  if (!check.valid || !password) {
-    res.status(401).json({ ok: false, error: "Invalid username or password." });
-    return;
-  }
-
-  try {
-    const docUrl = `${firestoreBaseUrl()}/usernames/${encodeURIComponent(check.normalized)}?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
-    const lookupRes = await fetch(docUrl, {
-      method: "GET",
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (lookupRes.status === 404) {
-      res.status(401).json({ ok: false, error: "Invalid username or password." });
-      return;
-    }
-
-    if (lookupRes.status === 403) {
-      res.status(503).json({
-        ok: false,
-        rulesPendingDeploy: true,
-        error:
-          "Username lookup requires updated Firestore rules to be deployed in Firebase Console. Please sign in with your email address.",
-      });
-      return;
-    }
-
-    if (!lookupRes.ok) {
-      res.status(502).json({ ok: false, error: "Unable to verify username credentials." });
-      return;
-    }
-
-    const docJson = (await lookupRes.json()) as FirestoreDocument;
-    const decoded = decodeDocument(docJson);
-    const loginEmail = typeof decoded.email === "string" ? decoded.email.trim().toLowerCase() : "";
-
-    if (!loginEmail) {
-      res.status(401).json({ ok: false, error: "Invalid username or password." });
-      return;
-    }
-
-    const authVerifyRes = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(firebaseConfig.apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: loginEmail,
-          password,
-          returnSecureToken: true,
-        }),
-        signal: AbortSignal.timeout(6000),
-      }
-    );
-
-    if (!authVerifyRes.ok) {
-      const errBody = (await authVerifyRes.json().catch(() => ({}))) as {
-        error?: { message?: string };
-      };
-      const fbMsg = String(errBody.error?.message || "");
-      if (fbMsg.includes("OPERATION_NOT_ALLOWED")) {
-        res.status(400).json({
-          ok: false,
-          code: "auth/operation-not-allowed",
-          error:
-            "Email/Password authentication is not yet enabled in Firebase Console (Authentication -> Sign-in method).",
-        });
-        return;
-      }
-      if (fbMsg.includes("USER_DISABLED")) {
-        res.status(403).json({
-          ok: false,
-          code: "auth/user-disabled",
-          error: "This account has been disabled. Contact BitfuryTech support.",
-        });
-        return;
-      }
-      if (fbMsg.includes("TOO_MANY_ATTEMPTS")) {
-        res.status(429).json({
-          ok: false,
-          code: "auth/too-many-requests",
-          error: "Too many login attempts. Wait a moment or reset your password.",
-        });
-        return;
-      }
-      res.status(401).json({ ok: false, error: "Invalid username or password." });
-      return;
-    }
-
-    res.json({ ok: true, email: loginEmail, username: check.normalized });
-  } catch (err) {
-    console.error("Username sign-in failed:", err);
-    res.status(500).json({ ok: false, error: "Unable to complete username sign-in." });
-  }
-});
-
-// Public contact inquiry endpoint backed by Firestore commit verification
+// Public contact inquiry endpoint backed by Neon PostgreSQL (with in-memory fallback)
 app.post("/api/contact", async (req, res) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -783,50 +604,17 @@ app.post("/api/contact", async (req, res) => {
     return;
   }
 
-  const inquiryId = `inq_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const docPath = `projects/${firebaseConfig.projectId}/databases/${firebaseConfig.firestoreDatabaseId}/documents/inquiries/${inquiryId}`;
-  const commitUrl = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/${firebaseConfig.firestoreDatabaseId}/documents:commit?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
-
+  const inquiryId = `inq_${randomUUID()}`;
+  if (!isDatabaseConfigured) {
+    const saved = addMockInquiry({ id: inquiryId, name, email, subject, message });
+    res.status(201).json({ ok: true, inquiryId: saved.id, submittedAt: saved.createdAt });
+    return;
+  }
   try {
-    const firestoreRes = await fetch(commitUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        writes: [
-          {
-            update: {
-              name: docPath,
-              fields: {
-                name: { stringValue: name },
-                email: { stringValue: email },
-                topic: { stringValue: subject },
-                message: { stringValue: message },
-              },
-            },
-            updateTransforms: [
-              {
-                fieldPath: "createdAt",
-                setToServerValue: "REQUEST_TIME",
-              },
-            ],
-            currentDocument: {
-              exists: false,
-            },
-          },
-        ],
-      }),
-    });
-
-    if (!firestoreRes.ok) {
-      const errText = await firestoreRes.text();
-      console.error("Firestore inquiry commit failed:", firestoreRes.status, errText);
-      res.status(502).json({
-        ok: false,
-        error: "Unable to confirm inquiry persistence with the server. Please try again.",
-      });
-      return;
-    }
-
+    await queryDatabase(
+      "INSERT INTO inquiries (id, name, email, topic, message) VALUES ($1, $2, $3, $4, $5)",
+      [inquiryId, name, email, subject, message]
+    );
     res.status(201).json({
       ok: true,
       inquiryId,
@@ -841,7 +629,7 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
-// Public newsletter subscription endpoint backed by Firestore commit verification
+// Public newsletter subscription endpoint backed by Neon PostgreSQL (with in-memory fallback)
 app.post("/api/newsletter", async (req, res) => {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -850,51 +638,27 @@ app.post("/api/newsletter", async (req, res) => {
     return;
   }
 
-  const subscriptionId = `news_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const docPath = `projects/${firebaseConfig.projectId}/databases/${firebaseConfig.firestoreDatabaseId}/documents/inquiries/${subscriptionId}`;
-  const commitUrl = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/${firebaseConfig.firestoreDatabaseId}/documents:commit?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
+  const subscriptionId = `news_${randomUUID()}`;
+  const topic = "Newsletter Subscription";
+  const message =
+    "Subscribed to BitfuryTech institutional briefings, mandate announcements, and property releases.";
 
-  try {
-    const firestoreRes = await fetch(commitUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        writes: [
-          {
-            update: {
-              name: docPath,
-              fields: {
-                name: { stringValue: "Newsletter Subscriber" },
-                email: { stringValue: email },
-                topic: { stringValue: "Newsletter Subscription" },
-                message: {
-                  stringValue:
-                    "Subscribed to BitfuryTech institutional briefings, mandate announcements, and property releases.",
-                },
-              },
-            },
-            updateTransforms: [
-              {
-                fieldPath: "createdAt",
-                setToServerValue: "REQUEST_TIME",
-              },
-            ],
-            currentDocument: {
-              exists: false,
-            },
-          },
-        ],
-      }),
+  if (!isDatabaseConfigured) {
+    const saved = addMockInquiry({
+      id: subscriptionId,
+      name: "Newsletter Subscriber",
+      email,
+      subject: topic,
+      message,
     });
-
-    if (!firestoreRes.ok) {
-      res.status(502).json({
-        ok: false,
-        error: "Unable to confirm newsletter subscription with the server right now.",
-      });
-      return;
-    }
-
+    res.status(201).json({ ok: true, subscriptionId: saved.id, subscribedAt: saved.createdAt });
+    return;
+  }
+  try {
+    await queryDatabase(
+      "INSERT INTO inquiries (id, name, email, topic, message) VALUES ($1, $2, $3, $4, $5)",
+      [subscriptionId, "Newsletter Subscriber", email, topic, message]
+    );
     res.status(201).json({
       ok: true,
       subscriptionId,
@@ -909,29 +673,33 @@ app.post("/api/newsletter", async (req, res) => {
   }
 });
 
-/** Better Auth protected admin landing data, registered ahead of the legacy Firebase router. */
+/** Better Auth protected admin landing overview. */
 app.get("/api/admin/overview", requireBetterAuth, requireBetterAdmin, async (_req: BetterAuthRequest, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  if (!isDatabaseConfigured) {
+    res.json(getMockAdminOverview());
+    return;
+  }
   try {
     const [users, active, invested, pendingD, pendingW, amountD, amountW, newUsers, properties, inquiries, recentTx, audit] = await Promise.all([
-      queryDatabase("SELECT COUNT(*)::text AS count FROM \"user\""),
-      queryDatabase("SELECT COUNT(*)::text AS count FROM investments WHERE lower(status) = 'active'"),
-      queryDatabase("SELECT COALESCE(SUM(principal), 0)::text AS total FROM investments"),
-      queryDatabase("SELECT COUNT(*)::text AS count FROM transactions WHERE lower(type) = 'deposit' AND lower(status) IN ('pending','processing')"),
-      queryDatabase("SELECT COUNT(*)::text AS count FROM transactions WHERE lower(type) = 'withdrawal' AND lower(status) IN ('pending','processing')"),
-      queryDatabase("SELECT COALESCE(SUM(amount), 0)::text AS total FROM transactions WHERE lower(type) = 'deposit' AND lower(status) IN ('pending','processing')"),
-      queryDatabase("SELECT COALESCE(SUM(amount), 0)::text AS total FROM transactions WHERE lower(type) = 'withdrawal' AND lower(status) IN ('pending','processing')"),
-      queryDatabase("SELECT COUNT(*)::text AS count FROM \"user\" WHERE \"createdAt\" >= now() - interval '7 days'"),
-      queryDatabase("SELECT COUNT(*)::text AS count FROM properties"),
-      queryDatabase("SELECT COUNT(*)::text AS count FROM inquiries"),
-      queryDatabase("SELECT t.id, u.email, t.type, t.method, t.amount::text, t.reference, t.status, t.created_at FROM transactions t JOIN \"user\" u ON u.id = t.user_id ORDER BY t.created_at DESC LIMIT 10"),
-      queryDatabase("SELECT id::text, action, target_type, target_id, details, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8")
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM \"user\""),
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM investments WHERE lower(status) = 'active'"),
+      queryDatabase<{ total: string }>("SELECT COALESCE(SUM(principal), 0)::text AS total FROM investments"),
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM transactions WHERE lower(type) = 'deposit' AND lower(status) IN ('pending','processing')"),
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM transactions WHERE lower(type) = 'withdrawal' AND lower(status) IN ('pending','processing')"),
+      queryDatabase<{ total: string }>("SELECT COALESCE(SUM(amount), 0)::text AS total FROM transactions WHERE lower(type) = 'deposit' AND lower(status) IN ('pending','processing')"),
+      queryDatabase<{ total: string }>("SELECT COALESCE(SUM(amount), 0)::text AS total FROM transactions WHERE lower(type) = 'withdrawal' AND lower(status) IN ('pending','processing')"),
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM \"user\" WHERE \"createdAt\" >= now() - interval '7 days'"),
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM properties"),
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM inquiries"),
+      queryDatabase<{ id: string; email: string; type: string; method: string | null; amount: string; reference: string | null; status: string; created_at: string }>("SELECT t.id, u.email, t.type, t.method, t.amount::text, t.reference, t.status, t.created_at FROM transactions t JOIN \"user\" u ON u.id = t.user_id ORDER BY t.created_at DESC LIMIT 10"),
+      queryDatabase<{ id: string; action: string; target_type: string; target_id: string | null; details: unknown; created_at: string }>("SELECT id::text, action, target_type, target_id, details, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8")
     ]);
     const n = (v: unknown) => Number(v || 0);
     res.json({
       stats: { totalCustomers: n(users.rows[0]?.count), activeInvestmentsCount: n(active.rows[0]?.count), totalInvested: n(invested.rows[0]?.total), pendingDepositsCount: n(pendingD.rows[0]?.count), pendingDepositsAmount: n(amountD.rows[0]?.total), pendingWithdrawalsCount: n(pendingW.rows[0]?.count), pendingWithdrawalsAmount: n(amountW.rows[0]?.total), newRegistrations: n(newUsers.rows[0]?.count), propertiesCount: n(properties.rows[0]?.count), inquiriesCount: n(inquiries.rows[0]?.count) },
-      recentTransactions: recentTx.rows.map((t: any) => ({ id: t.id, userEmail: t.email, type: t.type, method: t.method || "", amount: n(t.amount), reference: t.reference || "", status: t.status, createdAt: t.created_at })),
-      recentAuditLogs: audit.rows.map((a: any) => ({ id: a.id, actorEmail: "Administrator", action: a.action, targetType: a.target_type, targetId: a.target_id || "", summary: typeof a.details === "string" ? a.details : JSON.stringify(a.details || {}), createdAt: a.created_at }))
+      recentTransactions: recentTx.rows.map((t) => ({ id: t.id, userEmail: t.email, type: t.type, method: t.method || "", amount: n(t.amount), reference: t.reference || "", status: t.status, createdAt: t.created_at })),
+      recentAuditLogs: audit.rows.map((a) => ({ id: a.id, actorEmail: "Administrator", action: a.action, targetType: a.target_type, targetId: a.target_id || "", summary: typeof a.details === "string" ? a.details : JSON.stringify(a.details || {}), createdAt: a.created_at }))
     });
   } catch (error) {
     console.error("Neon admin overview failed:", error);
@@ -944,7 +712,6 @@ app.use("/api", createSupportRouter());
 app.use("/api", createBetterAuthFinancialRouter());
 app.use("/api", createCustomerRouter());
 app.use("/api/admin", createBetterAuthAdminRouter());
-app.use("/api/admin", createAdminRouter());
 
 async function startServer() {
   const httpServer = http.createServer(app);

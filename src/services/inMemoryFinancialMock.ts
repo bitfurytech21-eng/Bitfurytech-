@@ -1,0 +1,1050 @@
+import { randomUUID } from "node:crypto";
+import { INVESTMENT_MANDATES, getMandateById, type InvestmentMandate } from "../trading/tradingPage.ts";
+import type {
+  CustomerDocumentDTO,
+  DashboardInvestmentDTO,
+  DashboardOverviewDTO,
+  DashboardTransactionDTO,
+  EmailOutboxRecord,
+  EmailTemplateRecord,
+  NotificationMessage,
+} from "./dashboardApi.ts";
+import { DEFAULT_MAIL_TEMPLATES } from "./mailTemplates.ts";
+
+interface MockWallet {
+  availableBalance: number;
+  reservedBalance: number;
+}
+
+interface MockStoredTransaction {
+  id: string;
+  userId: string;
+  userEmail: string;
+  type: "Deposit" | "Withdrawal" | "Investment" | "Profit" | "Referral";
+  method: string;
+  amount: number;
+  destination: string;
+  reference: string;
+  status: "Pending" | "Completed" | "Rejected";
+  currency: string;
+  description: string;
+  fee?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface MockStoredInvestment {
+  id: string;
+  reference: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  planId: string;
+  planName: string;
+  category: "crypto" | "stock" | "estate";
+  categoryLabel: string;
+  amount: number;
+  dailyRatePct: number;
+  durationDays: number;
+  status: "Active" | "Completed";
+  startDate: string;
+  maturityDate: string;
+  expectedPaymentTerms: string;
+  paymentFrequency: string;
+  settlementRail: string;
+}
+
+interface MockUserInfo {
+  id: string;
+  email: string;
+  name: string;
+  username?: string;
+  country: string;
+  phone: string;
+  preferredRail: string;
+  emailAlerts: boolean;
+  twoFactorEnabled: boolean;
+  accountStatus: "Active" | "Review" | "Suspended";
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface MockInquiry {
+  id: string;
+  name: string;
+  email: string;
+  topic: string;
+  subject: string;
+  message: string;
+  createdAt: string;
+}
+
+interface MockReferralRecord {
+  id: string;
+  referrerUserId: string;
+  referredEmail: string;
+  status: string;
+  rewardAmount: number;
+  createdAt: string;
+}
+
+const usersById = new Map<string, MockUserInfo>();
+const emailByUsername = new Map<string, string>();
+const walletsByUser = new Map<string, MockWallet>();
+const transactions: MockStoredTransaction[] = [];
+const investments: MockStoredInvestment[] = [];
+const idempotencyResponses = new Map<string, unknown>();
+const customPlans = new Map<string, Record<string, unknown>>();
+const customProperties = new Map<string, Record<string, unknown>>();
+const notificationsList: NotificationMessage[] = [];
+const inquiriesList: MockInquiry[] = [];
+const referralsList: MockReferralRecord[] = [];
+const customEmailTemplates = new Map<string, EmailTemplateRecord>();
+const emailOutboxList: EmailOutboxRecord[] = [];
+const auditLogs: Array<{
+  id: string;
+  actorUid: string;
+  actorEmail: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  summary: string;
+  createdAt: string;
+}> = [];
+
+function money(val: number): number {
+  return Number(val.toFixed(2));
+}
+
+function getOrCreateWallet(userId: string): MockWallet {
+  let wallet = walletsByUser.get(userId);
+  if (!wallet) {
+    wallet = { availableBalance: 0, reservedBalance: 0 };
+    walletsByUser.set(userId, wallet);
+  }
+  return wallet;
+}
+
+export function registerMockUser(user: {
+  id: string;
+  email: string;
+  name?: string | null;
+  username?: string | null;
+}): void {
+  const existing = usersById.get(user.id);
+  const cleanEmail = user.email.trim().toLowerCase();
+  const cleanUsername = user.username?.trim().toLowerCase();
+  if (cleanUsername) {
+    emailByUsername.set(cleanUsername, cleanEmail);
+  }
+  if (!existing) {
+    const now = new Date().toISOString();
+    usersById.set(user.id, {
+      id: user.id,
+      email: cleanEmail,
+      name: user.name?.trim() || cleanEmail.split("@")[0] || "Investor",
+      username: cleanUsername || undefined,
+      country: "",
+      phone: "",
+      preferredRail: "USDT (TRC20)",
+      emailAlerts: true,
+      twoFactorEnabled: false,
+      accountStatus: "Active",
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+  getOrCreateWallet(user.id);
+}
+
+export function isMockUsernameAvailable(username: string): boolean {
+  return !emailByUsername.has(username.trim().toLowerCase());
+}
+
+export function lookupMockEmailByUsername(username: string): string | null {
+  return emailByUsername.get(username.trim().toLowerCase()) ?? null;
+}
+
+export function getMockUserProfile(
+  userId: string,
+  fallback?: { email?: string | null; name?: string | null; emailVerified?: boolean; role?: string }
+) {
+  let info = usersById.get(userId);
+  if (!info) {
+    registerMockUser({
+      id: userId,
+      email: fallback?.email || "investor@bitfurytech.local",
+      name: fallback?.name,
+    });
+    info = usersById.get(userId)!;
+  }
+  return {
+    uid: info.id,
+    username: info.username,
+    email: info.email,
+    displayName: info.name,
+    country: info.country,
+    phone: info.phone,
+    preferredRail: info.preferredRail,
+    emailAlerts: info.emailAlerts,
+    twoFactorEnabled: info.twoFactorEnabled,
+    role: fallback?.role || "investor",
+    accountStatus: info.accountStatus,
+    emailVerified: Boolean(fallback?.emailVerified ?? true),
+    createdAt: info.createdAt,
+    updatedAt: info.updatedAt,
+  };
+}
+
+export function updateMockUserProfile(
+  userId: string,
+  patch: {
+    displayName?: string;
+    username?: string;
+    phone?: string;
+    country?: string;
+    preferredRail?: string;
+    emailAlerts?: boolean;
+    twoFactorEnabled?: boolean;
+  },
+  fallback?: { email?: string | null; name?: string | null; emailVerified?: boolean; role?: string }
+) {
+  getMockUserProfile(userId, fallback);
+  const info = usersById.get(userId)!;
+  if (patch.username !== undefined) {
+    const clean = patch.username.trim().toLowerCase();
+    const ownerEmail = emailByUsername.get(clean);
+    if (ownerEmail && ownerEmail !== info.email) {
+      throw Object.assign(new Error("This username is already taken. Please choose another."), { statusCode: 409 });
+    }
+    if (info.username && info.username !== clean) {
+      emailByUsername.delete(info.username);
+    }
+    info.username = clean;
+    emailByUsername.set(clean, info.email);
+  }
+  if (patch.displayName !== undefined) info.name = patch.displayName;
+  if (patch.phone !== undefined) info.phone = patch.phone;
+  if (patch.country !== undefined) info.country = patch.country;
+  if (patch.preferredRail !== undefined) info.preferredRail = patch.preferredRail;
+  if (patch.emailAlerts !== undefined) info.emailAlerts = patch.emailAlerts;
+  if (patch.twoFactorEnabled !== undefined) info.twoFactorEnabled = patch.twoFactorEnabled;
+  info.updatedAt = new Date().toISOString();
+  return getMockUserProfile(userId, fallback);
+}
+
+function toInvestmentDTO(inv: MockStoredInvestment, userTxs: DashboardTransactionDTO[]): DashboardInvestmentDTO {
+  const elapsed = Math.max(0, Math.floor((Date.now() - Date.parse(inv.startDate)) / 86400000));
+  const daysElapsed = inv.status === "Completed" ? inv.durationDays : Math.min(inv.durationDays, elapsed);
+  const related = userTxs.filter(
+    (tx) =>
+      (tx.type === "Investment" || tx.type === "Profit") &&
+      (tx.destination === inv.planId || tx.method.toLowerCase().includes(inv.planName.toLowerCase()))
+  );
+  return {
+    id: inv.id,
+    reference: inv.reference,
+    userId: inv.userId,
+    planId: inv.planId,
+    planName: inv.planName,
+    category: inv.category,
+    categoryLabel: inv.categoryLabel,
+    amount: inv.amount,
+    dailyRatePct: inv.dailyRatePct,
+    durationDays: inv.durationDays,
+    status: inv.status,
+    investmentDate: inv.startDate,
+    startDate: inv.startDate,
+    maturityDate: inv.maturityDate,
+    daysElapsed,
+    daysRemaining: inv.status === "Completed" ? 0 : Math.max(0, inv.durationDays - daysElapsed),
+    progressPct: inv.status === "Completed" ? 100 : Math.min(100, Math.round((daysElapsed / inv.durationDays) * 100)),
+    expectedPaymentTerms: inv.expectedPaymentTerms,
+    paymentFrequency: inv.paymentFrequency,
+    settlementRail: inv.settlementRail,
+    projectedCycleReturn: Number(((inv.amount * inv.dailyRatePct) / 100 * inv.durationDays).toFixed(2)),
+    transactions: related,
+  };
+}
+
+export function getMockCustomerTransactions(userId: string): DashboardTransactionDTO[] {
+  return transactions
+    .filter((tx) => tx.userId === userId)
+    .map((tx) => ({
+      id: tx.id,
+      userId: tx.userId,
+      userEmail: tx.userEmail,
+      type: tx.type,
+      method: tx.method,
+      amount: tx.amount,
+      destination: tx.destination,
+      reference: tx.reference,
+      status: tx.status,
+      currency: tx.currency,
+      description: tx.description,
+      createdAt: tx.createdAt,
+      updatedAt: tx.updatedAt,
+    }));
+}
+
+export function getMockCustomerInvestments(userId: string) {
+  const userTxs = getMockCustomerTransactions(userId);
+  const userInvestments = investments
+    .filter((inv) => inv.userId === userId)
+    .map((inv) => toInvestmentDTO(inv, userTxs));
+  const active = userInvestments.filter((i) => i.status === "Active");
+  const completed = userInvestments.filter((i) => i.status === "Completed");
+  return {
+    investments: userInvestments,
+    allTransactions: userTxs,
+    summary: {
+      totalInvested: money(userInvestments.reduce((sum, item) => sum + item.amount, 0)),
+      activeCapital: money(active.reduce((sum, item) => sum + item.amount, 0)),
+      activeCount: active.length,
+      completedCount: completed.length,
+    },
+  };
+}
+
+export function getMockDashboardOverview(
+  userId: string,
+  fallbackUser?: { email?: string | null; name?: string | null }
+): DashboardOverviewDTO & { ledgerSummary: { entryCount: number; lastEntryAt: string | null } } {
+  const known = usersById.get(userId);
+  const email = known?.email || fallbackUser?.email || "investor@bitfurytech.local";
+  const displayName = known?.name || fallbackUser?.name || email.split("@")[0];
+  if (!known) {
+    registerMockUser({ id: userId, email, name: displayName });
+  }
+  const wallet = getOrCreateWallet(userId);
+  const invPayload = getMockCustomerInvestments(userId);
+  const userTxs = invPayload.allTransactions;
+  const active = invPayload.investments.filter((item) => item.status === "Active");
+  const completed = invPayload.investments.filter((item) => item.status === "Completed");
+  const completedTxs = userTxs.filter((tx) => tx.status === "Completed");
+  const pendingTxs = userTxs.filter((tx) => tx.status === "Pending");
+  const totalDeposit = money(completedTxs.filter((tx) => tx.type === "Deposit").reduce((s, t) => s + t.amount, 0));
+  const totalProfit = money(completedTxs.filter((tx) => tx.type === "Profit").reduce((s, t) => s + t.amount, 0));
+  const referralBonus = money(completedTxs.filter((tx) => tx.type === "Referral").reduce((s, t) => s + t.amount, 0));
+  const totalInvested = invPayload.summary.totalInvested;
+
+  const categories: Array<"crypto" | "stock" | "estate"> = ["crypto", "stock", "estate"];
+  const portfolioSummary = categories.map((category) => {
+    const items = invPayload.investments.filter((item) => item.category === category);
+    const investedAmount = money(items.reduce((sum, item) => sum + item.amount, 0));
+    return {
+      category,
+      label: category === "crypto" ? "Digital Assets" : category === "stock" ? "Global Equities" : "Real Estate",
+      investedAmount,
+      activeCount: items.filter((item) => item.status === "Active").length,
+      totalCount: items.length,
+      sharePct: totalInvested > 0 ? Math.round((investedAmount / totalInvested) * 100) : 0,
+    };
+  });
+
+  return {
+    account: {
+      uid: userId,
+      email,
+      displayName,
+      preferredRail: "USDT (TRC20)",
+      role: "investor",
+    },
+    metrics: {
+      availableBalance: wallet.availableBalance,
+      totalInvested,
+      activeInvested: invPayload.summary.activeCapital,
+      totalEarnings: money(totalProfit + referralBonus),
+      totalProfit,
+      bonus: 0,
+      referralBonus,
+      totalDeposit,
+      pendingPayments: money(pendingTxs.reduce((s, t) => s + t.amount, 0)),
+      pendingCount: pendingTxs.length,
+      activeInvestmentsCount: active.length,
+      completedInvestmentsCount: completed.length,
+    },
+    activeInvestments: active,
+    recentTransactions: userTxs.slice(0, 6),
+    portfolioSummary,
+    opportunities: INVESTMENT_MANDATES,
+    unreadNotificationsCount: notificationsList.filter((n) => n.userId === userId && !n.read).length,
+    syncedAt: new Date().toISOString(),
+    ledgerSummary: {
+      entryCount: userTxs.length,
+      lastEntryAt: userTxs[0]?.createdAt ?? null,
+    },
+  };
+}
+
+export function getMockCatalog(feeRatePct: number) {
+  const plansById = new Map<string, InvestmentMandate & { availabilityStatus: string; published: boolean; unitPrice: number }>();
+  for (const m of INVESTMENT_MANDATES) {
+    plansById.set(m.id, { ...m, availabilityStatus: "Open", published: true, unitPrice: m.minDeposit });
+  }
+  for (const [id, raw] of customPlans.entries()) {
+    if (raw.published === false) {
+      plansById.delete(id);
+      continue;
+    }
+    const minDeposit = Number(raw.minDeposit ?? 500);
+    plansById.set(id, {
+      id,
+      name: String(raw.name ?? "Investment Plan"),
+      category: raw.category === "stock" || raw.category === "estate" ? raw.category : "crypto",
+      categoryLabel: String(raw.categoryLabel ?? "Digital Assets"),
+      audience: String(raw.audience ?? ""),
+      description: String(raw.description ?? ""),
+      minDeposit,
+      maxDeposit: Number(raw.maxDeposit ?? minDeposit * 10),
+      dailyRatePct: Number(raw.dailyRatePct ?? 1),
+      durationDays: Number(raw.durationDays ?? 30),
+      paymentFrequency: String(raw.paymentFrequency ?? ""),
+      settlementRail: String(raw.settlementRail ?? "USD"),
+      image: String(raw.image ?? "/images/hero-private-capital.jpg"),
+      returnTerms: String(raw.returnTerms ?? ""),
+      highlights: [],
+      availabilityStatus: String(raw.availabilityStatus ?? "Open"),
+      published: true,
+      unitPrice: minDeposit,
+    });
+  }
+  const properties = Array.from(customProperties.values()).filter((p) => p.published !== false);
+  return { plans: Array.from(plansById.values()), properties, feeRatePct };
+}
+
+export function createMockDeposit(params: {
+  userId: string;
+  userEmail: string;
+  userName?: string | null;
+  method: string;
+  currency: string;
+  custodyDestination: string;
+  instructions: string;
+  confirmationInfo: string;
+  amount: number;
+  reference: string;
+  idempotencyKey: string;
+}) {
+  const idemKey = `deposit:${params.userId}:${params.idempotencyKey}`;
+  const existing = idempotencyResponses.get(idemKey);
+  if (existing) return { response: existing, duplicate: true };
+
+  registerMockUser({ id: params.userId, email: params.userEmail, name: params.userName });
+  const now = new Date().toISOString();
+  const id = randomUUID();
+  const normalizedAmount = money(params.amount);
+  transactions.unshift({
+    id,
+    userId: params.userId,
+    userEmail: params.userEmail,
+    type: "Deposit",
+    method: params.method,
+    amount: normalizedAmount,
+    destination: params.custodyDestination,
+    reference: params.reference,
+    status: "Pending",
+    currency: "USD",
+    description: `Deposit notice via ${params.method}`,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const response = {
+    ok: true,
+    deposit: {
+      id,
+      reference: params.reference,
+      method: params.method,
+      currency: params.currency,
+      amount: normalizedAmount,
+      status: "Pending",
+      instructions: params.instructions,
+      confirmationInfo: params.confirmationInfo,
+      createdAt: now,
+    },
+  };
+  idempotencyResponses.set(idemKey, response);
+  return { response, duplicate: false };
+}
+
+export function createMockWithdrawal(params: {
+  userId: string;
+  userEmail: string;
+  userName?: string | null;
+  method: string;
+  amount: number;
+  fee: number;
+  netPayout: number;
+  destination: string;
+  reference: string;
+  idempotencyKey: string;
+}) {
+  const idemKey = `withdrawal:${params.userId}:${params.idempotencyKey}`;
+  const existing = idempotencyResponses.get(idemKey);
+  if (existing) return { response: existing, duplicate: true };
+
+  registerMockUser({ id: params.userId, email: params.userEmail, name: params.userName });
+  const wallet = getOrCreateWallet(params.userId);
+  const requested = money(params.amount);
+  if (requested > wallet.availableBalance) {
+    throw Object.assign(
+      new Error(`Withdrawal amount ($${requested.toFixed(2)}) exceeds available balance ($${wallet.availableBalance.toFixed(2)}).`),
+      { statusCode: 400, code: "INSUFFICIENT_FUNDS" }
+    );
+  }
+  wallet.availableBalance = money(wallet.availableBalance - requested);
+  wallet.reservedBalance = money(wallet.reservedBalance + requested);
+
+  const now = new Date().toISOString();
+  const id = randomUUID();
+  transactions.unshift({
+    id,
+    userId: params.userId,
+    userEmail: params.userEmail,
+    type: "Withdrawal",
+    method: params.method,
+    amount: requested,
+    destination: params.destination,
+    reference: params.reference,
+    status: "Pending",
+    currency: "USD",
+    description: `Withdrawal disbursement via ${params.method} to ${params.destination}`,
+    fee: params.fee,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const response = {
+    ok: true,
+    withdrawal: {
+      id,
+      reference: params.reference,
+      method: params.method,
+      amount: requested,
+      fee: params.fee,
+      netPayout: params.netPayout,
+      destination: params.destination,
+      status: "Pending",
+      createdAt: now,
+    },
+  };
+  idempotencyResponses.set(idemKey, response);
+  return { response, duplicate: false };
+}
+
+export function createMockInvestmentPurchase(params: {
+  userId: string;
+  userEmail: string;
+  userName?: string | null;
+  targetType: "plan" | "property";
+  targetId: string;
+  amountInput: number | null;
+  units: number;
+  feeRatePct: number;
+  reference: string;
+  idempotencyKey: string;
+}) {
+  const idemKey = `investment:${params.userId}:${params.idempotencyKey}`;
+  const existing = idempotencyResponses.get(idemKey);
+  if (existing) return { response: existing, duplicate: true };
+
+  registerMockUser({ id: params.userId, email: params.userEmail, name: params.userName });
+  const plan = getMandateById(params.targetId);
+  if (!plan && params.targetType === "plan") {
+    throw Object.assign(new Error("Selected investment plan does not exist."), { statusCode: 404 });
+  }
+  const prop = params.targetType === "property" ? customProperties.get(params.targetId) : undefined;
+  if (params.targetType === "property" && !prop) {
+    throw Object.assign(new Error("Selected property offering was not found."), { statusCode: 404 });
+  }
+
+  const planName = prop ? String(prop.title) : plan!.name;
+  const category: "crypto" | "stock" | "estate" = prop ? "estate" : plan!.category;
+  const unitPrice = prop ? Number(prop.minEntry ?? 1000) : plan!.minDeposit;
+  const maxCap = prop ? Number.MAX_SAFE_INTEGER : plan!.maxDeposit;
+  const dailyRatePct = prop ? Math.max(0.1, Number(((Number(prop.targetYieldPct ?? 8.5) || 8.5) / 30).toFixed(2))) : plan!.dailyRatePct;
+  const durationDays = prop ? 60 : plan!.durationDays;
+  const termsSummary = prop ? String(prop.summary ?? "") : plan!.returnTerms;
+
+  const principal = money(params.amountInput !== null ? params.amountInput : params.units * unitPrice);
+  const feeAmount = money((principal * params.feeRatePct) / 100);
+  const totalCost = money(principal + feeAmount);
+
+  if (!(unitPrice > 0) || principal < unitPrice) {
+    throw Object.assign(new Error("Investment amount is below the minimum entry."), { statusCode: 400 });
+  }
+  if (principal > maxCap) {
+    throw Object.assign(new Error(`Maximum allocation cap for ${planName} is $${maxCap.toLocaleString()}.`), { statusCode: 400 });
+  }
+
+  const wallet = getOrCreateWallet(params.userId);
+  if (totalCost > wallet.availableBalance) {
+    throw Object.assign(
+      new Error(`Insufficient custody wallet balance. Required $${totalCost.toFixed(2)}, available $${wallet.availableBalance.toFixed(2)}.`),
+      { statusCode: 400, code: "INSUFFICIENT_FUNDS" }
+    );
+  }
+  wallet.availableBalance = money(wallet.availableBalance - totalCost);
+
+  const now = new Date();
+  const startDate = now.toISOString();
+  const maturityDate = new Date(now.getTime() + durationDays * 86400000).toISOString();
+  const investmentId = randomUUID();
+  const transactionId = randomUUID();
+
+  investments.unshift({
+    id: investmentId,
+    reference: params.reference,
+    userId: params.userId,
+    userEmail: params.userEmail,
+    userName: params.userName || params.userEmail,
+    planId: params.targetId,
+    planName,
+    category,
+    categoryLabel: category === "estate" ? "Real Estate" : category === "stock" ? "Global Equities" : "Digital Assets",
+    amount: principal,
+    dailyRatePct,
+    durationDays,
+    status: "Active",
+    startDate,
+    maturityDate,
+    expectedPaymentTerms: termsSummary,
+    paymentFrequency: plan?.paymentFrequency ?? "Scheduled cycle distribution",
+    settlementRail: plan?.settlementRail ?? "Custody Wallet",
+  });
+
+  transactions.unshift({
+    id: transactionId,
+    userId: params.userId,
+    userEmail: params.userEmail,
+    type: "Investment",
+    method: planName,
+    amount: totalCost,
+    destination: params.targetId,
+    reference: params.reference,
+    status: "Completed",
+    currency: "USD",
+    description: `Investment allocation: ${planName}`,
+    createdAt: startDate,
+    updatedAt: startDate,
+  });
+
+  const response = {
+    ok: true,
+    receipt: {
+      reference: params.reference,
+      investmentId,
+      transactionId,
+      planId: params.targetId,
+      planName,
+      category,
+      units: params.amountInput !== null ? 1 : params.units,
+      unitPrice: params.amountInput !== null ? principal : unitPrice,
+      principal,
+      feeAmount,
+      totalCost,
+      currency: "USD",
+      newWalletBalance: wallet.availableBalance,
+      termsSummary,
+      createdAt: startDate,
+    },
+  };
+  idempotencyResponses.set(idemKey, response);
+  return { response, duplicate: false };
+}
+
+export function getMockAdminOverview() {
+  const pendingD = transactions.filter((t) => t.type === "Deposit" && t.status === "Pending");
+  const pendingW = transactions.filter((t) => t.type === "Withdrawal" && t.status === "Pending");
+  const activeInv = investments.filter((i) => i.status === "Active");
+  return {
+    stats: {
+      totalCustomers: usersById.size,
+      activeInvestmentsCount: activeInv.length,
+      totalInvested: money(investments.reduce((s, i) => s + i.amount, 0)),
+      pendingDepositsCount: pendingD.length,
+      pendingDepositsAmount: money(pendingD.reduce((s, t) => s + t.amount, 0)),
+      pendingWithdrawalsCount: pendingW.length,
+      pendingWithdrawalsAmount: money(pendingW.reduce((s, t) => s + t.amount, 0)),
+      newRegistrations: usersById.size,
+      propertiesCount: customProperties.size,
+      inquiriesCount: inquiriesList.length,
+    },
+    recentTransactions: transactions.slice(0, 10).map((t) => ({
+      id: t.id,
+      userEmail: t.userEmail,
+      type: t.type,
+      method: t.method,
+      amount: t.amount,
+      reference: t.reference,
+      status: t.status,
+      createdAt: t.createdAt,
+    })),
+    recentAuditLogs: auditLogs.slice(0, 8),
+  };
+}
+
+export function getMockAdminData() {
+  return {
+    customers: Array.from(usersById.values()).map((u) => ({
+      uid: u.id,
+      username: u.username ?? null,
+      email: u.email,
+      displayName: u.name,
+      country: u.country,
+      phone: u.phone,
+      walletBalance: getOrCreateWallet(u.id).availableBalance,
+      accountStatus: u.accountStatus,
+      createdAt: u.createdAt,
+      investmentsCount: investments.filter((i) => i.userId === u.id).length,
+      transactionsCount: transactions.filter((t) => t.userId === u.id).length,
+    })),
+    deposits: transactions.filter((t) => t.type === "Deposit"),
+    withdrawals: transactions.filter((t) => t.type === "Withdrawal"),
+    investments: investments.map((i) => ({
+      id: i.id,
+      userId: i.userId,
+      userEmail: i.userEmail,
+      userName: i.userName,
+      planId: i.planId,
+      planName: i.planName,
+      category: i.category,
+      amount: i.amount,
+      dailyRatePct: i.dailyRatePct,
+      durationDays: i.durationDays,
+      status: i.status,
+      startDate: i.startDate,
+      maturityDate: i.maturityDate,
+      createdAt: i.startDate,
+    })),
+    transactions,
+    plans: getMockCatalog(0.5).plans.map((p) => ({ ...p, source: customPlans.has(p.id) ? "database" : "default" })),
+    properties: Array.from(customProperties.values()),
+    inquiries: inquiriesList,
+    auditLogs,
+    customPlans,
+    customProperties,
+    usersById,
+    walletsByUser,
+  };
+}
+
+export function addMockAuditLog(
+  actorUid: string,
+  actorEmail: string,
+  action: string,
+  targetType: string,
+  targetId: string,
+  details: Record<string, unknown>
+): void {
+  auditLogs.unshift({
+    id: randomUUID(),
+    actorUid,
+    actorEmail,
+    action,
+    targetType,
+    targetId,
+    summary: JSON.stringify(details),
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export function addMockInquiry(entry: {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) {
+  const item: MockInquiry = {
+    id: entry.id,
+    name: entry.name,
+    email: entry.email,
+    topic: entry.subject,
+    subject: entry.subject,
+    message: entry.message,
+    createdAt: new Date().toISOString(),
+  };
+  inquiriesList.unshift(item);
+  return item;
+}
+
+export function listMockNotifications(userId: string): NotificationMessage[] {
+  return notificationsList.filter((n) => n.userId === userId || n.userId === "all");
+}
+
+export function markMockNotificationRead(id: string, userId: string): boolean {
+  const item = notificationsList.find((n) => n.id === id && n.userId === userId);
+  if (!item) return false;
+  item.read = true;
+  return true;
+}
+
+export function addMockBroadcast(title: string, body: string, actorUid: string, actorEmail: string): NotificationMessage {
+  const entry: NotificationMessage = {
+    id: randomUUID(),
+    userId: "all",
+    category: "Broadcast",
+    title,
+    body,
+    read: false,
+    createdAt: new Date().toISOString(),
+  };
+  notificationsList.unshift(entry);
+  addMockAuditLog(actorUid, actorEmail, "PUBLISH_BROADCAST", "notification", entry.id, { title });
+  return entry;
+}
+
+export function getMockReferrals(userId: string) {
+  const code = `BF-${userId.slice(0, 8).toUpperCase()}`;
+  const matching = referralsList.filter((r) => r.referrerUserId === userId);
+  const referralTxs = getMockCustomerTransactions(userId).filter((t) => t.type === "Referral");
+  const referralEarnings = money(
+    referralTxs
+      .filter((t) => t.status === "Completed")
+      .reduce((sum, t) => sum + t.amount, 0)
+  );
+  return {
+    referralCode: code,
+    totalReferrals: matching.length,
+    qualifiedReferrals: matching.filter((r) => r.status === "qualified" || r.status === "paid").length,
+    referralEarnings,
+    referrals: matching.map((r) => ({
+      id: r.id,
+      referredEmail: r.referredEmail,
+      status: r.status,
+      rewardAmount: r.rewardAmount,
+      createdAt: r.createdAt,
+    })),
+    transactions: referralTxs,
+    ruleSummary:
+      "5% partner bonus for referrals under $100,000 and 10% for qualified volumes exceeding $100,000, credited after administrator verification of settled deposits.",
+  };
+}
+
+export function getMockAdminReferrals() {
+  return {
+    partnerSummary: Array.from(usersById.values()).map((u) => {
+      const earnings = transactions
+        .filter((t) => t.userId === u.id && t.type === "Referral" && t.status === "Completed")
+        .reduce((s, t) => s + t.amount, 0);
+      return {
+        uid: u.id,
+        email: u.email,
+        displayName: u.name,
+        code: `BF-${u.id.slice(0, 8).toUpperCase()}`,
+        referralBonus: money(earnings),
+      };
+    }),
+  };
+}
+
+export function getMockCustomerDocuments(userId: string): CustomerDocumentDTO[] {
+  const userInv = getMockCustomerInvestments(userId).investments;
+  const userTx = getMockCustomerTransactions(userId);
+  const docs: CustomerDocumentDTO[] = [
+    {
+      id: `acct-${userId}`,
+      userId,
+      title: "BitfuryTech Custody & Mandate Disclosure Agreement",
+      docType: "AccountDocument",
+      reference: `ACCT-${userId.slice(0, 8).toUpperCase()}`,
+      summary:
+        "Standard BitfuryTech account disclosure, risk notice, and segregated ledger settlement terms governing your investor profile.",
+      fileUrl: "/documents/bitfury-company-certificate.pdf",
+      createdAt: usersById.get(userId)?.createdAt ?? new Date().toISOString(),
+    },
+  ];
+  for (const inv of userInv) {
+    docs.push({
+      id: `agr-${inv.id}`,
+      userId,
+      title: `${inv.planName} Allocation Agreement`,
+      docType: "Agreement",
+      reference: inv.reference,
+      summary: `Principal allocation of $${inv.amount.toFixed(2)} USD in ${inv.planName} (${inv.durationDays} days). ${inv.expectedPaymentTerms}`,
+      createdAt: inv.startDate,
+    });
+  }
+  for (const tx of userTx) {
+    const docType =
+      tx.type === "Deposit"
+        ? "DepositConfirmation"
+        : tx.type === "Withdrawal"
+          ? "WithdrawalRecord"
+          : "Receipt";
+    docs.push({
+      id: `txdoc-${tx.id}`,
+      userId,
+      title: `${tx.type} ${tx.status} Record — ${tx.method}`,
+      docType,
+      reference: tx.reference,
+      summary: `${tx.description || tx.type} (${tx.amount.toFixed(2)} ${tx.currency || "USD"}) · Status: ${tx.status}.`,
+      createdAt: tx.createdAt,
+    });
+  }
+  return docs;
+}
+
+export function getMockAdminDocuments(): CustomerDocumentDTO[] {
+  const docs: CustomerDocumentDTO[] = [];
+  for (const u of usersById.values()) {
+    docs.push(...getMockCustomerDocuments(u.id));
+  }
+  return docs;
+}
+
+export function updateMockCustomerStatus(
+  uid: string,
+  status: "Active" | "Review" | "Suspended",
+  actorUid: string,
+  actorEmail: string
+): boolean {
+  const user = usersById.get(uid);
+  if (!user) return false;
+  user.accountStatus = status;
+  user.updatedAt = new Date().toISOString();
+  addMockAuditLog(actorUid, actorEmail, "UPDATE_CUSTOMER_STATUS", "user", uid, { status });
+  return true;
+}
+
+export function updateMockInvestmentStatus(
+  id: string,
+  status: "Active" | "Completed",
+  reason: string,
+  actorUid: string,
+  actorEmail: string
+): boolean {
+  const inv = investments.find((i) => i.id === id);
+  if (!inv) return false;
+  inv.status = status;
+  addMockAuditLog(actorUid, actorEmail, "UPDATE_INVESTMENT_STATUS", "investment", id, { status, reason });
+  return true;
+}
+
+export function upsertMockPlan(
+  id: string,
+  data: Record<string, unknown>,
+  actorUid: string,
+  actorEmail: string
+): void {
+  customPlans.set(id, { id, ...data });
+  addMockAuditLog(actorUid, actorEmail, "UPSERT_INVESTMENT_PLAN", "investment_plan", id, {
+    name: data.name,
+    category: data.category,
+    published: data.published !== false,
+  });
+}
+
+export function upsertMockProperty(
+  id: string,
+  data: Record<string, unknown>,
+  actorUid: string,
+  actorEmail: string
+): void {
+  customProperties.set(id, { id, ...data });
+  addMockAuditLog(actorUid, actorEmail, "UPSERT_PROPERTY", "property", id, {
+    title: data.title,
+    published: data.published !== false,
+  });
+}
+
+export function updateMockProperty(
+  id: string,
+  data: Record<string, unknown>,
+  actorUid: string,
+  actorEmail: string
+): boolean {
+  const existing = customProperties.get(id);
+  if (!existing) return false;
+  customProperties.set(id, { ...existing, ...data, id });
+  addMockAuditLog(actorUid, actorEmail, "UPDATE_PROPERTY", "property", id, {
+    published: data.published !== false,
+  });
+  return true;
+}
+
+export function getMockEmailTemplates(): EmailTemplateRecord[] {
+  return DEFAULT_MAIL_TEMPLATES.map((def) => {
+    const saved = customEmailTemplates.get(def.eventType);
+    if (saved) return saved;
+    return {
+      eventType: def.eventType,
+      subject: def.subject,
+      body: def.body,
+      enabled: def.enabled,
+      updatedBy: undefined,
+      updatedAt: null,
+    };
+  });
+}
+
+export function saveMockEmailTemplate(
+  eventType: string,
+  subject: string,
+  body: string,
+  enabled: boolean,
+  updatedBy: string
+): EmailTemplateRecord {
+  const record: EmailTemplateRecord = {
+    eventType,
+    subject,
+    body,
+    enabled,
+    updatedBy,
+    updatedAt: new Date().toISOString(),
+  };
+  customEmailTemplates.set(eventType, record);
+  return record;
+}
+
+export function getMockEmailOutbox(): EmailOutboxRecord[] {
+  return emailOutboxList.slice(0, 50);
+}
+
+export function resolveMockDeposit(txId: string, decision: "Completed" | "Rejected", actorEmail: string, note: string): boolean {
+  const tx = transactions.find((t) => t.id === txId && t.type === "Deposit");
+  if (!tx || tx.status !== "Pending") return false;
+  tx.status = decision;
+  tx.updatedAt = new Date().toISOString();
+  if (decision === "Completed") {
+    const w = getOrCreateWallet(tx.userId);
+    w.availableBalance = money(w.availableBalance + tx.amount);
+  }
+  auditLogs.unshift({
+    id: randomUUID(),
+    actorUid: "admin",
+    actorEmail,
+    action: "RESOLVE_DEPOSIT",
+    targetType: "transaction",
+    targetId: txId,
+    summary: JSON.stringify({ decision, amount: tx.amount, note }),
+    createdAt: new Date().toISOString(),
+  });
+  return true;
+}
+
+export function resolveMockWithdrawal(txId: string, decision: "Completed" | "Rejected", actorEmail: string, note: string): boolean {
+  const tx = transactions.find((t) => t.id === txId && t.type === "Withdrawal");
+  if (!tx || tx.status !== "Pending") return false;
+  const w = getOrCreateWallet(tx.userId);
+  if (w.reservedBalance < tx.amount) return false;
+  w.reservedBalance = money(w.reservedBalance - tx.amount);
+  if (decision === "Rejected") {
+    w.availableBalance = money(w.availableBalance + tx.amount);
+  }
+  tx.status = decision;
+  tx.updatedAt = new Date().toISOString();
+  auditLogs.unshift({
+    id: randomUUID(),
+    actorUid: "admin",
+    actorEmail,
+    action: "RESOLVE_WITHDRAWAL",
+    targetType: "transaction",
+    targetId: txId,
+    summary: JSON.stringify({ decision, amount: tx.amount, note }),
+    createdAt: new Date().toISOString(),
+  });
+  return true;
+}

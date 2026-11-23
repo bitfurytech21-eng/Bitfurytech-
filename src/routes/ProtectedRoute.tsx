@@ -17,7 +17,7 @@ type AdminGateState = "checking" | "authorized" | "unauthorized" | "unauthentica
 
 function EmailVerificationGate() {
   const {
-    firebaseUser,
+    user,
     resendVerificationEmail,
     refreshUserSession,
     signOutUser,
@@ -71,8 +71,8 @@ function EmailVerificationGate() {
         </div>
 
         <p className="text-sm text-[#3B4C5E] leading-relaxed">
-          Your account (<span className="font-semibold text-[#102030]">{firebaseUser?.email}</span>
-          ) must have a verified email before Firestore custody records can be initialized.
+          Your account (<span className="font-semibold text-[#102030]">{user?.email}</span>
+          ) must have a verified email before your custody records can be initialized.
         </p>
 
         {notice && (
@@ -117,7 +117,7 @@ export default function ProtectedRoute({
   children,
 }: ProtectedRouteProps) {
   const {
-    firebaseUser,
+    user,
     backendSession,
     authReady,
     isAdmin,
@@ -137,7 +137,7 @@ export default function ProtectedRoute({
       return;
     }
 
-    if (!firebaseUser || !backendSession) {
+    if (!user || !backendSession) {
       setAdminGate("unauthenticated");
       return;
     }
@@ -164,7 +164,7 @@ export default function ProtectedRoute({
     return () => {
       cancelled = true;
     };
-  }, [authReady, backendSession, firebaseUser, isAdmin, location.pathname, mode, verifyAdminSession]);
+  }, [authReady, backendSession, user, isAdmin, location.pathname, mode, verifyAdminSession]);
 
   if (!authReady) {
     return (
@@ -179,7 +179,7 @@ export default function ProtectedRoute({
   }
 
   if (mode === "guestOnly") {
-    if (firebaseUser && backendSession && firebaseUser.emailVerified) {
+    if (user && backendSession && user.emailVerified) {
       const requestedFrom = (location.state as { from?: { pathname?: string } } | null)?.from
         ?.pathname;
       const target =
@@ -193,7 +193,7 @@ export default function ProtectedRoute({
     return <>{children ?? <Outlet />}</>;
   }
 
-  if (!firebaseUser) {
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

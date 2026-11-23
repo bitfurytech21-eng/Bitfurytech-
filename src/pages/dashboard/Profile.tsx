@@ -17,7 +17,7 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { validateUsername } from "../../lib/username";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { formatIsoDate, sessionApiRequest } from "../../services/dashboardApi";
 
 interface BackendProfileDTO {
   uid: string;
@@ -37,7 +37,7 @@ interface BackendProfileDTO {
 }
 
 export default function Profile() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [profileData, setProfileData] = useState<BackendProfileDTO | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -50,12 +50,11 @@ export default function Profile() {
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ profile: BackendProfileDTO }>("/api/profile", token);
+      const res = await sessionApiRequest<{ profile: BackendProfileDTO }>("/api/profile");
       setProfileData(res.profile);
       setDisplayName(res.profile.displayName || "");
       setUsername(res.profile.username || "");
@@ -66,7 +65,7 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void loadProfile();
@@ -74,7 +73,7 @@ export default function Profile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!user) return;
     setSaveError(null);
     setSavedMsg(null);
 
@@ -94,8 +93,7 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest("/api/profile", token, {
+      await sessionApiRequest("/api/profile", {
         method: "PATCH",
         body: JSON.stringify({
           displayName: displayName.trim(),
@@ -185,7 +183,7 @@ export default function Profile() {
                 <FormField
                   id="p-email"
                   label="Email Address"
-                  hint="Primary verified login identity (managed by Firebase Authentication)"
+                  hint="Primary verified login identity (managed by Better Auth)"
                 >
                   <TextInput id="p-email" value={profileData.email} disabled readOnly />
                 </FormField>

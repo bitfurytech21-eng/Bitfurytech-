@@ -5,7 +5,7 @@ import AuthLayout from "../../layouts/AuthLayout";
 import { useAuth } from "../../hooks/useAuth";
 
 function AuthFormCard({ mode }: { mode: "login" | "register" }) {
-  const { firebaseUser, authReady, authBusy, authError, signInWithGoogle } = useAuth();
+  const { user, authReady, authBusy, authError, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTarget =
@@ -13,10 +13,10 @@ function AuthFormCard({ mode }: { mode: "login" | "register" }) {
       ?.pathname || "/dashboard";
 
   useEffect(() => {
-    if (authReady && firebaseUser) {
+    if (authReady && user) {
       navigate(redirectTarget, { replace: true });
     }
-  }, [authReady, firebaseUser, navigate, redirectTarget]);
+  }, [authReady, user, navigate, redirectTarget]);
 
   const handleGoogleAuth = async () => {
     const result = await signInWithGoogle();
@@ -77,8 +77,8 @@ function AuthFormCard({ mode }: { mode: "login" | "register" }) {
           </button>
 
           <p className="text-xs text-[#5A6B7C] leading-relaxed">
-            Your session is protected via verified Firebase Identity tokens. Upon sign-in, your
-            account document is provisioned or loaded directly from Firestore.
+            Your session is protected via Better Auth HTTP-only cookies and verified PostgreSQL
+            custody ledger records.
           </p>
         </div>
 

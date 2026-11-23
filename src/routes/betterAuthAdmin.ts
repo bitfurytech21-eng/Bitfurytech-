@@ -1,10 +1,30 @@
 import { Router } from "express";
+import type pg from "pg";
 import { requireBetterAuth, requireBetterAdmin, type BetterAuthRequest } from "../middleware/betterAuth.ts";
-import { databasePool, queryDatabase } from "../db/pool.ts";
+import { databasePool, isDatabaseConfigured, queryDatabase } from "../db/pool.ts";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { INVESTMENT_MANDATES } from "../trading/tradingPage.ts";
+import {
+  addMockAuditLog,
+  addMockBroadcast,
+  getMockAdminData,
+  getMockAdminDocuments,
+  getMockAdminReferrals,
+  getMockEmailOutbox,
+  getMockEmailTemplates,
+  resolveMockDeposit,
+  resolveMockWithdrawal,
+  saveMockEmailTemplate,
+  updateMockCustomerStatus,
+  updateMockInvestmentStatus,
+  updateMockProperty,
+  upsertMockPlan,
+  upsertMockProperty,
+} from "../services/inMemoryFinancialMock.ts";
+import { DEFAULT_MAIL_TEMPLATES } from "../services/mailTemplates.ts";
+import type { CustomerDocumentDTO } from "../services/dashboardApi.ts";
 
 
 type Row = Record<string, unknown>;
@@ -33,6 +53,17 @@ async function recordAudit(
   targetId: string,
   details: Record<string, unknown>
 ): Promise<void> {
+  if (!isDatabaseConfigured) {
+    addMockAuditLog(
+      auditActor(req),
+      req.betterAuthSession?.user.email ?? "admin",
+      action,
+      targetType,
+      targetId,
+      details
+    );
+    return;
+  }
   await queryDatabase(
     "INSERT INTO audit_logs (actor_user_id, action, target_type, target_id, details) VALUES ($1,$2,$3,$4,$5::jsonb)",
     [auditActor(req), action, targetType, targetId, JSON.stringify(details)]
@@ -44,6 +75,11 @@ export function createBetterAuthAdminRouter(): Router {
   router.use(requireBetterAuth, requireBetterAdmin);
 
   router.get("/customers", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ customers: getMockAdminData().customers });
+      return;
+    }
     try {
       const result = await queryDatabase<Row>(
         "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(w.available_balance,0) AS \"walletBalance\", 'Active'::text AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items FROM investments i WHERE i.user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items FROM transactions t WHERE t.user_id=u.id) tx ON true ORDER BY u.\"createdAt\" DESC"
@@ -57,6 +93,11 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
   router.get("/deposits", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ deposits: getMockAdminData().deposits });
+      return;
+    }
     try {
       const result = await queryDatabase<Row>(
         "SELECT t.id, t.user_id AS \"userId\", u.email AS \"userEmail\", 'Deposit' AS type, t.method, t.amount, t.destination, t.reference, initcap(t.status) AS status, t.currency, t.metadata, t.created_at AS \"createdAt\", t.updated_at AS \"updatedAt\" FROM transactions t JOIN \"user\" u ON u.id=t.user_id WHERE t.type='deposit' ORDER BY t.created_at DESC LIMIT 500"
@@ -70,6 +111,11 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
   router.get("/withdrawals", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ withdrawals: getMockAdminData().withdrawals });
+      return;
+    }
     try {
       const result = await queryDatabase<Row>(
         "SELECT t.id, t.user_id AS \"userId\", u.email AS \"userEmail\", 'Withdrawal' AS type, t.method, t.amount, t.destination, t.reference, initcap(t.status) AS status, t.currency, t.metadata, t.created_at AS \"createdAt\", t.updated_at AS \"updatedAt\" FROM transactions t JOIN \"user\" u ON u.id=t.user_id WHERE t.type='withdrawal' ORDER BY t.created_at DESC LIMIT 500"
@@ -83,6 +129,11 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
   router.get("/investments", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ investments: getMockAdminData().investments });
+      return;
+    }
     try {
       const result = await queryDatabase<Row>(
         "SELECT i.id, i.user_id AS \"userId\", u.email AS \"userEmail\", u.name AS \"userName\", i.plan_id AS \"planId\", COALESCE(i.plan_snapshot->>'name',p.name,'Investment') AS \"planName\", COALESCE(i.plan_snapshot->>'category',p.category,'crypto') AS category, i.principal AS amount, COALESCE((i.plan_snapshot->>'dailyRatePct')::numeric,p.daily_rate_pct,0) AS \"dailyRatePct\", COALESCE((i.plan_snapshot->>'durationDays')::int,p.duration_days,30) AS \"durationDays\", initcap(i.status) AS status, i.started_at AS \"startDate\", i.matures_at AS \"maturityDate\", i.created_at AS \"createdAt\" FROM investments i JOIN \"user\" u ON u.id=i.user_id LEFT JOIN investment_plans p ON p.id=i.plan_id ORDER BY i.created_at DESC LIMIT 1000"
@@ -96,6 +147,11 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
   router.get("/transactions", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ transactions: getMockAdminData().transactions });
+      return;
+    }
     try {
       const result = await queryDatabase<Row>(
         "SELECT t.id, t.user_id AS \"userId\", u.email AS \"userEmail\", initcap(t.type) AS type, t.method, t.amount, t.destination, t.reference, initcap(t.status) AS status, t.currency, t.metadata, t.created_at AS \"createdAt\", t.updated_at AS \"updatedAt\" FROM transactions t JOIN \"user\" u ON u.id=t.user_id ORDER BY t.created_at DESC LIMIT 1000"
@@ -109,6 +165,11 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
   router.get("/plans", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ plans: getMockAdminData().plans });
+      return;
+    }
     try {
       const result = await queryDatabase<Row>(
         "SELECT id, name, category, CASE category WHEN 'crypto' THEN 'Digital Assets' WHEN 'stock' THEN 'Global Equities' ELSE 'Real Estate' END AS \"categoryLabel\", COALESCE(plan_data->>'audience','Verified investors') AS audience, description, min_deposit AS \"minDeposit\", max_deposit AS \"maxDeposit\", daily_rate_pct AS \"dailyRatePct\", duration_days AS \"durationDays\", COALESCE(plan_data->>'paymentFrequency','At maturity') AS \"paymentFrequency\", COALESCE(plan_data->>'settlementRail','USDT (TRC20) / Bank Wire') AS \"settlementRail\", COALESCE(plan_data->>'returnTerms','') AS \"returnTerms\", COALESCE(plan_data->>'availabilityStatus','Open') AS \"availabilityStatus\", published, COALESCE(plan_data->>'image','/images/hero-private-capital.jpg') AS image, 'database' AS source FROM investment_plans ORDER BY created_at DESC"
@@ -127,6 +188,11 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
   router.get("/properties", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ properties: getMockAdminData().properties });
+      return;
+    }
     try {
       const result = await queryDatabase<Row>(
         "SELECT id, title, location, asset_type AS \"assetType\", target_yield_pct AS \"targetYieldPct\", minimum_entry AS \"minEntry\", valuation, occupancy_pct AS \"occupancyPct\", status, COALESCE((property_data->>'published')::boolean,true) AS published, COALESCE(image_url,'') AS image, summary, supporting_document_url AS \"supportingDocUrl\", property_data->>'supportingDocName' AS \"supportingDocName\" FROM properties ORDER BY created_at DESC"
@@ -140,8 +206,13 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
   router.get("/support", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ inquiries: getMockAdminData().inquiries });
+      return;
+    }
     try {
-      const result = await queryDatabase<Row>("SELECT id, name, email, topic, message, created_at AS \"createdAt\" FROM inquiries ORDER BY created_at DESC LIMIT 500");
+      const result = await queryDatabase<Row>("SELECT id, name, email, topic, topic AS subject, message, created_at AS \"createdAt\" FROM inquiries ORDER BY created_at DESC LIMIT 500");
       res.setHeader("Cache-Control", "no-store");
       res.json({ inquiries: result.rows });
     } catch (error) {
@@ -151,6 +222,11 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
   router.get("/audit-logs", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ logs: getMockAdminData().auditLogs });
+      return;
+    }
     try {
       const result = await queryDatabase<Row>("SELECT a.id, a.actor_user_id AS \"actorUid\", u.email AS \"actorEmail\", a.action, a.target_type AS \"targetType\", a.target_id AS \"targetId\", a.details, a.created_at AS \"createdAt\" FROM audit_logs a LEFT JOIN \"user\" u ON u.id=a.actor_user_id ORDER BY a.created_at DESC LIMIT 500");
       res.setHeader("Cache-Control", "no-store");
@@ -162,7 +238,7 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
 
-  async function withAdminTransaction<T>(work: (client: any) => Promise<T>): Promise<T> {
+  async function withAdminTransaction<T>(work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
     if (!databasePool) throw new Error("DATABASE_URL is not configured.");
     const client = await databasePool.connect();
     try {
@@ -178,7 +254,7 @@ export function createBetterAuthAdminRouter(): Router {
     }
   }
 
-  async function auditInTransaction(client: any, actorId: string, action: string, targetType: string, targetId: string, details: Record<string, unknown>) {
+  async function auditInTransaction(client: pg.PoolClient, actorId: string, action: string, targetType: string, targetId: string, details: Record<string, unknown>) {
     await client.query(
       "INSERT INTO audit_logs (actor_user_id, action, target_type, target_id, details) VALUES ($1,$2,$3,$4,$5::jsonb)",
       [actorId, action, targetType, targetId, JSON.stringify(details)]
@@ -190,6 +266,20 @@ export function createBetterAuthAdminRouter(): Router {
     const status = req.body?.status;
     if (!uid || !["Active", "Review", "Suspended"].includes(status)) {
       res.status(400).json({ error: "A valid customer ID and account status are required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      const ok = updateMockCustomerStatus(
+        uid,
+        status,
+        auditActor(req as BetterAuthRequest),
+        (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin"
+      );
+      if (!ok) {
+        res.status(404).json({ error: "Customer not found." });
+        return;
+      }
+      res.json({ ok: true, uid, accountStatus: status });
       return;
     }
     try {
@@ -215,6 +305,20 @@ export function createBetterAuthAdminRouter(): Router {
     const evidenceNote = typeof req.body?.evidenceNote === "string" ? req.body.evidenceNote.trim().slice(0, 500) : "";
     if (!id || (decision === "completed" && evidenceNote.length < 4)) {
       res.status(400).json({ error: "Payment verification evidence is required before crediting a deposit." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      const ok = resolveMockDeposit(
+        id,
+        decision === "completed" ? "Completed" : "Rejected",
+        (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin",
+        evidenceNote
+      );
+      if (!ok) {
+        res.status(404).json({ error: "Deposit not found or already resolved." });
+        return;
+      }
+      res.json({ ok: true, id, status: decision === "completed" ? "Completed" : "Rejected" });
       return;
     }
     try {
@@ -258,6 +362,20 @@ export function createBetterAuthAdminRouter(): Router {
     const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 500) : "";
     if (!id) {
       res.status(400).json({ error: "A withdrawal transaction ID is required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      const ok = resolveMockWithdrawal(
+        id,
+        decision === "completed" ? "Completed" : "Rejected",
+        (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin",
+        note
+      );
+      if (!ok) {
+        res.status(404).json({ error: "Withdrawal not found or already resolved." });
+        return;
+      }
+      res.json({ ok: true, id, status: decision === "completed" ? "Completed" : "Rejected" });
       return;
     }
     try {
@@ -321,6 +439,21 @@ export function createBetterAuthAdminRouter(): Router {
       res.status(400).json({ error: "An investment ID and administrative reason are required." });
       return;
     }
+    if (!isDatabaseConfigured) {
+      const ok = updateMockInvestmentStatus(
+        id,
+        status === "completed" ? "Completed" : "Active",
+        reason,
+        auditActor(req as BetterAuthRequest),
+        (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin"
+      );
+      if (!ok) {
+        res.status(404).json({ error: "Investment not found." });
+        return;
+      }
+      res.json({ ok: true, id, status: status === "completed" ? "Completed" : "Active" });
+      return;
+    }
     try {
       await withAdminTransaction(async (client) => {
         const result = await client.query("UPDATE investments SET status=$2, updated_at=now() WHERE id=$1 RETURNING id", [id, status]);
@@ -353,6 +486,26 @@ export function createBetterAuthAdminRouter(): Router {
       availabilityStatus: ["Paused", "Closed"].includes(textValue(b.availabilityStatus)) ? textValue(b.availabilityStatus) : "Open",
       image: textValue(b.image), categoryLabel: category === "crypto" ? "Digital Assets" : category === "stock" ? "Global Equities" : "Real Estate"
     };
+    if (!isDatabaseConfigured) {
+      upsertMockPlan(
+        id,
+        {
+          name,
+          category,
+          description,
+          minDeposit: min,
+          maxDeposit: max,
+          dailyRatePct: Math.max(0, number(b.dailyRatePct)),
+          durationDays: duration,
+          published: b.published !== false,
+          ...planData,
+        },
+        auditActor(req as BetterAuthRequest),
+        (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin"
+      );
+      res.json({ ok: true, id });
+      return;
+    }
     try {
       await withAdminTransaction(async (client) => {
         await client.query(
@@ -379,6 +532,29 @@ export function createBetterAuthAdminRouter(): Router {
       return;
     }
     const propertyData = { published: b.published !== false, supportingDocName: textValue(b.supportingDocName).slice(0,140) };
+    if (!isDatabaseConfigured) {
+      upsertMockProperty(
+        id,
+        {
+          title,
+          location,
+          assetType: textValue(b.assetType, "Commercial Real Estate"),
+          targetYieldPct: number(b.targetYieldPct),
+          minEntry: Math.max(1000, number(b.minEntry) || 1000),
+          valuation: Math.max(1, number(b.valuation)),
+          occupancyPct: Math.min(100, Math.max(0, number(b.occupancyPct))),
+          status: b.status === "Fully Subscribed" ? "Fully Subscribed" : "Open",
+          image: textValue(b.image),
+          summary,
+          supportingDocUrl: textValue(b.supportingDocUrl) || null,
+          ...propertyData,
+        },
+        auditActor(req as BetterAuthRequest),
+        (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin"
+      );
+      res.json({ ok: true, id });
+      return;
+    }
     try {
       await withAdminTransaction(async (client) => {
         await client.query(
@@ -397,6 +573,34 @@ export function createBetterAuthAdminRouter(): Router {
   router.put("/properties/:id", async (req, res) => {
     const id = typeof req.params.id === "string" ? req.params.id : "";
     const b = (req.body ?? {}) as Row;
+    if (!isDatabaseConfigured) {
+      const updated = updateMockProperty(
+        id,
+        {
+          ...(b.title !== undefined ? { title: textValue(b.title) } : {}),
+          ...(b.location !== undefined ? { location: textValue(b.location) } : {}),
+          ...(b.assetType !== undefined ? { assetType: textValue(b.assetType) } : {}),
+          ...(b.targetYieldPct !== undefined ? { targetYieldPct: number(b.targetYieldPct) } : {}),
+          ...(b.minEntry !== undefined ? { minEntry: number(b.minEntry) } : {}),
+          ...(b.valuation !== undefined ? { valuation: number(b.valuation) } : {}),
+          ...(b.occupancyPct !== undefined ? { occupancyPct: number(b.occupancyPct) } : {}),
+          ...(b.status !== undefined ? { status: textValue(b.status) } : {}),
+          ...(b.image !== undefined ? { image: textValue(b.image) } : {}),
+          ...(b.summary !== undefined ? { summary: textValue(b.summary) } : {}),
+          ...(b.supportingDocUrl !== undefined ? { supportingDocUrl: textValue(b.supportingDocUrl) } : {}),
+          ...(b.supportingDocName !== undefined ? { supportingDocName: textValue(b.supportingDocName) } : {}),
+          published: b.published !== false,
+        },
+        auditActor(req as BetterAuthRequest),
+        (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin"
+      );
+      if (!updated) {
+        res.status(404).json({ error: "Property not found." });
+        return;
+      }
+      res.json({ ok: true, id });
+      return;
+    }
     try {
       const result = await queryDatabase(
         "UPDATE properties SET title=COALESCE(NULLIF($2,''),title), location=COALESCE(NULLIF($3,''),location), asset_type=COALESCE(NULLIF($4,''),asset_type), target_yield_pct=COALESCE($5,target_yield_pct), minimum_entry=COALESCE($6,minimum_entry), valuation=COALESCE($7,valuation), occupancy_pct=COALESCE($8,occupancy_pct), status=COALESCE(NULLIF($9,''),status), image_url=COALESCE(NULLIF($10,''),image_url), summary=COALESCE(NULLIF($11,''),summary), supporting_document_url=COALESCE(NULLIF($12,''),supporting_document_url), property_data=property_data || $13::jsonb, updated_at=now() WHERE id=$1 RETURNING id",
@@ -408,13 +612,22 @@ export function createBetterAuthAdminRouter(): Router {
       }
       await recordAudit(req as BetterAuthRequest, "UPDATE_PROPERTY", "property", id, { published: b.published !== false });
       res.json({ ok: true, id });
-    } catch (error) {
+    } catch {
       res.status(502).json({ error: "Unable to update property." });
     }
   });
 
   router.delete("/properties/:id", async (req, res) => {
     const id = typeof req.params.id === "string" ? req.params.id : "";
+    if (!isDatabaseConfigured) {
+      const deleted = getMockAdminData().customProperties.delete(id);
+      if (!deleted) {
+        res.status(404).json({ error: "Property not found." });
+        return;
+      }
+      res.json({ ok: true });
+      return;
+    }
     try {
       const result = await queryDatabase("DELETE FROM properties WHERE id=$1 RETURNING id", [id]);
       if (!result.rowCount) {
@@ -423,7 +636,7 @@ export function createBetterAuthAdminRouter(): Router {
       }
       await recordAudit(req as BetterAuthRequest, "DELETE_PROPERTY", "property", id, {});
       res.json({ ok: true });
-    } catch (error) {
+    } catch {
       res.status(502).json({ error: "Unable to delete property." });
     }
   });
@@ -470,6 +683,266 @@ export function createBetterAuthAdminRouter(): Router {
     } catch (error) {
       console.error("Neon admin upload failed:", error);
       res.status(500).json({ error: "Unable to persist uploaded file." });
+    }
+  });
+
+  router.get("/referrals", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.json(getMockAdminReferrals());
+      return;
+    }
+    try {
+      const result = await queryDatabase<{
+        uid: string;
+        email: string;
+        displayName: string;
+        referralBonus: string | number;
+      }>(
+        `SELECT u.id AS uid, u.email, u.name AS "displayName",
+                COALESCE(SUM(CASE WHEN lower(t.type)='referral' AND lower(t.status)='completed' THEN t.amount ELSE 0 END), 0) AS "referralBonus"
+         FROM "user" u
+         LEFT JOIN transactions t ON t.user_id = u.id
+         GROUP BY u.id, u.email, u.name
+         ORDER BY u."createdAt" DESC
+         LIMIT 500`
+      );
+      res.json({
+        partnerSummary: result.rows.map((row) => ({
+          uid: row.uid,
+          email: row.email,
+          displayName: row.displayName,
+          code: `BF-${row.uid.slice(0, 8).toUpperCase()}`,
+          referralBonus: Number(row.referralBonus || 0),
+        })),
+      });
+    } catch (error) {
+      console.error("Neon admin referrals query failed:", error);
+      res.status(502).json({ error: "Unable to load referral partner summaries." });
+    }
+  });
+
+  router.get("/documents", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.json({ documents: getMockAdminDocuments() });
+      return;
+    }
+    try {
+      const [invRows, txRows] = await Promise.all([
+        queryDatabase<{
+          id: string;
+          user_id: string;
+          plan_name: string;
+          principal: string | number;
+          created_at: Date | string;
+        }>(
+          `SELECT id, user_id, COALESCE(plan_snapshot->>'name', 'Investment') AS plan_name, principal, created_at
+           FROM investments ORDER BY created_at DESC LIMIT 300`
+        ),
+        queryDatabase<{
+          id: string;
+          user_id: string;
+          type: string;
+          method: string | null;
+          amount: string | number;
+          currency: string;
+          reference: string | null;
+          status: string;
+          created_at: Date | string;
+        }>(
+          `SELECT id, user_id, initcap(type) AS type, method, amount, currency, reference, initcap(status) AS status, created_at
+           FROM transactions ORDER BY created_at DESC LIMIT 300`
+        ),
+      ]);
+      const docs: CustomerDocumentDTO[] = [
+        ...invRows.rows.map((row) => ({
+          id: `agr-${row.id}`,
+          userId: row.user_id,
+          title: `${row.plan_name} Allocation Agreement`,
+          docType: "Agreement" as const,
+          reference: `INV-${row.id.slice(-8).toUpperCase()}`,
+          summary: `Principal allocation of $${Number(row.principal || 0).toFixed(2)} USD in ${row.plan_name}.`,
+          createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+        })),
+        ...txRows.rows.map((row) => ({
+          id: `txdoc-${row.id}`,
+          userId: row.user_id,
+          title: `${row.type} ${row.status} Record — ${row.method || "Account"}`,
+          docType:
+            row.type === "Deposit"
+              ? ("DepositConfirmation" as const)
+              : row.type === "Withdrawal"
+                ? ("WithdrawalRecord" as const)
+                : ("Receipt" as const),
+          reference: row.reference || row.id,
+          summary: `${row.type} of $${Number(row.amount || 0).toFixed(2)} ${row.currency || "USD"} · Status: ${row.status}.`,
+          createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+        })),
+      ];
+      res.json({ documents: docs });
+    } catch (error) {
+      console.error("Neon admin documents query failed:", error);
+      res.status(502).json({ error: "Unable to load platform documents." });
+    }
+  });
+
+  router.post("/broadcasts", async (req: BetterAuthRequest, res) => {
+    const title = textValue(req.body?.title).trim().slice(0, 140);
+    const body = textValue(req.body?.body).trim().slice(0, 600);
+    if (!title || !body) {
+      res.status(400).json({ error: "Broadcast title and message content are required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      const broadcast = addMockBroadcast(
+        title,
+        body,
+        auditActor(req),
+        req.betterAuthSession?.user.email ?? "admin"
+      );
+      res.status(201).json({ ok: true, broadcast });
+      return;
+    }
+    try {
+      const id = randomUUID();
+      await queryDatabase(
+        "INSERT INTO notifications (id, user_id, category, title, body) VALUES ($1, NULL, 'Broadcast', $2, $3)",
+        [id, title, body]
+      );
+      await recordAudit(req, "PUBLISH_BROADCAST", "notification", id, { title });
+      res.status(201).json({
+        ok: true,
+        broadcast: {
+          id,
+          userId: "all",
+          category: "Broadcast",
+          title,
+          body,
+          read: false,
+          createdAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("Broadcast creation failed:", error);
+      res.status(502).json({ error: "Unable to publish broadcast." });
+    }
+  });
+
+  router.get("/email-templates", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.json({ templates: getMockEmailTemplates() });
+      return;
+    }
+    try {
+      const result = await queryDatabase<{
+        event_type: string;
+        subject: string;
+        body: string;
+        enabled: boolean;
+        updated_by: string | null;
+        updated_at: Date | string;
+      }>("SELECT event_type, subject, body, enabled, updated_by, updated_at FROM email_templates");
+      const savedMap = new Map(result.rows.map((r) => [r.event_type, r]));
+      const templates = DEFAULT_MAIL_TEMPLATES.map((def) => {
+        const saved = savedMap.get(def.eventType);
+        return {
+          eventType: def.eventType,
+          subject: saved?.subject ?? def.subject,
+          body: saved?.body ?? def.body,
+          enabled: saved?.enabled ?? def.enabled,
+          updatedBy: saved?.updated_by ?? undefined,
+          updatedAt: saved?.updated_at ? new Date(saved.updated_at).toISOString() : null,
+        };
+      });
+      res.json({ templates });
+    } catch (error) {
+      console.error("Neon email templates query failed:", error);
+      res.status(502).json({ error: "Unable to load email templates." });
+    }
+  });
+
+  router.put("/email-templates/:eventType", async (req: BetterAuthRequest, res) => {
+    const eventType = typeof req.params.eventType === "string" ? req.params.eventType : "";
+    const def = DEFAULT_MAIL_TEMPLATES.find((t) => t.eventType === eventType);
+    if (!def || !def.editable) {
+      res.status(400).json({ error: "Selected email template cannot be modified." });
+      return;
+    }
+    const subject = textValue(req.body?.subject).trim().slice(0, 160);
+    const body = textValue(req.body?.body).trim().slice(0, 3000);
+    const enabled = req.body?.enabled !== false;
+    if (!subject || !body) {
+      res.status(400).json({ error: "Subject and body are required." });
+      return;
+    }
+    const actorId = auditActor(req);
+    if (!isDatabaseConfigured) {
+      const record = saveMockEmailTemplate(eventType, subject, body, enabled, actorId);
+      await recordAudit(req, "SAVE_EMAIL_TEMPLATE", "email_template", eventType, { enabled });
+      res.json({ ok: true, template: record });
+      return;
+    }
+    try {
+      await queryDatabase(
+        `INSERT INTO email_templates (event_type, subject, body, enabled, updated_by, updated_at)
+         VALUES ($1, $2, $3, $4, $5, now())
+         ON CONFLICT (event_type) DO UPDATE SET
+           subject = EXCLUDED.subject,
+           body = EXCLUDED.body,
+           enabled = EXCLUDED.enabled,
+           updated_by = EXCLUDED.updated_by,
+           updated_at = now()`,
+        [eventType, subject, body, enabled, actorId]
+      );
+      await recordAudit(req, "SAVE_EMAIL_TEMPLATE", "email_template", eventType, { enabled });
+      res.json({
+        ok: true,
+        template: {
+          eventType,
+          subject,
+          body,
+          enabled,
+          updatedBy: actorId,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("Neon email template save failed:", error);
+      res.status(502).json({ error: "Unable to save email template." });
+    }
+  });
+
+  router.get("/email-outbox", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.json({ outbox: getMockEmailOutbox() });
+      return;
+    }
+    try {
+      const result = await queryDatabase<{
+        id: string;
+        event_type: string;
+        recipient: string;
+        payload: Record<string, unknown>;
+        status: string;
+        created_at: Date | string;
+      }>("SELECT id, event_type, recipient, payload, status, created_at FROM email_outbox ORDER BY created_at DESC LIMIT 50");
+      res.json({
+        outbox: result.rows.map((r) => ({
+          id: r.id,
+          eventType: r.event_type,
+          recipient: r.recipient,
+          subject: textValue(r.payload?.subject, r.event_type),
+          body: textValue(r.payload?.body, ""),
+          status: r.status,
+          createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
+        })),
+      });
+    } catch (error) {
+      console.error("Neon email outbox query failed:", error);
+      res.status(502).json({ error: "Unable to load email outbox." });
     }
   });
 

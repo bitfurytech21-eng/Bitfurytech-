@@ -134,7 +134,7 @@ function mergeMessages(
 }
 
 export default function LiveSupportWidget() {
-  const { firebaseUser, idToken, profile } = useAuth();
+  const { user, profile } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -199,7 +199,7 @@ export default function LiveSupportWidget() {
 
   // Clear authenticated session cache on sign-out so previous account thread never leaks
   useEffect(() => {
-    if (!firebaseUser && inMemorySession.thread?.userId) {
+    if (!user && inMemorySession.thread?.userId) {
       inMemorySession = {
         thread: null,
         messages: [],
@@ -214,7 +214,7 @@ export default function LiveSupportWidget() {
       setTwilioToken(null);
       setConversationSid(null);
     }
-  }, [firebaseUser]);
+  }, [user]);
 
   // Fetch non-secret Twilio configuration status
   useEffect(() => {
@@ -254,16 +254,16 @@ export default function LiveSupportWidget() {
 
   // Pre-fill investor identity if authenticated
   useEffect(() => {
-    if (firebaseUser) {
+    if (user) {
       setNameInput(
         profile?.displayName ||
-          firebaseUser.displayName ||
-          firebaseUser.email?.split("@")[0] ||
+          user.displayName ||
+          user.email?.split("@")[0] ||
           "BitfuryTech Investor"
       );
-      setEmailInput(firebaseUser.email || "");
+      setEmailInput(user.email || "");
     }
-  }, [firebaseUser, profile]);
+  }, [user, profile]);
 
   const applySessionPayload = useCallback((data: StartSessionResponse) => {
     setThread(data.thread);
@@ -278,18 +278,17 @@ export default function LiveSupportWidget() {
   // Refresh existing thread history when widget mounts/opens with an active session
   useEffect(() => {
     if (!isOpen || !thread) return;
-    if (!idToken && !visitorToken) return;
+    if (!user && !visitorToken) return;
 
     const controller = new AbortController();
     const headers: Record<string, string> = {};
-    if (idToken) {
-      headers.Authorization = `Bearer ${idToken}`;
-    } else if (visitorToken) {
+    if (!user && visitorToken) {
       headers["x-visitor-token"] = visitorToken;
     }
 
     fetch(`/api/support/threads/${encodeURIComponent(thread.id)}`, {
       cache: "no-store",
+      credentials: "include",
       headers,
       signal: controller.signal,
     })
@@ -307,7 +306,7 @@ export default function LiveSupportWidget() {
       .catch(() => undefined);
 
     return () => controller.abort();
-  }, [isOpen, thread?.id, idToken, visitorToken]);
+  }, [isOpen, thread?.id, user, visitorToken]);
 
   // Connect live WebSocket channel whenever a support thread is active
   useEffect(() => {
@@ -315,7 +314,7 @@ export default function LiveSupportWidget() {
       setSocketState("disconnected");
       return;
     }
-    if (!idToken && !visitorToken) {
+    if (!user && !visitorToken) {
       return;
     }
 
@@ -338,8 +337,7 @@ export default function LiveSupportWidget() {
           JSON.stringify({
             type: "auth",
             mode: "client",
-            firebaseToken: idToken || undefined,
-            visitorToken: idToken ? undefined : visitorToken,
+            visitorToken: user ? undefined : visitorToken,
             threadId: thread.id,
           })
         );
@@ -442,7 +440,7 @@ export default function LiveSupportWidget() {
         wsRef.current = null;
       }
     };
-  }, [thread?.id, idToken, visitorToken]);
+  }, [thread?.id, user, visitorToken]);
 
   // Optional Twilio Conversations JS Client binding when Twilio credentials are configured
   useEffect(() => {
@@ -527,7 +525,7 @@ export default function LiveSupportWidget() {
 
     const trimmedName = nameInput.trim();
     const trimmedEmail = emailInput.trim();
-    if (!firebaseUser) {
+    if (!user) {
       if (!trimmedName) {
         setFormError("Enter your full name to connect with our desk.");
         return;
@@ -540,22 +538,18 @@ export default function LiveSupportWidget() {
 
     setStartingSession(true);
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (idToken) {
-        headers.Authorization = `Bearer ${idToken}`;
-      }
-
       const res = await fetch("/api/support/session", {
         method: "POST",
-        headers,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           name: trimmedName,
           email: trimmedEmail,
           topic: topicInput,
           initialMessage: initialMessageInput.trim(),
-          visitorToken: idToken ? undefined : visitorToken || undefined,
+          visitorToken: user ? undefined : visitorToken || undefined,
         }),
       });
 
@@ -619,9 +613,7 @@ export default function LiveSupportWidget() {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         };
-        if (idToken) {
-          headers.Authorization = `Bearer ${idToken}`;
-        } else if (visitorToken) {
+        if (!user && visitorToken) {
           headers["x-visitor-token"] = visitorToken;
         }
 
@@ -629,6 +621,7 @@ export default function LiveSupportWidget() {
           `/api/support/threads/${encodeURIComponent(thread.id)}/messages`,
           {
             method: "POST",
+            credentials: "include",
             headers,
             body: JSON.stringify({ body: text, clientMessageId }),
           }
@@ -746,7 +739,7 @@ export default function LiveSupportWidget() {
                 </div>
               )}
 
-              {!firebaseUser ? (
+              {!user ? (
                 <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label

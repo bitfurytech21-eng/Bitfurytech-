@@ -12,6 +12,9 @@ export interface EnqueueMailEventInput {
 
 /** Sends the notification directly. A true result means Resend accepted the message. */
 export async function enqueueMailEvent({ eventType, userId, recipient, values }: EnqueueMailEventInput): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY?.trim() || !process.env.RESEND_FROM_EMAIL?.trim()) {
+    return false;
+  }
   const template = getMailTemplateDefinition(eventType);
   if (!template || template.triggerStatus !== "wired") return false;
   const cleanRecipient = recipient.trim().toLowerCase().slice(0, 200);

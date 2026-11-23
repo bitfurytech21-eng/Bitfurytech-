@@ -30,24 +30,22 @@ import type {
   SupportThreadDTO,
 } from "../../components/LiveSupportWidget";
 import { useAuth } from "../../hooks/useAuth";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 export function AdminTransactionsPage() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [rows, setRows] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ transactions: Array<Record<string, unknown>> }>(
-        "/api/admin/transactions",
-        token
+      const res = await sessionApiRequest<{ transactions: Array<Record<string, unknown>> }>(
+        "/api/admin/transactions"
       );
       setRows(res.transactions);
     } catch (err) {
@@ -55,7 +53,7 @@ export function AdminTransactionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void load();
@@ -143,7 +141,7 @@ export function AdminTransactionsPage() {
 }
 
 export function AdminReferralsPage() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [partners, setPartners] = useState<
     Array<{ uid: string; email: string; displayName: string; code: string; referralBonus: number }>
   >([]);
@@ -151,12 +149,11 @@ export function AdminReferralsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{
+      const res = await sessionApiRequest<{
         partnerSummary: Array<{
           uid: string;
           email: string;
@@ -164,14 +161,14 @@ export function AdminReferralsPage() {
           code: string;
           referralBonus: number;
         }>;
-      }>("/api/admin/referrals", token);
+      }>("/api/admin/referrals");
       setPartners(res.partnerSummary);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load referral data.");
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void load();
@@ -233,20 +230,18 @@ export function AdminReferralsPage() {
 }
 
 export function AdminDocumentsPage() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [docs, setDocs] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ documents: Array<Record<string, unknown>> }>(
-        "/api/admin/documents",
-        token
+      const res = await sessionApiRequest<{ documents: Array<Record<string, unknown>> }>(
+        "/api/admin/documents"
       );
       setDocs(res.documents);
     } catch (err) {
@@ -254,7 +249,7 @@ export function AdminDocumentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void load();
@@ -330,7 +325,7 @@ interface AdminTwilioStatus {
 }
 
 export function AdminSupportPage() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"desk" | "inquiries">("desk");
 
   const [threads, setThreads] = useState<SupportThreadDTO[]>([]);
@@ -368,17 +363,16 @@ export function AdminSupportPage() {
   }, [selectedMessages.length, clientTypingThreadId]);
 
   const loadAll = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
       const [deskRes, inquiriesRes] = await Promise.all([
-        apiRequest<{
+        sessionApiRequest<{
           threads: SupportThreadDTO[];
           twilioStatus: AdminTwilioStatus;
-        }>("/api/admin/support-desk/threads", token),
-        apiRequest<{ inquiries: Array<Record<string, unknown>> }>("/api/admin/support", token),
+        }>("/api/admin/support-desk/threads"),
+        sessionApiRequest<{ inquiries: Array<Record<string, unknown>> }>("/api/admin/support"),
       ]);
 
       setThreads(deskRes.threads || []);
@@ -394,7 +388,7 @@ export function AdminSupportPage() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void loadAll();
@@ -402,14 +396,13 @@ export function AdminSupportPage() {
 
   const loadThreadMessages = useCallback(
     async (threadId: string) => {
-      if (!firebaseUser) return;
+      if (!user) return;
       setLoadingMessages(true);
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const res = await apiRequest<{
+        const res = await sessionApiRequest<{
           thread: SupportThreadDTO;
           messages: SupportMessageDTO[];
-        }>(`/api/admin/support-desk/threads/${encodeURIComponent(threadId)}`, token);
+        }>(`/api/admin/support-desk/threads/${encodeURIComponent(threadId)}`);
         if (selectedThreadIdRef.current === threadId) {
           setSelectedMessages(res.messages || []);
           setThreads((prev) =>
@@ -425,7 +418,7 @@ export function AdminSupportPage() {
         setLoadingMessages(false);
       }
     },
-    [firebaseUser, idToken]
+    [user]
   );
 
   useEffect(() => {
@@ -438,7 +431,7 @@ export function AdminSupportPage() {
 
   // Real-time WebSocket Admin Inbox Stream
   useEffect(() => {
-    if (!firebaseUser || !idToken) {
+    if (!user) {
       setWsConnected(false);
       return;
     }
@@ -460,7 +453,6 @@ export function AdminSupportPage() {
           JSON.stringify({
             type: "auth",
             mode: "admin",
-            firebaseToken: idToken,
           })
         );
         pingTimer = window.setInterval(() => {
@@ -586,7 +578,7 @@ export function AdminSupportPage() {
         wsRef.current = null;
       }
     };
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   const emitAdminTyping = (threadId: string, typing: boolean) => {
     const ws = wsRef.current;
@@ -605,7 +597,7 @@ export function AdminSupportPage() {
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser || !selectedThreadId) return;
+    if (!user || !selectedThreadId) return;
     const body = replyText.trim();
     if (!body) return;
 
@@ -614,10 +606,8 @@ export function AdminSupportPage() {
     const clientMessageId = `adm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ ok: boolean; message: SupportMessageDTO }>(
+      const res = await sessionApiRequest<{ ok: boolean; message: SupportMessageDTO }>(
         `/api/admin/support-desk/threads/${encodeURIComponent(selectedThreadId)}/messages`,
-        token,
         {
           method: "POST",
           body: JSON.stringify({ body, clientMessageId }),
@@ -647,14 +637,12 @@ export function AdminSupportPage() {
   };
 
   const handleToggleThreadStatus = async (thread: SupportThreadDTO) => {
-    if (!firebaseUser) return;
+    if (!user) return;
     const nextStatus = thread.status === "Open" ? "Resolved" : "Open";
     setUpdatingStatus(true);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ ok: boolean; thread: SupportThreadDTO }>(
+      const res = await sessionApiRequest<{ ok: boolean; thread: SupportThreadDTO }>(
         `/api/admin/support-desk/threads/${encodeURIComponent(thread.id)}/status`,
-        token,
         {
           method: "PATCH",
           body: JSON.stringify({ status: nextStatus }),
@@ -1061,7 +1049,7 @@ export function AdminSupportPage() {
 }
 
 export function AdminSettingsPage() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [logs, setLogs] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
@@ -1070,13 +1058,11 @@ export function AdminSettingsPage() {
   const [banner, setBanner] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   const loadLogs = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ logs: Array<Record<string, unknown>> }>(
-        "/api/admin/audit-logs",
-        token
+      const res = await sessionApiRequest<{ logs: Array<Record<string, unknown>> }>(
+        "/api/admin/audit-logs"
       );
       setLogs(res.logs);
     } catch {
@@ -1084,7 +1070,7 @@ export function AdminSettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void loadLogs();
@@ -1092,12 +1078,11 @@ export function AdminSettingsPage() {
 
   const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!user) return;
     setSending(true);
     setBanner(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest("/api/admin/broadcasts", token, {
+      await sessionApiRequest("/api/admin/broadcasts", {
         method: "POST",
         body: JSON.stringify({ title: title.trim(), body: body.trim() }),
       });

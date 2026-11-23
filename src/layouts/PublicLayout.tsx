@@ -17,7 +17,7 @@ const NAV_LINKS = [
 
 export default function PublicLayout({ children }: { children?: React.ReactNode }) {
   const { pathname } = useLocation();
-  const { firebaseUser } = useAuth();
+  const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [newsletterEmail, setNewsletterEmail] = useState("");
@@ -108,7 +108,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
-            {firebaseUser ? (
+            {user ? (
               <Link
                 to="/dashboard"
                 className="hidden lg:inline-flex items-center justify-center gap-1.5 bg-[#E94D65] hover:bg-[#D43B53] text-white font-heading font-bold text-xs px-5 py-2.5 rounded-none transition-colors whitespace-nowrap shrink-0"
@@ -169,7 +169,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
               );
             })}
             <div className="pt-3 border-t border-[#DCE4EC] grid grid-cols-2 gap-3">
-              {firebaseUser ? (
+              {user ? (
                 <Link
                   to="/dashboard"
                   onClick={() => setMobileOpen(false)}

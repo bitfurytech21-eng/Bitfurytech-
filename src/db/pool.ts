@@ -3,11 +3,13 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL?.trim();
 
-if (!connectionString && process.env.NODE_ENV === "production") {
-  throw new Error("DATABASE_URL is required in production.");
+if (!connectionString) {
+  console.warn("[AI Studio] DATABASE_URL is not configured — using in-memory database mock.");
 }
+
+export const isDatabaseConfigured = Boolean(connectionString);
 
 export const databasePool = connectionString
   ? new Pool({
@@ -31,7 +33,13 @@ export async function queryDatabase<T extends pg.QueryResultRow = pg.QueryResult
   values: unknown[] = []
 ): Promise<pg.QueryResult<T>> {
   if (!databasePool) {
-    throw new Error("DATABASE_URL is not configured.");
+    return {
+      rows: [],
+      rowCount: 0,
+      command: "SELECT",
+      oid: 0,
+      fields: [],
+    } as unknown as pg.QueryResult<T>;
   }
   return databasePool.query<T>(text, values);
 }

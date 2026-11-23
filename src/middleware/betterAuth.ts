@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 import { betterAuthInstance } from "../lib/better-auth.ts";
-import { queryDatabase } from "../db/pool.ts";
+import { isDatabaseConfigured, queryDatabase } from "../db/pool.ts";
 
 export interface BetterAuthRequest extends Request {
   betterAuthSession?: Awaited<ReturnType<typeof betterAuthInstance.api.getSession>>;
@@ -38,13 +38,14 @@ export async function requireBetterAuth(
 const BOOTSTRAP_ADMIN_EMAIL = (process.env.BITFURYTECH_ADMIN_EMAIL || "bitfurytech21@gmail.com").trim().toLowerCase();
 
 export async function resolveBetterAuthRole(userId: string, email?: string | null): Promise<"admin" | "support" | "investor"> {
+  // The explicitly configured bootstrap identity takes precedence over the default
+  // investor role created automatically for every new account.
+  if (email && email.trim().toLowerCase() === BOOTSTRAP_ADMIN_EMAIL) return "admin";
+  if (!isDatabaseConfigured) return "investor";
   const result = await queryDatabase<{ role: "admin" | "support" | "investor" }>(
     "SELECT role FROM user_roles WHERE user_id = $1 ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'support' THEN 1 ELSE 2 END LIMIT 1",
     [userId]
   );
-  // The explicitly configured bootstrap identity takes precedence over the default
-  // investor role created automatically for every new account.
-  if (email && email.trim().toLowerCase() === BOOTSTRAP_ADMIN_EMAIL) return "admin";
   return result.rows[0]?.role ?? "investor";
 }
 

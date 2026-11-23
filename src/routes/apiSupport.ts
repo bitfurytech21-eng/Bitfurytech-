@@ -1,11 +1,12 @@
 import express, { Router, type Request } from "express";
-import { adminAuth } from "../lib/firebase-admin.ts";
+import { fromNodeHeaders } from "better-auth/node";
+import { betterAuthInstance } from "../lib/better-auth.ts";
 import {
-  requireAdmin,
-  requireAuth,
-  requireVerifiedEmail,
-  type AuthRequest,
-} from "../middleware/auth.ts";
+  requireBetterAdmin,
+  requireBetterAuth,
+  requireBetterVerifiedEmail,
+  type BetterAuthRequest,
+} from "../middleware/betterAuth.ts";
 import {
   appendSupportMessage,
   createSupportThread,
@@ -41,20 +42,18 @@ async function resolveCallerAccess(
   uid: string | null;
   visitorName?: string;
 }> {
-  const authHeader = req.headers.authorization;
-  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.slice(7).trim();
-    try {
-      const decoded = await adminAuth.verifyIdToken(token);
-      if (decoded.uid) {
-        const thread = findThreadById(threadId);
-        if (thread && thread.userId === decoded.uid) {
-          return { ok: true, isAdmin: false, uid: decoded.uid };
-        }
+  try {
+    const session = await betterAuthInstance.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    if (session?.user?.id && session.user.emailVerified) {
+      const thread = findThreadById(threadId);
+      if (thread && thread.userId === session.user.id) {
+        return { ok: true, isAdmin: false, uid: session.user.id };
       }
-    } catch {
-      // Fall through to visitor token check
     }
+  } catch {
+    // Fall through to visitor token check
   }
 
   const visitorHeader = req.headers["x-visitor-token"];
@@ -103,30 +102,22 @@ export function createSupportRouter(): Router {
     let visitorEmail =
       typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 200) : "";
 
-    const authHeader = req.headers.authorization;
-    if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-      const idToken = authHeader.slice(7).trim();
-      if (idToken) {
-        try {
-          const decoded = await adminAuth.verifyIdToken(idToken);
-          if (decoded.uid && decoded.firebase?.sign_in_provider !== "anonymous") {
-            userId = decoded.uid;
-            visitorEmail = (decoded.email || visitorEmail || "investor@bitfurytech.com").slice(
-              0,
-              200
-            );
-            visitorName = (
-              (typeof decoded.name === "string" && decoded.name) ||
-              visitorName ||
-              visitorEmail.split("@")[0] ||
-              "BitfuryTech Investor"
-            ).slice(0, 120);
-          }
-        } catch {
-          res.status(401).json({ error: "Invalid authenticated session token." });
-          return;
-        }
+    try {
+      const session = await betterAuthInstance.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
+      if (session?.user?.id && session.user.emailVerified) {
+        userId = session.user.id;
+        visitorEmail = (session.user.email || visitorEmail || "investor@bitfurytech.com").slice(0, 200);
+        visitorName = (
+          (typeof session.user.name === "string" && session.user.name) ||
+          visitorName ||
+          visitorEmail.split("@")[0] ||
+          "BitfuryTech Investor"
+        ).slice(0, 120);
       }
+    } catch {
+      // Fall back to visitor token / guest inquiry details
     }
 
     // Check if an existing visitor token matches an open thread
@@ -412,9 +403,9 @@ export function createSupportRouter(): Router {
 
   // Admin Live Support Desk Router
   const adminSupport = Router();
-  adminSupport.use(requireAuth, requireVerifiedEmail, requireAdmin);
+  adminSupport.use(requireBetterAuth, requireBetterVerifiedEmail, requireBetterAdmin);
 
-  adminSupport.get("/threads", async (_req: AuthRequest, res) => {
+  adminSupport.get("/threads", async (_req: BetterAuthRequest, res) => {
     await initSupportStore();
     const twilioStatus = getTwilioIntegrationStatus();
     const adminTwilioToken = twilioStatus.configured
@@ -428,7 +419,7 @@ export function createSupportRouter(): Router {
     });
   });
 
-  adminSupport.get("/threads/:threadId", async (req: AuthRequest, res) => {
+  adminSupport.get("/threads/:threadId", async (req: BetterAuthRequest, res) => {
     await initSupportStore();
     const threadId = String(req.params.threadId || "").trim();
     if (!isValidThreadId(threadId)) {
@@ -443,7 +434,7 @@ export function createSupportRouter(): Router {
     res.json({ thread, messages: getThreadMessages(threadId) });
   });
 
-  adminSupport.post("/threads/:threadId/messages", async (req: AuthRequest, res) => {
+  adminSupport.post("/threads/:threadId/messages", async (req: BetterAuthRequest, res) => {
     await initSupportStore();
     const threadId = String(req.params.threadId || "").trim();
     if (!isValidThreadId(threadId)) {
@@ -489,7 +480,7 @@ export function createSupportRouter(): Router {
     res.status(201).json({ ok: true, message: result?.message });
   });
 
-  adminSupport.patch("/threads/:threadId/status", async (req: AuthRequest, res) => {
+  adminSupport.patch("/threads/:threadId/status", async (req: BetterAuthRequest, res) => {
     await initSupportStore();
     const threadId = String(req.params.threadId || "").trim();
     const status = req.body?.status === "Resolved" ? "Resolved" : "Open";

@@ -23,7 +23,7 @@ function generateChallenge() {
 
 export default function Register() {
   const {
-    firebaseUser,
+    user,
     backendSession,
     authReady,
     authBusy,
@@ -60,10 +60,10 @@ export default function Register() {
   const [verifyBusy, setVerifyBusy] = useState(false);
 
   useEffect(() => {
-    if (authReady && firebaseUser && firebaseUser.emailVerified && backendSession) {
+    if (authReady && user && user.emailVerified && backendSession) {
       navigate(backendSession.isAdmin ? "/admin" : "/dashboard", { replace: true });
     }
-  }, [authReady, backendSession, firebaseUser, navigate]);
+  }, [authReady, backendSession, user, navigate]);
 
   const refreshChallenge = () => {
     setChallenge(generateChallenge());

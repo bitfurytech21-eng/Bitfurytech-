@@ -13,25 +13,35 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import {
+  DashboardTransactionDTO,
   formatTimestamp,
-  subscribeUserTransactions,
-  TransactionRecord,
-} from "../../services/firestoreService";
+  sessionApiRequest,
+} from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
+type TransactionRecord = DashboardTransactionDTO;
+
 export function TransactionsPage() {
-  const { firebaseUser } = useAuth();
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("All");
 
   useEffect(() => {
-    if (!firebaseUser) return;
-    return subscribeUserTransactions(firebaseUser.uid, (items) => {
-      setTransactions(items);
-      setLoading(false);
-    });
-  }, [firebaseUser]);
+    if (!user) return;
+    let active = true;
+    sessionApiRequest<{ transactions: TransactionRecord[] }>("/api/transactions")
+      .then((res) => {
+        if (!active) return;
+        setTransactions(res.transactions ?? []);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const filtered =
     filter === "All" ? transactions : transactions.filter((t) => t.type === filter);
@@ -132,17 +142,25 @@ export function TransactionsPage() {
 
 export function TransactionDetailsPage() {
   const { id } = useParams();
-  const { firebaseUser } = useAuth();
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!firebaseUser) return;
-    return subscribeUserTransactions(firebaseUser.uid, (items) => {
-      setTransactions(items);
-      setLoaded(true);
-    });
-  }, [firebaseUser]);
+    if (!user) return;
+    let active = true;
+    sessionApiRequest<{ transactions: TransactionRecord[] }>("/api/transactions")
+      .then((res) => {
+        if (!active) return;
+        setTransactions(res.transactions ?? []);
+      })
+      .finally(() => {
+        if (active) setLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const tx = transactions.find((item) => item.id === id);
 

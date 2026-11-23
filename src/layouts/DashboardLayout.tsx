@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar, { DASHBOARD_NAV_ITEMS } from "../components/dashboard/Sidebar";
 import Topbar, { BreadcrumbSegment } from "../components/dashboard/Topbar";
 import { useAuth } from "../hooks/useAuth";
-import {
-  NotificationMessage,
-  subscribeUserNotifications,
-} from "../services/firestoreService";
+import { NotificationMessage, sessionApiRequest } from "../services/dashboardApi";
 
 export interface DashboardLayoutProps {
   title?: string;
@@ -74,14 +71,20 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { firebaseUser, profile, isAdmin, signOutUser } = useAuth();
+  const { user, profile, isAdmin, signOutUser } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
 
+  const loadNotifications = useCallback(() => {
+    if (!user) return;
+    void sessionApiRequest<{ notifications: NotificationMessage[] }>("/api/notifications")
+      .then((res) => setNotifications(res.notifications || []))
+      .catch(() => undefined);
+  }, [user]);
+
   useEffect(() => {
-    if (!firebaseUser) return;
-    return subscribeUserNotifications(firebaseUser.uid, setNotifications);
-  }, [firebaseUser]);
+    loadNotifications();
+  }, [loadNotifications]);
 
   const meta = resolvePageMeta(pathname);
   const resolvedTitle = title || meta.title;
@@ -106,16 +109,21 @@ export default function DashboardLayout({
         <Topbar
           title={resolvedTitle}
           breadcrumbs={resolvedBreadcrumbs}
-          userEmail={firebaseUser?.email || ""}
+          userEmail={user?.email || ""}
           displayName={
             profile?.displayName ||
-            firebaseUser?.displayName ||
-            firebaseUser?.email?.split("@")[0] ||
+            user?.displayName ||
+            user?.email?.split("@")[0] ||
             "Investor"
           }
-          userId={firebaseUser?.uid}
+          userId={user?.uid}
           isAdmin={isAdmin}
           notifications={notifications}
+          onMarkNotificationRead={(id) =>
+            setNotifications((prev) =>
+              prev.map((item) => (item.id === id ? { ...item, read: true } : item))
+            )
+          }
           onOpenMobileMenu={() => setMobileOpen(true)}
           onSignOut={() => void handleSignOut()}
         />

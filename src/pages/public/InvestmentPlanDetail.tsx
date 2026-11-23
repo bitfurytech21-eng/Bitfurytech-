@@ -10,7 +10,7 @@ import { formatUsd } from "../../trading/tradingPage";
 
 export default function InvestmentPlanDetail() {
   const { planId } = useParams<{ planId: string }>();
-  const { firebaseUser } = useAuth();
+  const { user } = useAuth();
   const { plan, loading, error } = useInvestmentPlanDetail(planId);
   const [previewAmount, setPreviewAmount] = useState<string>("");
 
@@ -76,11 +76,11 @@ export default function InvestmentPlanDetail() {
                       className={buttonClasses({ variant: "primary", size: "lg" })}
                     >
                       <span>
-                        {firebaseUser ? "Allocate in Client Portal" : "Proceed to Allocation"}
+                        {user ? "Allocate in Client Portal" : "Proceed to Allocation"}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
-                    {!firebaseUser && (
+                    {!user && (
                       <Link
                         to="/register"
                         className={buttonClasses({ variant: "secondary", size: "lg" })}

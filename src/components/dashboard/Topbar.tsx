@@ -14,9 +14,9 @@ import {
 import { DropdownItem, DropdownMenu } from "../ui";
 import {
   formatTimestamp,
-  markNotificationAsRead,
   NotificationMessage,
-} from "../../services/firestoreService";
+  sessionApiRequest,
+} from "../../services/dashboardApi";
 
 export interface BreadcrumbSegment {
   label: string;
@@ -31,6 +31,7 @@ export interface TopbarProps {
   userId?: string;
   isAdmin: boolean;
   notifications: NotificationMessage[];
+  onMarkNotificationRead?: (id: string) => void;
   onOpenMobileMenu: () => void;
   onSignOut: () => void;
 }
@@ -43,6 +44,7 @@ export default function Topbar({
   userId,
   isAdmin,
   notifications,
+  onMarkNotificationRead,
   onOpenMobileMenu,
   onSignOut,
 }: TopbarProps) {
@@ -206,7 +208,13 @@ export default function Topbar({
                         {isPersonalUnread && (
                           <button
                             type="button"
-                            onClick={() => void markNotificationAsRead(item.id)}
+                            onClick={() =>
+                              void sessionApiRequest(`/api/notifications/${encodeURIComponent(item.id)}/read`, {
+                                method: "PATCH",
+                              })
+                                .then(() => onMarkNotificationRead?.(item.id))
+                                .catch(() => undefined)
+                            }
                             className="text-[11px] font-semibold text-[#B92841] hover:underline pt-0.5 cursor-pointer"
                           >
                             Mark as read

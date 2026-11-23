@@ -135,12 +135,12 @@ const SECURITY_CONTROLS = [
   {
     title: "Password & Payout Controls",
     description:
-      "Update your account password or trigger Firebase password recovery anytime from Settings, and toggle the optional Enhanced Payout Verification Flag for manual sign-off before outbound transfers.",
+      "Update your account password or trigger password recovery anytime from Settings, and toggle the optional Enhanced Payout Verification Flag for manual sign-off before outbound transfers.",
   },
   {
-    title: "UID Isolation & Runtime Session Tokens",
+    title: "Account Isolation & Server-Verified Sessions",
     description:
-      "Strict Firestore security rules and server-side token validation isolate profiles, balances, investments, and receipts to your authenticated UID. Session tokens stay in runtime memory and are never stored in browser localStorage.",
+      "Strict server-side access controls and session validation isolate profiles, balances, investments, and receipts to your authenticated user ID. Session credentials are never stored in browser localStorage.",
   },
   {
     title: "Immutable Ledger & Desk Support",

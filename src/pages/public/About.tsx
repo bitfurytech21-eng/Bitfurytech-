@@ -21,7 +21,7 @@ const SECTORS = [
     index: "03",
     title: "Commercial Real Estate",
     description:
-      "Three real estate mandate tiers alongside live administrator-published commercial property offerings with transparent valuation figures, tenancy context, and rental yield disclosures.",
+      "Five real estate mandate tiers alongside live administrator-published commercial property offerings with transparent valuation figures, tenancy context, and rental yield disclosures.",
   },
 ];
 
@@ -143,7 +143,7 @@ export default function About() {
                 Bitfury Tech Investment is an algorithmic trading and wealth management firm
                 dedicated to expanding access to wealth-creation opportunities traditionally reserved
                 for institutional desks. Our spectrum spans portfolio administration, liquidity
-                provision, corporate finance guidance, and structured multi-asset mandates across 13
+                provision, corporate finance guidance, and structured multi-asset mandates across 15
                 tiered plans.
               </p>
               <p>

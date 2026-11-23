@@ -213,10 +213,9 @@ export function PrivacyPage() {
             </h2>
             <p>
               Investor profile data, email addresses, and financial records are strictly isolated by
-              UID-based Firestore security rules and server-side token validation so only the
-              verified owner and authorized administrators can inspect records. Authentication tokens
-              remain exclusively in runtime memory during an active session and are never persisted
-              to browser local storage.
+              account-scoped server access controls and HTTP-only session validation so only the
+              verified owner and authorized administrators can inspect records. Authentication sessions
+              are never persisted to browser local storage.
             </p>
           </section>
 

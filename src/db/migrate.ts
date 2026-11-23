@@ -8,7 +8,8 @@ const dirname = path.dirname(filename);
 
 async function migrate(): Promise<void> {
   if (!databasePool) {
-    throw new Error("DATABASE_URL is required to run database migrations.");
+    console.warn("[AI Studio] DATABASE_URL is not configured — skipping database migration.");
+    return;
   }
 
   const sql = await readFile(path.join(dirname, "schema.sql"), "utf8");

@@ -1,8 +1,14 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
-import type { User } from "firebase/auth";
-import type { UserAccount } from "../services/firestoreService";
+import type { UserAccount } from "../services/dashboardApi";
 import { betterAuthClient } from "../lib/better-auth-client";
 import { validateUsername } from "../lib/username";
+
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  emailVerified: boolean;
+  displayName: string | null;
+}
 
 export interface BackendSessionProfile {
   uid: string;
@@ -23,8 +29,7 @@ export interface AuthActionResult {
 export interface AdminVerifyResult { ok: boolean; status: number; error?: string; }
 
 export interface AuthContextValue {
-  firebaseUser: User | null;
-  idToken: string | null;
+  user: AuthUser | null;
   profile: UserAccount | null;
   backendSession: BackendSessionProfile | null;
   authReady: boolean;
@@ -86,16 +91,14 @@ async function readSession(): Promise<BackendSessionProfile | null> {
   };
 }
 
-function asCompatUser(session: BackendSessionProfile | null): User | null {
+function asCompatUser(session: BackendSessionProfile | null): AuthUser | null {
   if (!session) return null;
-  // Compatibility shape for existing presentation components while Better Auth owns the real session.
   return {
     uid: session.uid,
     email: session.email,
     emailVerified: session.emailVerified,
     displayName: null,
-    providerData: [],
-  } as unknown as User;
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -323,20 +326,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const firebaseUser = useMemo(() => asCompatUser(backendSession), [backendSession]);
+  const user = useMemo(() => asCompatUser(backendSession), [backendSession]);
   const isAdmin = Boolean(backendSession?.isAdmin && backendSession.emailVerified);
-  const needsEmailVerification = Boolean(firebaseUser && !backendSession?.emailVerified);
+  const needsEmailVerification = Boolean(user && !backendSession?.emailVerified);
 
   return (
     <AuthContext.Provider value={{
-      firebaseUser,
-      idToken: null,
+      user,
       profile: null,
       backendSession,
       authReady,
       authBusy,
       isAdmin,
-      hasPasswordProvider: Boolean(firebaseUser),
+      hasPasswordProvider: Boolean(user),
       needsEmailVerification,
       authError,
       clearAuthError,

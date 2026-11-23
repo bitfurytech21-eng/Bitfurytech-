@@ -1,5 +1,10 @@
-import { queryDatabase } from "../db/pool.ts";
+import { isDatabaseConfigured, queryDatabase } from "../db/pool.ts";
 import { INVESTMENT_MANDATES, getMandateById, type InvestmentMandate } from "../trading/tradingPage.ts";
+import {
+  getMockCustomerInvestments,
+  getMockCustomerTransactions,
+  getMockDashboardOverview,
+} from "./inMemoryFinancialMock.ts";
 
 type JsonRecord = Record<string, unknown>;
 type DbTransaction = {
@@ -125,7 +130,13 @@ async function loadFinancialRows(userId: string) {
   return { user: user.rows[0], profile: profile.rows[0], wallet: wallet.rows[0], investments, transactions, ledger: ledger.rows[0] };
 }
 
-export async function getNeonDashboardOverview(userId: string) {
+export async function getNeonDashboardOverview(
+  userId: string,
+  fallbackUser?: { email?: string | null; name?: string | null }
+) {
+  if (!isDatabaseConfigured) {
+    return getMockDashboardOverview(userId, fallbackUser);
+  }
   const rows = await loadFinancialRows(userId);
   const active = rows.investments.filter(item => item.status === "Active");
   const completed = rows.investments.filter(item => item.status === "Completed");
@@ -186,6 +197,9 @@ export async function getNeonDashboardOverview(userId: string) {
 }
 
 export async function getNeonCustomerInvestments(userId: string) {
+  if (!isDatabaseConfigured) {
+    return getMockCustomerInvestments(userId);
+  }
   const rows = await loadFinancialRows(userId);
   const active = rows.investments.filter(item => item.status === "Active");
   const completed = rows.investments.filter(item => item.status === "Completed");
@@ -202,6 +216,9 @@ export async function getNeonCustomerInvestments(userId: string) {
 }
 
 export async function getNeonCustomerTransactions(userId: string) {
+  if (!isDatabaseConfigured) {
+    return getMockCustomerTransactions(userId);
+  }
   const rows = await loadFinancialRows(userId);
   return rows.transactions;
 }

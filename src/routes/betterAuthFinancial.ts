@@ -1,9 +1,16 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
+import type pg from "pg";
 import { requireBetterAuth, requireBetterVerifiedEmail, type BetterAuthRequest } from "../middleware/betterAuth.ts";
-import { databasePool } from "../db/pool.ts";
+import { databasePool, isDatabaseConfigured } from "../db/pool.ts";
 import { enqueueMailEvent } from "../services/mailOutbox.ts";
 import { INVESTMENT_MANDATES, type InvestmentMandate } from "../trading/tradingPage.ts";
+import {
+  createMockDeposit,
+  createMockInvestmentPurchase,
+  createMockWithdrawal,
+  getMockCatalog,
+} from "../services/inMemoryFinancialMock.ts";
 
 const DEPOSIT_RAILS = [
   { id: "USDT (TRC20)", label: "USDT (TRC20)", currency: "USDT / USD", network: "TRON (TRC20)", minDeposit: 100, instructions: "Transmit USDT strictly on the TRON (TRC20) network to the BitfuryTech custody treasury address, then submit the exact transfer hash for settlement verification.", custodyDestination: "BitfuryTech Custody Desk — TRON TRC20 Treasury", confirmationInfo: "Balance credits only after settlement desk review confirms network finality and matching reference." },
@@ -31,7 +38,7 @@ function userOf(req: BetterAuthRequest) {
   if (!user?.id) throw httpError("Authentication required.", 401);
   return user;
 }
-async function startIdempotent(client: any, userId: string, operation: "deposit_request" | "withdrawal_request" | "investment_request", key: string) {
+async function startIdempotent(client: pg.PoolClient, userId: string, operation: "deposit_request" | "withdrawal_request" | "investment_request", key: string) {
   await client.query(
     "INSERT INTO financial_idempotency(user_id,idempotency_key,operation) VALUES($1,$2,$3) ON CONFLICT(user_id,idempotency_key) DO NOTHING",
     [userId, key, operation]
@@ -49,13 +56,13 @@ async function startIdempotent(client: any, userId: string, operation: "deposit_
   if (pending.rowCount) throw httpError("This financial request is already being processed.", 409);
   return null;
 }
-async function finishIdempotent(client: any, userId: string, key: string, response: unknown) {
+async function finishIdempotent(client: pg.PoolClient, userId: string, key: string, response: unknown) {
   await client.query(
     "UPDATE financial_idempotency SET response=$3::jsonb WHERE user_id=$1 AND idempotency_key=$2",
     [userId, key, JSON.stringify(response)]
   );
 }
-async function withFinancialTransaction<T>(work: (client: any) => Promise<T>): Promise<T> {
+async function withFinancialTransaction<T>(work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
   if (!databasePool) throw new Error("Neon database is unavailable.");
   const client = await databasePool.connect();
   try {
@@ -70,7 +77,7 @@ async function withFinancialTransaction<T>(work: (client: any) => Promise<T>): P
     client.release();
   }
 }
-async function ensureWallet(client: any, userId: string) {
+async function ensureWallet(client: pg.PoolClient, userId: string) {
   await client.query(
     "INSERT INTO wallets(user_id,currency) VALUES($1,'USD') ON CONFLICT(user_id,currency) DO NOTHING",
     [userId]
@@ -81,7 +88,7 @@ async function ensureWallet(client: any, userId: string) {
   );
   return result.rows[0] ?? { available_balance: 0, reserved_balance: 0 };
 }
-async function assertAccountAllowed(client: any, userId: string, operation: string) {
+async function assertAccountAllowed(client: pg.PoolClient, userId: string, operation: string) {
   const result = await client.query("SELECT account_status FROM user_profiles WHERE user_id=$1", [userId]);
   if (String(result.rows[0]?.account_status ?? "Active") === "Suspended") {
     throw httpError(`Account ${operation} are currently restricted. Contact support.`, 403);
@@ -96,6 +103,11 @@ export function createBetterAuthFinancialRouter(): Router {
   router.get("/withdrawals/config", (_req, res) => res.json(WITHDRAWAL_CONFIG));
 
   router.get("/investments/catalog", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json(getMockCatalog(INVESTMENT_FEE_PCT));
+      return;
+    }
     try {
       const plansResult = await databasePool!.query(
         "SELECT id,name,category,description,min_deposit,max_deposit,daily_rate_pct,duration_days,plan_data FROM investment_plans WHERE published=true ORDER BY created_at DESC"
@@ -144,6 +156,24 @@ export function createBetterAuthFinancialRouter(): Router {
     if (!rail) { res.status(400).json({ error: "Selected payment method is not supported." }); return; }
     if (!key || key.length < 8) { res.status(400).json({ error: "A valid idempotency key is required." }); return; }
     if (!Number.isFinite(amount) || amount < rail.minDeposit || amount > 10_000_000) { res.status(400).json({ error: `Deposit amount for ${rail.label} must be at least $${rail.minDeposit.toLocaleString()}.` }); return; }
+    if (!isDatabaseConfigured) {
+      const reference = referenceInput.slice(0, 64) || makeReference("DEP");
+      const result = createMockDeposit({
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+        method: rail.label,
+        currency: rail.currency,
+        custodyDestination: rail.custodyDestination,
+        instructions: rail.instructions,
+        confirmationInfo: rail.confirmationInfo,
+        amount,
+        reference,
+        idempotencyKey: key,
+      });
+      res.status(result.duplicate ? 200 : 201).json(result.response);
+      return;
+    }
     try {
       const result = await withFinancialTransaction(async (client) => {
         await assertAccountAllowed(client, user.id, "deposit");
@@ -195,6 +225,27 @@ export function createBetterAuthFinancialRouter(): Router {
     const fee = money(Math.max(WITHDRAWAL_CONFIG.minFeeUsd, requested * WITHDRAWAL_CONFIG.feeRatePct / 100));
     const netPayout = money(Math.max(0, requested - fee));
     const combinedDestination = accountDetails ? `${destination} (${accountDetails})`.slice(0, 200) : destination;
+    if (!isDatabaseConfigured) {
+      try {
+        const result = createMockWithdrawal({
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.name,
+          method,
+          amount: requested,
+          fee,
+          netPayout,
+          destination: combinedDestination,
+          reference: makeReference("WDR"),
+          idempotencyKey: key,
+        });
+        res.status(result.duplicate ? 200 : 201).json(result.response);
+      } catch (error) {
+        const status = Number((error as { statusCode?: number }).statusCode) || 400;
+        res.status(status).json({ error: error instanceof Error ? error.message : "Unable to record withdrawal request.", code: (error as { code?: string }).code });
+      }
+      return;
+    }
     try {
       const result = await withFinancialTransaction(async (client) => {
         await assertAccountAllowed(client, user.id, "withdrawal");
@@ -247,6 +298,28 @@ export function createBetterAuthFinancialRouter(): Router {
     if (!key || key.length < 8) { res.status(400).json({ error: "A valid idempotency key is required." }); return; }
     if (amountBased && (!Number.isFinite(amountInput) || Number(amountInput) <= 0 || Number(amountInput) > 10_000_000)) { res.status(400).json({ error: "Enter a valid investment amount." }); return; }
     if (!amountBased && (!Number.isInteger(units) || units < 1 || units > 1000)) { res.status(400).json({ error: "Units must be a whole number between 1 and 1,000." }); return; }
+
+    if (!isDatabaseConfigured) {
+      try {
+        const result = createMockInvestmentPurchase({
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.name,
+          targetType,
+          targetId,
+          amountInput,
+          units,
+          feeRatePct: INVESTMENT_FEE_PCT,
+          reference: makeReference("INV"),
+          idempotencyKey: key,
+        });
+        res.status(result.duplicate ? 200 : 201).json(result.response);
+      } catch (error) {
+        const status = Number((error as { statusCode?: number }).statusCode) || 400;
+        res.status(status).json({ error: error instanceof Error ? error.message : "Unable to complete investment purchase.", code: (error as { code?: string }).code });
+      }
+      return;
+    }
 
     try {
       const result = await withFinancialTransaction(async (client) => {

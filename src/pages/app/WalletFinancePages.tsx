@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowDownCircle, ArrowUpRight, Wallet } from "lucide-react";
 import MetronicShell from "../../components/MetronicShell";
@@ -18,12 +18,12 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import {
+  DashboardOverviewDTO,
+  DashboardTransactionDTO,
+  fetchDashboardOverview,
   formatTimestamp,
-  submitDepositRequest,
-  submitWithdrawalRequest,
-  subscribeUserTransactions,
-  TransactionRecord,
-} from "../../services/firestoreService";
+  sessionApiRequest,
+} from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 const PAYMENT_RAILS = [
@@ -33,19 +33,36 @@ const PAYMENT_RAILS = [
   "Bank Wire",
 ] as const;
 
+type TransactionRecord = DashboardTransactionDTO;
+
 export function WalletPage() {
-  const { firebaseUser, profile } = useAuth();
+  const { user, profile } = useAuth();
+  const [overview, setOverview] = useState<DashboardOverviewDTO | null>(null);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!firebaseUser) return;
-    return subscribeUserTransactions(firebaseUser.uid, (items) => {
-      setTransactions(items);
+  const loadWallet = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const [ov, txRes] = await Promise.all([
+        fetchDashboardOverview(),
+        sessionApiRequest<{ transactions: TransactionRecord[] }>("/api/transactions"),
+      ]);
+      setOverview(ov);
+      setTransactions(txRes.transactions ?? []);
+    } finally {
       setLoading(false);
-    });
-  }, [firebaseUser]);
+    }
+  }, [user]);
 
+  useEffect(() => {
+    void loadWallet();
+  }, [loadWallet]);
+
+  const availableBalance = overview?.metrics.availableBalance ?? profile?.walletBalance ?? 0;
+  const totalDeposit = overview?.metrics.totalDeposit ?? profile?.totalDeposit ?? 0;
+  const preferredRail = overview?.account.preferredRail || profile?.preferredRail || "USDT (TRC20)";
   const pendingAmount = transactions
     .filter((t) => t.status === "Pending")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -102,7 +119,7 @@ export function WalletPage() {
           <div>
             <p className="text-xs font-medium text-slate-500">Available Balance</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">
-              {formatUsd(profile?.walletBalance ?? 0)}
+              {formatUsd(availableBalance)}
             </p>
           </div>
         </Card>
@@ -114,7 +131,7 @@ export function WalletPage() {
           <div>
             <p className="text-xs font-medium text-slate-500">Cumulative Deposits</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">
-              {formatUsd(profile?.totalDeposit ?? 0)}
+              {formatUsd(totalDeposit)}
             </p>
           </div>
         </Card>
@@ -138,7 +155,7 @@ export function WalletPage() {
           <p className="text-xs text-slate-500 mt-1">
             Configured default rail:{" "}
             <span className="font-semibold text-slate-800">
-              {profile?.preferredRail || "USDT (TRC20)"}
+              {preferredRail}
             </span>
           </p>
         </div>
@@ -178,7 +195,8 @@ export function WalletPage() {
 }
 
 export function DepositPage() {
-  const { firebaseUser, profile } = useAuth();
+  const { user, profile } = useAuth();
+  const [availableBalance, setAvailableBalance] = useState(profile?.walletBalance ?? 0);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<string>(profile?.preferredRail || "USDT (TRC20)");
   const [reference, setReference] = useState("");
@@ -186,9 +204,16 @@ export function DepositPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmationRef, setConfirmationRef] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!user) return;
+    fetchDashboardOverview()
+      .then((ov) => setAvailableBalance(ov.metrics.availableBalance))
+      .catch(() => undefined);
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!user) return;
     setError(null);
     setConfirmationRef(null);
 
@@ -200,14 +225,19 @@ export function DepositPage() {
 
     setSubmitting(true);
     try {
-      const refCode = await submitDepositRequest(
-        firebaseUser.uid,
-        firebaseUser.email || "",
-        parsed,
-        method,
-        reference
+      const res = await sessionApiRequest<{ ok: boolean; deposit: { reference: string } }>(
+        "/api/deposits",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            amount: parsed,
+            method,
+            reference: reference.trim(),
+            idempotencyKey: `dep_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+          }),
+        }
       );
-      setConfirmationRef(refCode);
+      setConfirmationRef(res.deposit?.reference || "DEP-LOGGED");
       setAmount("");
       setReference("");
     } catch (err) {
@@ -305,7 +335,7 @@ export function DepositPage() {
             <div className="flex justify-between">
               <span className="text-slate-500">Current Balance</span>
               <span className="font-mono font-semibold text-slate-900">
-                {formatUsd(profile?.walletBalance ?? 0)}
+                {formatUsd(availableBalance)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -320,7 +350,8 @@ export function DepositPage() {
 }
 
 export function WithdrawalPage() {
-  const { firebaseUser, profile } = useAuth();
+  const { user, profile } = useAuth();
+  const [available, setAvailable] = useState(profile?.walletBalance ?? 0);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<string>(profile?.preferredRail || "USDT (TRC20)");
   const [destination, setDestination] = useState("");
@@ -328,11 +359,16 @@ export function WithdrawalPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmationRef, setConfirmationRef] = useState<string | null>(null);
 
-  const available = profile?.walletBalance ?? 0;
+  useEffect(() => {
+    if (!user) return;
+    fetchDashboardOverview()
+      .then((ov) => setAvailable(ov.metrics.availableBalance))
+      .catch(() => undefined);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!user) return;
     setError(null);
     setConfirmationRef(null);
 
@@ -352,16 +388,23 @@ export function WithdrawalPage() {
 
     setSubmitting(true);
     try {
-      const refCode = await submitWithdrawalRequest(
-        firebaseUser.uid,
-        firebaseUser.email || "",
-        parsed,
-        method,
-        destination
+      const res = await sessionApiRequest<{ ok: boolean; withdrawal: { reference: string } }>(
+        "/api/withdrawals",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            amount: parsed,
+            method,
+            destination: destination.trim(),
+            confirmed: true,
+            idempotencyKey: `wdr_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+          }),
+        }
       );
-      setConfirmationRef(refCode);
+      setConfirmationRef(res.withdrawal?.reference || "WDR-LOGGED");
       setAmount("");
       setDestination("");
+      setAvailable((prev) => Math.max(0, prev - parsed));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit withdrawal request.");
     } finally {

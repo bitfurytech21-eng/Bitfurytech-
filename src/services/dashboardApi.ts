@@ -127,6 +127,75 @@ export interface CustomerDocumentDTO {
   createdAt: string | null;
 }
 
+export interface UserAccount {
+  uid: string;
+  username?: string;
+  email: string;
+  displayName: string;
+  country: string;
+  phone: string;
+  walletBalance: number;
+  totalProfit: number;
+  bonus: number;
+  referralBonus: number;
+  totalDeposit: number;
+  preferredRail: "USDT (TRC20)" | "Bitcoin (BTC)" | "Ethereum (ETH)" | "Bank Wire";
+  emailAlerts: boolean;
+  twoFactorEnabled: boolean;
+  role: "investor" | "admin";
+  accountStatus?: "Active" | "Review" | "Suspended";
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PropertyOffering {
+  id: string;
+  title: string;
+  location: string;
+  assetType: string;
+  targetYieldPct: number;
+  minEntry: number;
+  valuation: number;
+  occupancyPct: number;
+  status: "Open" | "Fully Subscribed";
+  published?: boolean;
+  image: string;
+  summary: string;
+  supportingDocUrl?: string;
+  supportingDocName?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface NotificationMessage {
+  id: string;
+  userId: string;
+  category: "Settlement" | "Mandate" | "Security" | "Broadcast" | string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt?: string | null;
+}
+
+export interface EmailTemplateRecord {
+  eventType: string;
+  subject: string;
+  body: string;
+  enabled: boolean;
+  updatedBy?: string;
+  updatedAt?: string | null;
+}
+
+export interface EmailOutboxRecord {
+  id: string;
+  eventType: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  status: string;
+  createdAt?: string | null;
+}
+
 export async function sessionApiRequest<T>(url: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(url, {
     ...init,
@@ -138,39 +207,14 @@ export async function sessionApiRequest<T>(url: string, init: RequestInit = {}):
       ...(init.headers || {}),
     },
   });
-  const body = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) {
-    throw Object.assign(new Error(body.error || `Request failed (${res.status}).`), body);
-  }
-  return body;
-}
-
-export async function apiRequest<T>(
-  url: string,
-  token: string,
-  init: RequestInit = {}
-): Promise<T> {
-  const res = await fetch(url, {
-    ...init,
-    cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(init.headers || {}),
-    },
-  });
-
   const body = (await res.json().catch(() => ({}))) as T & {
     error?: string;
     code?: string;
     availableBalance?: number;
     requiredAmount?: number;
   };
-
   if (!res.ok) {
-    const err = new Error(
-      body.error || `Request failed (${res.status}).`
-    ) as Error & {
+    const err = new Error(body.error || `Request failed (${res.status}).`) as Error & {
       status?: number;
       code?: string;
       availableBalance?: number;
@@ -182,7 +226,6 @@ export async function apiRequest<T>(
     err.requiredAmount = body.requiredAmount;
     throw err;
   }
-
   return body;
 }
 
@@ -199,4 +242,15 @@ export function formatIsoDate(iso?: string | null): string {
   const parsed = Date.parse(iso);
   if (!Number.isFinite(parsed)) return "Pending";
   return new Date(parsed).toISOString().slice(0, 10);
+}
+
+export function formatTimestamp(ts?: string | Date | null): string {
+  if (!ts) return "Pending";
+  const date = ts instanceof Date ? ts : new Date(ts);
+  if (Number.isNaN(date.getTime())) return "Pending";
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }

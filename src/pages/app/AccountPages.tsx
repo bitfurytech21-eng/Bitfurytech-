@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell, Shield, User } from "lucide-react";
 import MetronicShell from "../../components/MetronicShell";
 import {
@@ -15,23 +15,36 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import {
   formatTimestamp,
-  markNotificationAsRead,
   NotificationMessage,
-  subscribeUserNotifications,
-  updateUserProfileFields,
-} from "../../services/firestoreService";
+  sessionApiRequest,
+  UserAccount,
+} from "../../services/dashboardApi";
 
 export function NotificationsPage() {
-  const { firebaseUser } = useAuth();
+  const { user } = useAuth();
   const [items, setItems] = useState<NotificationMessage[]>([]);
 
+  const loadNotifications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const data = await sessionApiRequest<{ notifications: NotificationMessage[] }>(
+        "/api/notifications"
+      );
+      setItems(data.notifications ?? []);
+    } catch {
+      // ignore transient notification load errors
+    }
+  }, [user]);
+
   useEffect(() => {
-    if (!firebaseUser) return;
-    return subscribeUserNotifications(firebaseUser.uid, setItems);
-  }, [firebaseUser]);
+    void loadNotifications();
+  }, [loadNotifications]);
 
   const handleMarkRead = async (id: string) => {
-    await markNotificationAsRead(id);
+    await sessionApiRequest(`/api/notifications/${encodeURIComponent(id)}/read`, {
+      method: "PATCH",
+    });
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
   return (
@@ -58,7 +71,7 @@ export function NotificationsPage() {
           ) : (
             <div className="divide-y divide-slate-100">
               {items.map((n) => {
-                const isPersonal = n.userId === firebaseUser?.uid;
+                const isPersonal = n.userId === user?.uid;
                 return (
                   <div key={n.id} className="py-4 flex items-start justify-between gap-4">
                     <div className="space-y-1">
@@ -74,7 +87,7 @@ export function NotificationsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleMarkRead(n.id)}
+                        onClick={() => void handleMarkRead(n.id)}
                       >
                         Mark read
                       </Button>
@@ -91,25 +104,35 @@ export function NotificationsPage() {
 }
 
 export function ProfilePage() {
-  const { firebaseUser, profile } = useAuth();
-  const [displayName, setDisplayName] = useState(profile?.displayName || "");
+  const { user, profile } = useAuth();
+  const [displayName, setDisplayName] = useState(profile?.displayName || user?.displayName || "");
   const [country, setCountry] = useState(profile?.country || "");
   const [phone, setPhone] = useState(profile?.phone || "");
+  const [roleLabel, setRoleLabel] = useState(profile?.role || "investor");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (profile) {
-      setDisplayName(profile.displayName || "");
-      setCountry(profile.country || "");
-      setPhone(profile.phone || "");
-    }
-  }, [profile]);
+    if (!user) return;
+    let active = true;
+    sessionApiRequest<{ profile: UserAccount }>("/api/profile")
+      .then((res) => {
+        if (!active || !res.profile) return;
+        setDisplayName(res.profile.displayName || "");
+        setCountry(res.profile.country || "");
+        setPhone(res.profile.phone || "");
+        setRoleLabel(res.profile.role || "investor");
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!user) return;
     setError(null);
     setSaved(false);
 
@@ -120,10 +143,13 @@ export function ProfilePage() {
 
     setSaving(true);
     try {
-      await updateUserProfileFields(firebaseUser.uid, {
-        displayName: displayName.trim().slice(0, 120),
-        country: country.trim().slice(0, 80),
-        phone: phone.trim().slice(0, 40),
+      await sessionApiRequest("/api/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          displayName: displayName.trim().slice(0, 120),
+          country: country.trim().slice(0, 80),
+          phone: phone.trim().slice(0, 40),
+        }),
       });
       setSaved(true);
     } catch (err) {
@@ -144,8 +170,8 @@ export function ProfilePage() {
             <User className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900">{firebaseUser?.email}</p>
-            <p className="text-xs text-slate-500">Account Role: {profile?.role || "investor"}</p>
+            <p className="text-sm font-bold text-slate-900">{user?.email}</p>
+            <p className="text-xs text-slate-500">Account Role: {roleLabel}</p>
           </div>
         </div>
 
@@ -203,7 +229,7 @@ export function ProfilePage() {
 }
 
 export function SettingsPage() {
-  const { firebaseUser, profile } = useAuth();
+  const { user, profile } = useAuth();
   const [preferredRail, setPreferredRail] = useState<
     "USDT (TRC20)" | "Bitcoin (BTC)" | "Ethereum (ETH)" | "Bank Wire"
   >(profile?.preferredRail || "USDT (TRC20)");
@@ -213,23 +239,34 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      setPreferredRail(profile.preferredRail);
-      setEmailAlerts(profile.emailAlerts);
-      setTwoFactorEnabled(profile.twoFactorEnabled);
-    }
-  }, [profile]);
+    if (!user) return;
+    let active = true;
+    sessionApiRequest<{ profile: UserAccount }>("/api/profile")
+      .then((res) => {
+        if (!active || !res.profile) return;
+        setPreferredRail(res.profile.preferredRail || "USDT (TRC20)");
+        setEmailAlerts(res.profile.emailAlerts ?? true);
+        setTwoFactorEnabled(res.profile.twoFactorEnabled ?? false);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!user) return;
     setSaving(true);
     setSaved(false);
     try {
-      await updateUserProfileFields(firebaseUser.uid, {
-        preferredRail,
-        emailAlerts,
-        twoFactorEnabled,
+      await sessionApiRequest("/api/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          preferredRail,
+          emailAlerts,
+          twoFactorEnabled,
+        }),
       });
       setSaved(true);
     } finally {

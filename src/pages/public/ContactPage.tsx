@@ -8,7 +8,6 @@ import {
   TextAreaInput,
   TextInput,
 } from "../../components/ui";
-import { submitContactInquiry } from "../../services/firestoreService";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -28,7 +27,24 @@ export default function ContactPage() {
 
     setSubmitting(true);
     try {
-      await submitContactInquiry(name, email, topic, message);
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          subject: topic,
+          message: message.trim(),
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        inquiryId?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Unable to submit inquiry at this moment.");
+      }
       setStatus({
         ok: true,
         text: "Your inquiry has been logged with the BitfuryTech client relations desk.",

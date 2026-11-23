@@ -14,9 +14,9 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import {
-  apiRequest,
   DashboardTransactionDTO,
   formatIsoDate,
+  sessionApiRequest,
 } from "../../services/dashboardApi";
 
 interface ReferralResponse {
@@ -36,19 +36,18 @@ interface ReferralResponse {
 }
 
 export default function Referrals() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [data, setData] = useState<ReferralResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const loadReferrals = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const payload = await apiRequest<ReferralResponse>("/api/referrals", token);
+      const payload = await sessionApiRequest<ReferralResponse>("/api/referrals");
       setData(payload);
     } catch (err) {
       setError(
@@ -57,7 +56,7 @@ export default function Referrals() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void loadReferrals();
@@ -65,7 +64,7 @@ export default function Referrals() {
 
   const code =
     data?.referralCode ||
-    (firebaseUser ? `BF-${firebaseUser.uid.slice(0, 8).toUpperCase()}` : "BF-PENDING");
+    (user ? `BF-${user.uid.slice(0, 8).toUpperCase()}` : "BF-PENDING");
   const referralLink =
     typeof window !== "undefined"
       ? `${window.location.origin}/register?ref=${code}`

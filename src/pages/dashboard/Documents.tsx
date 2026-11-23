@@ -13,9 +13,9 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import {
-  apiRequest,
   CustomerDocumentDTO,
   formatIsoDate,
+  sessionApiRequest,
 } from "../../services/dashboardApi";
 
 const DOC_TABS: Array<{ id: string; label: string }> = [
@@ -28,7 +28,7 @@ const DOC_TABS: Array<{ id: string; label: string }> = [
 ];
 
 export default function Documents() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [documents, setDocuments] = useState<CustomerDocumentDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,14 +36,12 @@ export default function Documents() {
   const [activeDoc, setActiveDoc] = useState<CustomerDocumentDTO | null>(null);
 
   const loadDocs = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ documents: CustomerDocumentDTO[] }>(
-        "/api/documents",
-        token
+      const res = await sessionApiRequest<{ documents: CustomerDocumentDTO[] }>(
+        "/api/documents"
       );
       setDocuments(res.documents);
     } catch (err) {
@@ -51,7 +49,7 @@ export default function Documents() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void loadDocs();

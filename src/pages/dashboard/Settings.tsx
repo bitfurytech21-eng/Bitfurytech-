@@ -14,13 +14,12 @@ import {
   TextInput,
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
-import { apiRequest } from "../../services/dashboardApi";
+import { sessionApiRequest } from "../../services/dashboardApi";
 
 export default function Settings() {
   const navigate = useNavigate();
   const {
-    firebaseUser,
-    idToken,
+    user,
     profile,
     backendSession,
     hasPasswordProvider,
@@ -58,13 +57,12 @@ export default function Settings() {
 
   const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!user) return;
     setSaving(true);
     setSaved(false);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest("/api/profile", token, {
+      await sessionApiRequest("/api/profile", {
         method: "PATCH",
         body: JSON.stringify({
           preferredRail,
@@ -81,15 +79,15 @@ export default function Settings() {
   };
 
   const handlePasswordReset = useCallback(async () => {
-    if (!firebaseUser?.email) return;
+    if (!user?.email) return;
     setResetBusy(true);
     setError(null);
     setResetSent(null);
     try {
-      const res = await sendPasswordReset(firebaseUser.email);
+      const res = await sendPasswordReset(user.email);
       if (res.ok) {
         setResetSent(
-          `Password recovery instructions sent to ${firebaseUser.email} via Firebase Authentication.`
+          `Password recovery instructions sent to ${user.email}.`
         );
       } else {
         setError(res.error || "Unable to trigger password recovery email.");
@@ -97,7 +95,7 @@ export default function Settings() {
     } finally {
       setResetBusy(false);
     }
-  }, [firebaseUser, sendPasswordReset]);
+  }, [user, sendPasswordReset]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,7 +121,7 @@ export default function Settings() {
       if (res.ok) {
         setPwdSuccess(
           hasPasswordProvider
-            ? "Account password updated in Firebase Authentication."
+            ? "Account password updated."
             : "Password sign-in enabled on your BitfuryTech account."
         );
         setCurrentPassword("");
@@ -304,8 +302,8 @@ export default function Settings() {
 
               <div className="pt-3 border-t border-slate-100 space-y-2.5">
                 <p className="text-slate-600 leading-relaxed">
-                  Or send a Firebase password recovery link to{" "}
-                  <strong className="text-slate-900">{firebaseUser?.email}</strong>.
+                  Or send a password recovery link to{" "}
+                  <strong className="text-slate-900">{user?.email}</strong>.
                 </p>
                 <Button
                   variant="outline"
@@ -325,7 +323,7 @@ export default function Settings() {
             <CardBody className="space-y-3 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-500">Authenticated Identity</span>
-                <span className="font-mono text-slate-800">{firebaseUser?.email}</span>
+                <span className="font-mono text-slate-800">{user?.email}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Session Expiration</span>

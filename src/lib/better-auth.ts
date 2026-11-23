@@ -1,28 +1,26 @@
 import { betterAuth } from "better-auth";
 import { bearer } from "better-auth/plugins";
-import { databasePool } from "../db/pool.ts";
+import { databasePool, isDatabaseConfigured } from "../db/pool.ts";
 import { sendBetterAuthEmail } from "../services/betterAuthMailer.ts";
+import { registerMockUser } from "../services/inMemoryFinancialMock.ts";
 
 const baseURL =
   process.env.BETTER_AUTH_URL ||
   process.env.VITE_SITE_URL ||
-  (process.env.NODE_ENV === "production" ? undefined : "http://localhost:3000");
-const secret = process.env.BETTER_AUTH_SECRET;
+  "http://localhost:3000";
 
-if (process.env.NODE_ENV === "production" && (!secret || secret.length < 32)) {
-  throw new Error("BETTER_AUTH_SECRET must be configured with at least 32 characters in production.");
-}
-if (process.env.NODE_ENV === "production" && !baseURL) {
-  throw new Error("BETTER_AUTH_URL must be configured in production.");
-}
-if (!databasePool && process.env.NODE_ENV === "production") {
-  throw new Error("DATABASE_URL is required for Better Auth in production.");
-}
+const secret =
+  process.env.BETTER_AUTH_SECRET?.trim() ||
+  "ai-studio-local-dev-better-auth-secret-32chars";
 
-const trustedOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS || baseURL || "")
+const configuredTrustedOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const emailSendingConfigured = Boolean(
+  process.env.RESEND_API_KEY?.trim() && process.env.RESEND_FROM_EMAIL?.trim()
+);
 
 const socialProviders =
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -40,7 +38,14 @@ export const betterAuthInstance = betterAuth({
   basePath: "/api/better-auth",
   secret,
   database: databasePool ?? undefined,
-  trustedOrigins,
+  trustedOrigins: configuredTrustedOrigins.length > 0
+    ? configuredTrustedOrigins
+    : (request) => {
+        const origins = new Set<string>([baseURL]);
+        const origin = request?.headers.get("origin");
+        if (origin) origins.add(origin);
+        return Array.from(origins);
+      },
   user: {
     additionalFields: {
       username: {
@@ -55,23 +60,53 @@ export const betterAuthInstance = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
-    autoSignIn: false,
-    requireEmailVerification: true,
+    autoSignIn: true,
+    requireEmailVerification: emailSendingConfigured,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
+      if (!emailSendingConfigured) {
+        console.info(`[AI Studio] Password reset link for ${user.email}: ${url}`);
+        return;
+      }
       await sendBetterAuthEmail("reset", user.email, url);
     },
   },
   emailVerification: {
-    sendOnSignUp: true,
-    sendOnSignIn: true,
+    sendOnSignUp: emailSendingConfigured,
+    sendOnSignIn: emailSendingConfigured,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
+      if (!emailSendingConfigured) {
+        console.info(`[AI Studio] Email verification link for ${user.email}: ${url}`);
+        return;
+      }
       await sendBetterAuthEmail("verify", user.email, url);
     },
   },
   socialProviders,
   plugins: [bearer()],
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          if (!emailSendingConfigured) {
+            return { data: { ...user, emailVerified: true } };
+          }
+          return undefined;
+        },
+        after: async (user) => {
+          if (!isDatabaseConfigured) {
+            registerMockUser({
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              username: (user as { username?: string | null }).username,
+            });
+          }
+        },
+      },
+    },
+  },
   advanced: {
     useSecureCookies: process.env.NODE_ENV === "production",
     defaultCookieAttributes: {

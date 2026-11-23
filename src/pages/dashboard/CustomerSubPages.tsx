@@ -37,11 +37,8 @@ import {
   fetchDashboardInvestments,
   fetchDashboardOverview,
   formatIsoDate,
-} from "../../services/dashboardApi";
-import {
   PropertyOffering,
-  subscribeProperties,
-} from "../../services/firestoreService";
+} from "../../services/dashboardApi";
 import {
   INVESTMENT_MANDATES,
   InvestmentMandate,
@@ -275,11 +272,20 @@ export function DashboardPropertiesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = subscribeProperties((items) => {
-      setProperties(items);
-      setLoading(false);
-    });
-    return () => unsub();
+    let active = true;
+    fetch("/api/properties", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : { properties: [] }))
+      .then((data: { properties?: PropertyOffering[] }) => {
+        if (!active) return;
+        setProperties(Array.isArray(data.properties) ? data.properties : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -385,7 +391,7 @@ export function DashboardPropertiesPage() {
 }
 
 export function ReferralProgramPage() {
-  const { firebaseUser, backendSession, authReady } = useAuth();
+  const { user, backendSession, authReady } = useAuth();
   const [overview, setOverview] = useState<DashboardOverviewDTO | null>(null);
   const [referralTxs, setReferralTxs] = useState<DashboardTransactionDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -418,8 +424,8 @@ export function ReferralProgramPage() {
     void loadReferralLedger();
   }, [loadReferralLedger]);
 
-  const referralCode = firebaseUser
-    ? `BF-${firebaseUser.uid.slice(0, 8).toUpperCase()}`
+  const referralCode = user
+    ? `BF-${user.uid.slice(0, 8).toUpperCase()}`
     : "BF-PENDING";
 
   const referralLink =
@@ -567,7 +573,7 @@ export function ReferralProgramPage() {
 }
 
 export function DocumentsPage() {
-  const { firebaseUser, backendSession, authReady } = useAuth();
+  const { user, backendSession, authReady } = useAuth();
   const [data, setData] = useState<DashboardInvestmentsDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -635,7 +641,7 @@ export function DocumentsPage() {
     if (!data) return;
     const payload = {
       exportedAt: new Date().toISOString(),
-      accountEmail: firebaseUser?.email || "",
+      accountEmail: user?.email || "",
       summary: data.summary,
       investments: data.investments,
       transactions: data.allTransactions,

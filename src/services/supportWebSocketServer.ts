@@ -1,7 +1,8 @@
 import type http from "http";
 import { WebSocket, WebSocketServer } from "ws";
-import { adminAuth } from "../lib/firebase-admin.ts";
-import { verifyAdminAccess } from "../middleware/auth.ts";
+import { fromNodeHeaders } from "better-auth/node";
+import { betterAuthInstance } from "../lib/better-auth.ts";
+import { resolveBetterAuthRole } from "../middleware/betterAuth.ts";
 import {
   appendSupportMessage,
   findThreadById,
@@ -82,7 +83,7 @@ export function attachSupportWebSocketServer(httpServer: http.Server): void {
     }
   });
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", (ws, request) => {
     const session: SocketSession = {
       ws,
       authenticated: false,
@@ -121,26 +122,26 @@ export function attachSupportWebSocketServer(httpServer: http.Server): void {
 
       if (type === "auth") {
         const requestedMode = msg.mode === "admin" ? "admin" : "client";
-        const firebaseToken =
-          typeof msg.firebaseToken === "string" ? msg.firebaseToken.trim() : "";
         const visitorToken =
           typeof msg.visitorToken === "string" ? msg.visitorToken.trim() : "";
         const threadId =
           typeof msg.threadId === "string" ? msg.threadId.trim() : "";
 
-        if (firebaseToken) {
-          try {
-            const decoded = await adminAuth.verifyIdToken(firebaseToken);
+        try {
+          const authSession = await betterAuthInstance.api.getSession({
+            headers: fromNodeHeaders(request.headers),
+          });
+          if (authSession?.user?.id && authSession.user.emailVerified) {
             if (requestedMode === "admin") {
-              const isAdmin = await verifyAdminAccess(decoded, firebaseToken);
-              if (!isAdmin) {
+              const role = await resolveBetterAuthRole(authSession.user.id, authSession.user.email);
+              if (role !== "admin") {
                 safeSend(ws, { type: "error", error: "Admin authorization required." });
                 ws.close(4003, "Forbidden");
                 return;
               }
               session.authenticated = true;
               session.role = "admin";
-              session.userId = decoded.uid;
+              session.userId = authSession.user.id;
               session.displayName = "BitfuryTech Support Desk";
               session.subscribedAdminInbox = true;
               clearTimeout(authTimeout);
@@ -150,23 +151,30 @@ export function attachSupportWebSocketServer(httpServer: http.Server): void {
 
             session.authenticated = true;
             session.role = "client";
-            session.userId = decoded.uid;
+            session.userId = authSession.user.id;
             session.displayName =
-              typeof decoded.name === "string" && decoded.name
-                ? decoded.name
-                : decoded.email || "Investor";
+              typeof authSession.user.name === "string" && authSession.user.name
+                ? authSession.user.name
+                : authSession.user.email || "Investor";
             if (threadId && isValidThreadId(threadId)) {
               const t = findThreadById(threadId);
-              if (t && t.userId === decoded.uid) {
+              if (t && t.userId === authSession.user.id) {
                 session.subscribedThreadIds.add(threadId);
               }
             }
             clearTimeout(authTimeout);
             safeSend(ws, { type: "auth:ok", role: "client" });
             return;
-          } catch {
-            safeSend(ws, { type: "error", error: "Invalid Firebase authentication token." });
-            ws.close(4001, "Invalid token");
+          }
+          if (requestedMode === "admin") {
+            safeSend(ws, { type: "error", error: "Admin authorization required." });
+            ws.close(4003, "Forbidden");
+            return;
+          }
+        } catch {
+          if (requestedMode === "admin") {
+            safeSend(ws, { type: "error", error: "Unable to verify administrator session." });
+            ws.close(4001, "Invalid session");
             return;
           }
         }

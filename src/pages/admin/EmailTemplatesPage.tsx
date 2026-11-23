@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Mail, Save } from "lucide-react";
 import MetronicShell from "../../components/MetronicShell";
 import { Button, Card, FormField, TextAreaInput, TextInput } from "../../components/ui";
@@ -7,10 +7,8 @@ import {
   EmailOutboxRecord,
   EmailTemplateRecord,
   formatTimestamp,
-  saveEmailTemplate,
-  subscribeEmailOutbox,
-  subscribeEmailTemplates,
-} from "../../services/firestoreService";
+  sessionApiRequest,
+} from "../../services/dashboardApi";
 import {
   DEFAULT_MAIL_TEMPLATES,
   renderMailTemplate,
@@ -18,7 +16,7 @@ import {
 } from "../../services/mailTemplates";
 
 export default function EmailTemplatesPage() {
-  const { isAdmin, firebaseUser } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [templates, setTemplates] = useState<EmailTemplateRecord[]>([]);
   const [outbox, setOutbox] = useState<EmailOutboxRecord[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<MailTemplateEvent>(
@@ -33,35 +31,33 @@ export default function EmailTemplatesPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const rulesUnavailable = templatesUnavailable || outboxUnavailable;
 
-  useEffect(() => {
+  const loadMailData = useCallback(async () => {
     if (!isAdmin) return;
-
-    const unsubscribeTemplates = subscribeEmailTemplates(
-      (items) => {
-        setTemplates(items);
-        setTemplatesUnavailable(false);
-      },
-      (error) => {
-        console.error("Email template subscription failed:", error);
-        setTemplatesUnavailable(true);
-      }
-    );
-    const unsubscribeOutbox = subscribeEmailOutbox(
-      (items) => {
-        setOutbox(items);
-        setOutboxUnavailable(false);
-      },
-      (error) => {
-        console.error("Email outbox subscription failed:", error);
-        setOutboxUnavailable(true);
-      }
-    );
-
-    return () => {
-      unsubscribeTemplates();
-      unsubscribeOutbox();
-    };
+    await Promise.all([
+      sessionApiRequest<{ templates: EmailTemplateRecord[] }>("/api/admin/email-templates")
+        .then((res) => {
+          setTemplates(res.templates ?? []);
+          setTemplatesUnavailable(false);
+        })
+        .catch((error) => {
+          console.error("Email template fetch failed:", error);
+          setTemplatesUnavailable(true);
+        }),
+      sessionApiRequest<{ outbox: EmailOutboxRecord[] }>("/api/admin/email-outbox")
+        .then((res) => {
+          setOutbox(res.outbox ?? []);
+          setOutboxUnavailable(false);
+        })
+        .catch((error) => {
+          console.error("Email outbox fetch failed:", error);
+          setOutboxUnavailable(true);
+        }),
+    ]);
   }, [isAdmin]);
+
+  useEffect(() => {
+    void loadMailData();
+  }, [loadMailData]);
 
   if (!isAdmin) {
     return (
@@ -108,16 +104,24 @@ export default function EmailTemplatesPage() {
   };
 
   const handleSave = async () => {
-    if (!definition.editable || !firebaseUser?.uid || !subject.trim() || !body.trim()) return;
+    if (!definition.editable || !user?.uid || !subject.trim() || !body.trim()) return;
     setSaving(true);
     setFeedback(null);
     try {
-      await saveEmailTemplate(selectedEvent, subject, body, enabled, firebaseUser.uid);
-      setFeedback("Template saved to Firestore.");
+      await sessionApiRequest(`/api/admin/email-templates/${encodeURIComponent(selectedEvent)}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          subject: subject.trim(),
+          body: body.trim(),
+          enabled,
+        }),
+      });
+      await loadMailData();
+      setFeedback("Template saved.");
     } catch (error) {
       console.error("Email template save failed:", error);
       setFeedback(
-        "Could not save this template. Publish the mail collection rules from firestore.rules, then try again."
+        "Could not save this template. Check server logs or database configuration, then try again."
       );
     } finally {
       setSaving(false);
@@ -133,9 +137,8 @@ export default function EmailTemplatesPage() {
       <div role="status" className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-950">
         <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
         <p className="text-sm leading-relaxed">
-          Outbound delivery is not configured. Wired events can be queued for a future sender, but
-          this platform will not deliver them. Verification and password-reset emails continue to
-          use Firebase Authentication.
+          Transactional email delivery uses Resend when configured. Wired events can also be queued
+          in the platform outbox. Verification and password-reset emails continue to use Better Auth.
         </p>
       </div>
 
@@ -143,8 +146,8 @@ export default function EmailTemplatesPage() {
         <div role="alert" className="flex items-start gap-3 rounded-md border border-rose-200 bg-rose-50 p-4 text-rose-900">
           <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
           <p className="text-sm leading-relaxed">
-            Firestore mail collections are unavailable. The editor is showing built-in defaults;
-            save and queue operations need the rules in <code>firestore.rules</code> to be published.
+            Email template storage is temporarily unavailable. The editor is showing built-in
+            defaults; verify your server and PostgreSQL configuration, then try again.
           </p>
         </div>
       )}
@@ -191,7 +194,7 @@ export default function EmailTemplatesPage() {
             >
               {definition.triggerStatus === "wired"
                 ? "Event connected"
-                : definition.triggerStatus === "firebase_auth"
+                : definition.triggerStatus === "better_auth"
                   ? "Better Auth managed"
                   : "Workflow not connected"}
             </span>
@@ -247,7 +250,7 @@ export default function EmailTemplatesPage() {
               </Button>
             ) : (
               <p className="text-sm text-slate-600">
-                This message is sent by Firebase Authentication and is not edited here.
+                This message is sent by Better Auth and is not edited here.
               </p>
             )}
           </div>

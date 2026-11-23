@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes";
-import TawkChatWidget from "./components/TawkChatWidget";
+import LiveSupportWidget from "./components/LiveSupportWidget";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -18,7 +18,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <AppRoutes />
-      <TawkChatWidget />
+      <LiveSupportWidget />
     </>
   );
 }

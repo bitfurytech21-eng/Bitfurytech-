@@ -57,7 +57,7 @@ function AdminPortalShell({
 }: Omit<PortalShellProps, "section">) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { firebaseUser, profile, isAdmin, signOutUser } = useAuth();
+  const { user, profile, isAdmin, signOutUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = ADMIN_NAV;
@@ -284,10 +284,10 @@ function AdminPortalShell({
               trigger={
                 <span className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-none bg-[#1B4962] text-white flex items-center justify-center font-bold text-xs">
-                    {(profile?.displayName || firebaseUser?.email || "B")[0].toUpperCase()}
+                    {(profile?.displayName || user?.email || "B")[0].toUpperCase()}
                   </span>
                   <span className="hidden sm:inline max-w-[140px] truncate text-left font-semibold text-[#102030]">
-                    {profile?.displayName || firebaseUser?.displayName || "Account"}
+                    {profile?.displayName || user?.displayName || "Account"}
                   </span>
                 </span>
               }

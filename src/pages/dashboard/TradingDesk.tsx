@@ -1,4 +1,3 @@
-import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
@@ -15,7 +14,7 @@ import {
   SkeletonBlock,
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
-import { apiRequest } from "../../services/dashboardApi";
+import { sessionApiRequest } from "../../services/dashboardApi";
 import {
   INVESTMENT_MANDATES,
   type InvestmentMandate,
@@ -23,7 +22,7 @@ import {
 } from "../../trading/tradingPage";
 
 export default function TradingDesk() {
-  const { firebaseUser, idToken } = useAuth();
+  const { user } = useAuth();
   const [plans, setPlans] = useState<InvestmentMandate[]>(INVESTMENT_MANDATES);
   const [category, setCategory] = useState<"all" | MandateCategory>("all");
   const [selectedId, setSelectedId] = useState<string>(INVESTMENT_MANDATES[0].id);
@@ -34,11 +33,9 @@ export default function TradingDesk() {
     setLoading(true);
     setError(null);
     try {
-      if (firebaseUser) {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const res = await apiRequest<{ plans: InvestmentMandate[] }>(
-          "/api/investments/catalog",
-          token
+      if (user) {
+        const res = await sessionApiRequest<{ plans: InvestmentMandate[] }>(
+          "/api/investments/catalog"
         );
         if (res.plans.length > 0) {
           setPlans(res.plans);
@@ -60,7 +57,7 @@ export default function TradingDesk() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [user]);
 
   useEffect(() => {
     void loadMandates();
@@ -249,8 +246,7 @@ export default function TradingDesk() {
                     <div>
                       <dt className="text-slate-500">Minimum Entry</dt>
                       <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                        <FinancialAmount value={activePlan.minDeposit} />
-                        {<FinancialAmount value={activePlan.minDeposit} size="md" />}
+                        <FinancialAmount value={activePlan.minDeposit} size="md" />
                       </dd>
                     </div>
                     <div>

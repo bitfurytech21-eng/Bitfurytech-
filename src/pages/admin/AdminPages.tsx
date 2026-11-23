@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowDownCircle,
@@ -29,19 +29,15 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import {
-  deletePropertyOffering,
+  DashboardTransactionDTO,
   formatTimestamp,
   PropertyOffering,
-  resolvePendingTransaction,
-  sendPlatformBroadcast,
-  subscribeAllTransactions,
-  subscribeAllUsers,
-  subscribeProperties,
-  TransactionRecord,
-  upsertProperty,
+  sessionApiRequest,
   UserAccount,
-} from "../../services/firestoreService";
+} from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
+
+type TransactionRecord = DashboardTransactionDTO;
 
 function AdminUnauthorizedNotice() {
   return (
@@ -75,13 +71,21 @@ export function AdminOverviewPage() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    const u1 = subscribeAllUsers(setUsers);
-    const u2 = subscribeAllTransactions(setTransactions);
-    const u3 = subscribeProperties(setProperties);
+    let active = true;
+    Promise.all([
+      sessionApiRequest<{ customers: UserAccount[] }>("/api/admin/customers"),
+      sessionApiRequest<{ transactions: TransactionRecord[] }>("/api/admin/transactions"),
+      sessionApiRequest<{ properties: PropertyOffering[] }>("/api/admin/properties"),
+    ])
+      .then(([custRes, txRes, propRes]) => {
+        if (!active) return;
+        setUsers(custRes.customers ?? []);
+        setTransactions(txRes.transactions ?? []);
+        setProperties(propRes.properties ?? []);
+      })
+      .catch(() => undefined);
     return () => {
-      u1();
-      u2();
-      u3();
+      active = false;
     };
   }, [isAdmin]);
 
@@ -187,13 +191,22 @@ export function AdminSettlementQueuePage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadTransactions = useCallback(async () => {
     if (!isAdmin) return;
-    return subscribeAllTransactions((items) => {
-      setTransactions(items);
+    setLoading(true);
+    try {
+      const res = await sessionApiRequest<{ transactions: TransactionRecord[] }>(
+        "/api/admin/transactions"
+      );
+      setTransactions(res.transactions ?? []);
+    } finally {
       setLoading(false);
-    });
+    }
   }, [isAdmin]);
+
+  useEffect(() => {
+    void loadTransactions();
+  }, [loadTransactions]);
 
   if (!isAdmin) return <AdminUnauthorizedNotice />;
 
@@ -201,8 +214,20 @@ export function AdminSettlementQueuePage() {
     setBusyId(tx.id);
     setFeedback(null);
     try {
-      await resolvePendingTransaction(tx, decision);
+      const endpoint =
+        tx.type === "Deposit"
+          ? `/api/admin/deposits/${encodeURIComponent(tx.id)}/resolve`
+          : `/api/admin/withdrawals/${encodeURIComponent(tx.id)}/resolve`;
+      await sessionApiRequest(endpoint, {
+        method: "POST",
+        body: JSON.stringify({
+          decision,
+          evidenceNote: "Reviewed via administrator settlement queue",
+          note: "Reviewed via administrator settlement queue",
+        }),
+      });
       setFeedback(`${tx.type} (${tx.reference}) marked as ${decision}.`);
+      await loadTransactions();
     } finally {
       setBusyId(null);
     }
@@ -331,10 +356,21 @@ export function AdminPropertiesPage() {
   const [deleteTarget, setDeleteTarget] = useState<PropertyOffering | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
+  const loadProperties = useCallback(async () => {
     if (!isAdmin) return;
-    return subscribeProperties(setProperties);
+    try {
+      const res = await sessionApiRequest<{ properties: PropertyOffering[] }>(
+        "/api/admin/properties"
+      );
+      setProperties(res.properties ?? []);
+    } catch {
+      // ignore transient error
+    }
   }, [isAdmin]);
+
+  useEffect(() => {
+    void loadProperties();
+  }, [loadProperties]);
 
   if (!isAdmin) return <AdminUnauthorizedNotice />;
 
@@ -356,7 +392,7 @@ export function AdminPropertiesPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await upsertProperty(editingId, {
+      const payload = {
         title: title.trim(),
         location: location.trim(),
         assetType: assetType.trim(),
@@ -367,8 +403,20 @@ export function AdminPropertiesPage() {
         status,
         image,
         summary: summary.trim(),
-      });
+      };
+      if (editingId) {
+        await sessionApiRequest(`/api/admin/properties/${encodeURIComponent(editingId)}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await sessionApiRequest("/api/admin/properties", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
       resetForm();
+      await loadProperties();
     } finally {
       setSaving(false);
     }
@@ -378,8 +426,11 @@ export function AdminPropertiesPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deletePropertyOffering(deleteTarget.id);
+      await sessionApiRequest(`/api/admin/properties/${encodeURIComponent(deleteTarget.id)}`, {
+        method: "DELETE",
+      });
       setDeleteTarget(null);
+      await loadProperties();
     } finally {
       setDeleting(false);
     }
@@ -612,10 +663,17 @@ export function AdminUsersPage() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    return subscribeAllUsers((items) => {
-      setUsers(items);
-      setLoading(false);
-    });
+    let active = true;
+    sessionApiRequest<{ customers: UserAccount[] }>("/api/admin/customers")
+      .then((res) => {
+        if (active) setUsers(res.customers ?? []);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [isAdmin]);
 
   if (!isAdmin) return <AdminUnauthorizedNotice />;
@@ -702,7 +760,10 @@ export function AdminNotificationsPage() {
     setSending(true);
     setSent(false);
     try {
-      await sendPlatformBroadcast(title, body);
+      await sessionApiRequest("/api/admin/broadcasts", {
+        method: "POST",
+        body: JSON.stringify({ title: title.trim(), body: body.trim() }),
+      });
       setSent(true);
       setTitle("");
       setBody("");
