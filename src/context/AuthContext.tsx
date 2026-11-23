@@ -55,7 +55,7 @@ type SessionResponse = {
   error?: string;
 };
 
-function authError(error: unknown, fallback: string): string {
+function toAuthErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) return error.message;
   if (typeof error === "object" && error !== null && "message" in error) {
     return String((error as { message?: unknown }).message || fallback);
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAuthError(null);
         }
       } catch (error) {
-        if (active) setAuthError(authError(error, "Unable to verify your session."));
+        if (active) setAuthError(toAuthErrorMessage(error, "Unable to verify your session."));
       } finally {
         if (active) setAuthReady(true);
       }
@@ -275,7 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendPasswordReset = useCallback(async (email: string) => {
     try {
-      const result = await betterAuthClient.forgetPassword({
+      const result = await betterAuthClient.requestPasswordReset({
         email: email.trim().toLowerCase(),
         redirectTo: `${window.location.origin}/reset-password`,
       });
@@ -311,7 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthBusy(true);
     setAuthError(null);
     try {
-      const result = await betterAuthClient.signOut();
+      const result = await betterAuthClient.signOut({});
       if (result.error) throw new Error(result.error.message || "Unable to sign out.");
       setBackendSession(null);
       setPendingVerificationEmail(null);
