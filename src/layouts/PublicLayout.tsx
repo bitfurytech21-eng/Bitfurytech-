@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Mail, Menu, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import LiveSupportWidget from "../components/LiveSupportWidget";
 import LanguageTranslateWidget from "../components/LanguageTranslateWidget";
 import { LEADERSHIP_TEAM } from "../data/leadershipTeam";
 
@@ -389,7 +388,6 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
       </footer>
 
       <LanguageTranslateWidget />
-      <LiveSupportWidget />
     </div>
   );
 }
