@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, RefreshCw, Share2 } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -105,7 +106,7 @@ export default function Referrals() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-emerald-700">
-          {formatUsd(tx.amount)}
+          <FinancialAmount value={tx.amount} />
         </span>
       ),
     },
