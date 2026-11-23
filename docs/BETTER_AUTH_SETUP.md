@@ -11,13 +11,13 @@ Add these as server environment variables (not Vite/browser variables):
 - `BETTER_AUTH_URL`: the exact public HTTPS origin of the deployed site.
 - `BETTER_AUTH_TRUSTED_ORIGINS`: comma-separated exact trusted origins; normally the production site origin.
 
-For the existing Zoho Mail setup, configure `SMTP_HOST=smtp.zoho.com`, `SMTP_PORT=587`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM`. Use an app-specific password if the mailbox requires it. Do not commit real values.
+For transactional email, configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in Render. The sender must be a verified domain/address in Resend. See `docs/RESEND_EMAIL_SETUP.md`; do not commit real values.
 
 Optional Google sign-in is enabled only when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are present. The Google OAuth redirect URI must match the Better Auth callback for the deployed origin.
 
 ## Database
 
-Run `npm install` to reconcile the dependency lockfile after the Better Auth and SMTP packages were added. Then run `npm run db:migrate` against Neon before deploying the new auth routes. The current additive schema includes Better Auth's core PostgreSQL tables. Do not run this against production until a Neon backup has been taken.
+Run `npm install` to reconcile the dependency lockfile after the Better Auth dependencies were added. Then run `npm run db:migrate` against Neon before deploying the new auth routes. The current additive schema includes Better Auth's core PostgreSQL tables. Do not run this against production until a Neon backup has been taken.
 
 ## Endpoints
 
@@ -41,4 +41,4 @@ Never use a public signup field, email match, or client-side flag to grant admin
 
 This is the Better Auth backend foundation, not the final Firebase removal. Existing React screens and protected financial APIs still use Firebase tokens and Firestore. Do not disable Firebase or redirect the current login/register screens until the frontend auth provider and all protected API middleware have been migrated and tested. Existing Firebase users also need a controlled account migration or password-reset onboarding; Firebase password hashes must not be copied into Better Auth.
 
-Email verification and password reset callbacks now use SMTP. Until all SMTP settings are present and verified, Better Auth email flows will not deliver messages. Keep the current Firebase sign-in available during this migration stage.
+Email verification and password reset callbacks use Resend. Both `RESEND_API_KEY` and `RESEND_FROM_EMAIL` must be configured in Render, and the sender domain must be verified in Resend. Keep the current Firebase sign-in available during this migration stage.

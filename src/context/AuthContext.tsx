@@ -1,35 +1,8 @@
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
-import {
-  browserLocalPersistence,
-  browserSessionPersistence,
-  createUserWithEmailAndPassword,
-  EmailAuthProvider,
-  fetchSignInMethodsForEmail,
-  linkWithCredential,
-  onIdTokenChanged,
-  reauthenticateWithCredential,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  setPersistence,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updatePassword,
-  updateProfile,
-  User,
-} from "firebase/auth";
-import { auth, googleAuthProvider } from "../lib/firebase";
+import { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import type { User } from "firebase/auth";
+import type { UserAccount } from "../services/firestoreService";
+import { betterAuthClient } from "../lib/better-auth-client";
 import { validateUsername } from "../lib/username";
-import {
-  ensureUserAccount,
-  subscribeUserProfile,
-  UserAccount,
-} from "../services/firestoreService";
 
 export interface BackendSessionProfile {
   uid: string;
@@ -47,12 +20,7 @@ export interface AuthActionResult {
   needsVerification?: boolean;
   error?: string;
 }
-
-export interface AdminVerifyResult {
-  ok: boolean;
-  status: number;
-  error?: string;
-}
+export interface AdminVerifyResult { ok: boolean; status: number; error?: string; }
 
 export interface AuthContextValue {
   firebaseUser: User | null;
@@ -70,21 +38,9 @@ export interface AuthContextValue {
   refreshUserSession: () => Promise<BackendSessionProfile | null>;
   verifyAdminSession: () => Promise<AdminVerifyResult>;
   resendVerificationEmail: () => Promise<void>;
-  signInWithEmail: (
-    identifier: string,
-    password: string,
-    rememberMe: boolean
-  ) => Promise<AuthActionResult>;
-  registerWithEmail: (
-    fullName: string,
-    email: string,
-    password: string,
-    username: string
-  ) => Promise<AuthActionResult>;
-  updateAccountPassword: (
-    newPassword: string,
-    currentPassword?: string
-  ) => Promise<{ ok: boolean; error?: string }>;
+  signInWithEmail: (identifier: string, password: string, rememberMe: boolean) => Promise<AuthActionResult>;
+  registerWithEmail: (fullName: string, email: string, password: string, username: string) => Promise<AuthActionResult>;
+  updateAccountPassword: (newPassword: string, currentPassword?: string) => Promise<{ ok: boolean; error?: string }>;
   sendPasswordReset: (email: string) => Promise<{ ok: boolean; error?: string }>;
   signInWithGoogle: () => Promise<AuthActionResult>;
   signOutUser: () => Promise<void>;
@@ -92,649 +48,292 @@ export interface AuthContextValue {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
-class BackendSessionError extends Error {
-  status: number;
-  constructor(message: string, status: number) {
-    super(message);
-    this.name = "BackendSessionError";
-    this.status = status;
+type SessionResponse = {
+  authenticated?: boolean;
+  user?: { id?: string; name?: string; email?: string | null; emailVerified?: boolean; role?: string; isAdmin?: boolean };
+  session?: { expiresAt?: string | number };
+  error?: string;
+};
+
+function authError(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String((error as { message?: unknown }).message || fallback);
   }
+  return fallback;
 }
 
-function formatFirebaseAuthError(err: unknown, fallback: string): string {
-  const code =
-    typeof err === "object" && err !== null && "code" in err
-      ? String((err as { code?: unknown }).code)
-      : "";
-
-  switch (code) {
-    case "auth/invalid-credential":
-    case "auth/wrong-password":
-    case "auth/user-not-found":
-      return "Invalid username, email address, or password.";
-    case "auth/invalid-email":
-      return "Enter a valid email address.";
-    case "auth/email-already-in-use":
-      return "An account with this email address already exists. Sign in or reset your password.";
-    case "auth/weak-password":
-      return "Password is too weak. Use at least 8 characters including letters and numbers.";
-    case "auth/requires-recent-login":
-      return "For security, confirm your current password or sign in again before updating your password.";
-    case "auth/user-disabled":
-      return "This account has been disabled. Contact BitfuryTech support.";
-    case "auth/too-many-requests":
-      return "Too many login attempts. Wait a moment or reset your password.";
-    case "auth/operation-not-allowed":
-      return "Email/Password authentication is not yet enabled in Firebase Console (Authentication -> Sign-in method). Enable Email/Password in Firebase Console or continue with Google Sign-In.";
-    case "auth/popup-closed-by-user":
-      return "Google sign-in popup was closed before completion.";
-    default:
-      return err instanceof Error ? err.message : fallback;
-  }
-}
-
-async function fetchBackendSession(token: string): Promise<BackendSessionProfile> {
-  const res = await fetch("/api/auth/session", {
+async function readSession(): Promise<BackendSessionProfile | null> {
+  const response = await fetch("/api/account/session", {
     method: "GET",
+    credentials: "include",
     cache: "no-store",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Accept: "application/json" },
   });
-
-  const body = (await res.json().catch(() => ({}))) as Partial<BackendSessionProfile> & {
-    error?: string;
-  };
-
-  if (!res.ok) {
-    throw new BackendSessionError(
-      body.error || `Backend session verification failed (HTTP ${res.status}).`,
-      res.status
-    );
+  if (response.status === 401) return null;
+  const body = (await response.json().catch(() => ({}))) as SessionResponse;
+  if (!response.ok || !body.authenticated || !body.user?.id) {
+    throw new Error(body.error || "Unable to verify your Better Auth session.");
   }
-
-  if (typeof body.uid !== "string" || !body.uid) {
-    throw new BackendSessionError("Invalid backend session response.", 401);
-  }
-
+  const expiry = body.session?.expiresAt;
   return {
-    uid: body.uid,
-    email: body.email ?? null,
-    emailVerified: Boolean(body.emailVerified),
-    role: body.role === "admin" && body.isAdmin === true ? "admin" : "investor",
-    isAdmin: Boolean(body.isAdmin) && body.role === "admin" && Boolean(body.emailVerified),
-    authTime: body.authTime,
-    expiresAt: body.expiresAt,
+    uid: body.user.id,
+    email: body.user.email ?? null,
+    emailVerified: Boolean(body.user.emailVerified),
+    role: body.user.role === "admin" && body.user.isAdmin ? "admin" : "investor",
+    isAdmin: Boolean(body.user.isAdmin && body.user.role === "admin" && body.user.emailVerified),
+    expiresAt: expiry ? (typeof expiry === "number" ? expiry : Math.floor(Date.parse(expiry) / 1000)) : undefined,
   };
+}
+
+function asCompatUser(session: BackendSessionProfile | null): User | null {
+  if (!session) return null;
+  // Compatibility shape for existing presentation components while Better Auth owns the real session.
+  return {
+    uid: session.uid,
+    email: session.email,
+    emailVerified: session.emailVerified,
+    displayName: null,
+    providerData: [],
+  } as unknown as User;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
-  const [idToken, setIdToken] = useState<string | null>(null);
-  const [profile, setProfile] = useState<UserAccount | null>(null);
   const [backendSession, setBackendSession] = useState<BackendSessionProfile | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [syncNonce, setSyncNonce] = useState(0);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
-  const resetLocalSessionState = useCallback((errorMsg: string | null = null) => {
-    setFirebaseUser(null);
-    setIdToken(null);
-    setProfile(null);
-    setBackendSession(null);
-    setAuthError(errorMsg);
-  }, []);
-
-  useEffect(() => {
-    let unsubProfile: (() => void) | undefined;
-    let cancelled = false;
-
-    const unsubToken = onIdTokenChanged(auth, async (user) => {
-      if (unsubProfile) {
-        unsubProfile();
-        unsubProfile = undefined;
-      }
-
-      if (cancelled) return;
-
-      if (!user) {
-        setFirebaseUser(null);
-        setIdToken(null);
-        setProfile(null);
-        setBackendSession(null);
-        setAuthReady(true);
-        return;
-      }
-
-      setFirebaseUser(user);
-      setAuthError(null);
-
-      try {
-        let token = await user.getIdToken();
-        if (cancelled) return;
-
-        let session: BackendSessionProfile;
-        try {
-          session = await fetchBackendSession(token);
-        } catch (err) {
-          if (err instanceof BackendSessionError && err.status === 401) {
-            // Attempt one forced token refresh in case the cached token just expired
-            token = await user.getIdToken(true);
-            if (cancelled) return;
-            session = await fetchBackendSession(token);
-          } else {
-            throw err;
-          }
-        }
-
-        if (cancelled) return;
-        setIdToken(token);
-        setBackendSession(session);
-
-        if (!user.emailVerified) {
-          setProfile(null);
-          setAuthReady(true);
-          return;
-        }
-
-        try {
-          await ensureUserAccount(
-            user.uid,
-            user.email || "",
-            user.displayName || "BitfuryTech Investor"
-          );
-          if (cancelled) return;
-
-          unsubProfile = subscribeUserProfile(
-            user.uid,
-            (account) => {
-              setProfile(account);
-              setAuthError(null);
-              setAuthReady(true);
-            },
-            (error) => {
-              console.error("Firestore user profile subscription failed:", error);
-              setProfile(null);
-              setAuthError(
-                "You are signed in, but your account profile could not be loaded from Firestore. Check the database rules and try again."
-              );
-              setAuthReady(true);
-            }
-          );
-        } catch (error) {
-          console.error("Firestore user profile initialization failed:", error);
-          if (cancelled) return;
-          setProfile(null);
-          setAuthError(
-            "You are signed in, but your account profile could not be initialized in Firestore. Check the database rules and try again."
-          );
-          setAuthReady(true);
-        }
-      } catch (err) {
-        console.error("Auth token/session verification error:", err);
-        if (cancelled) return;
-
-        if (
-          err instanceof BackendSessionError &&
-          (err.status === 401 || err.status === 403)
-        ) {
-          await signOut(auth).catch(() => undefined);
-          resetLocalSessionState("Your session token was rejected or expired. Please sign in again.");
-        } else {
-          setIdToken(null);
-          setBackendSession(null);
-          setProfile(null);
-          setAuthError(
-            err instanceof Error
-              ? err.message
-              : "Unable to verify your session with the server."
-          );
-        }
-        setAuthReady(true);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      unsubToken();
-      if (unsubProfile) unsubProfile();
-    };
-  }, [resetLocalSessionState, syncNonce]);
-
-  const clearAuthError = useCallback(() => {
-    setAuthError(null);
-  }, []);
-
-  const retryAuthSync = useCallback(async () => {
-    setAuthError(null);
-    setAuthReady(false);
-    setSyncNonce((n) => n + 1);
-  }, []);
-
-  const refreshUserSession = useCallback(async () => {
-    const current = auth.currentUser;
-    if (!current) return null;
-    await current.reload();
-    const token = await current.getIdToken(true);
-    const session = await fetchBackendSession(token);
-    setIdToken(token);
+  const syncSession = useCallback(async () => {
+    const session = await readSession();
     setBackendSession(session);
-    setSyncNonce((n) => n + 1);
     return session;
   }, []);
 
-  const verifyAdminSession = useCallback(async (): Promise<AdminVerifyResult> => {
-    const current = auth.currentUser;
-    if (!current) {
-      return { ok: false, status: 401, error: "Authentication required." };
-    }
-
-    try {
-      const token = await current.getIdToken();
-      const res = await fetch("/api/auth/admin-check", {
-        method: "GET",
-        cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 401) {
-        await signOut(auth).catch(() => undefined);
-        resetLocalSessionState("Session token invalid or expired. Please sign in again.");
-        return { ok: false, status: 401, error: "Invalid or expired token." };
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const session = await readSession();
+        if (active) {
+          setBackendSession(session);
+          setAuthError(null);
+        }
+      } catch (error) {
+        if (active) setAuthError(authError(error, "Unable to verify your session."));
+      } finally {
+        if (active) setAuthReady(true);
       }
-
-      if (!res.ok) {
-        setBackendSession((prev) =>
-          prev ? { ...prev, isAdmin: false, role: "investor" } : prev
-        );
-        return { ok: false, status: res.status, error: "Administrator authorization required." };
-      }
-
-      return { ok: true, status: 200 };
-    } catch (err) {
-      return {
-        ok: false,
-        status: 503,
-        error: err instanceof Error ? err.message : "Unable to verify administrator privileges.",
-      };
-    }
-  }, [resetLocalSessionState]);
-
-  const resendVerificationEmail = useCallback(async () => {
-    const current = auth.currentUser;
-    if (!current) {
-      throw new Error("No active user session to verify.");
-    }
-    await sendEmailVerification(current);
+    };
+    void load();
+    const onFocus = () => { void load(); };
+    window.addEventListener("focus", onFocus);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
-  const signInWithEmail = useCallback(
-    async (
-      identifier: string,
-      password: string,
-      rememberMe: boolean
-    ): Promise<AuthActionResult> => {
-      setAuthError(null);
-      setAuthBusy(true);
-      try {
-        const cleanIdentifier = identifier.trim();
-        let loginEmail = cleanIdentifier;
+  const clearAuthError = useCallback(() => setAuthError(null), []);
+  const retryAuthSync = useCallback(async () => {
+    setAuthReady(false);
+    setAuthError(null);
+    try { await syncSession(); }
+    catch (error) { setAuthError(authError(error, "Unable to verify your session.")); }
+    finally { setAuthReady(true); }
+  }, [syncSession]);
 
-        if (!cleanIdentifier.includes("@")) {
-          const check = validateUsername(cleanIdentifier);
-          if (!check.valid) {
-            const invalidMsg = check.error || "Enter a valid username or email address.";
-            setAuthError(invalidMsg);
-            return { ok: false, error: invalidMsg };
-          }
+  const refreshUserSession = useCallback(async () => {
+    const session = await syncSession();
+    setAuthReady(true);
+    return session;
+  }, [syncSession]);
 
-          const resolveRes = await fetch("/api/auth/username-signin", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              username: check.normalized,
-              password,
-            }),
-          });
-          const resolveBody = (await resolveRes.json().catch(() => ({}))) as {
-            ok?: boolean;
-            email?: string;
-            error?: string;
-          };
-          if (!resolveRes.ok || !resolveBody.email) {
-            const msg = resolveBody.error || "Invalid username or password.";
-            setAuthError(msg);
-            return { ok: false, error: msg };
-          }
-          loginEmail = resolveBody.email;
-        }
+  const verifyAdminSession = useCallback(async (): Promise<AdminVerifyResult> => {
+    try {
+      const response = await fetch("/api/auth/better-admin-check", {
+        method: "GET", credentials: "include", cache: "no-store",
+      });
+      if (response.status === 401) return { ok: false, status: 401, error: "Authentication required." };
+      if (!response.ok) return { ok: false, status: response.status, error: "Administrator authorization required." };
+      return { ok: true, status: 200 };
+    } catch (error) {
+      return { ok: false, status: 503, error: authError(error, "Unable to verify administrator access.") };
+    }
+  }, []);
 
-        await setPersistence(
-          auth,
-          rememberMe ? browserLocalPersistence : browserSessionPersistence
-        );
-        const cred = await signInWithEmailAndPassword(auth, loginEmail, password);
-        const token = await cred.user.getIdToken(true);
-        const session = await fetchBackendSession(token);
+  const resendVerificationEmail = useCallback(async () => {
+    const email = pendingVerificationEmail || backendSession?.email;
+    if (!email) throw new Error("Enter your registered email address to resend verification.");
+    const result = await betterAuthClient.sendVerificationEmail({
+      email,
+      callbackURL: window.location.origin,
+    });
+    if (result.error) throw new Error(result.error.message || "Unable to send verification email.");
+  }, [backendSession?.email, pendingVerificationEmail]);
 
-        setIdToken(token);
-        setBackendSession(session);
-
-        if (!cred.user.emailVerified) {
-          return {
-            ok: true,
-            session,
-            needsVerification: true,
-          };
-        }
-
-        try {
-          await ensureUserAccount(
-            cred.user.uid,
-            cred.user.email || "",
-            cred.user.displayName || "BitfuryTech Investor"
-          );
-        } catch (error) {
-          console.error("Firestore profile initialization failed after sign-in:", error);
-          setAuthError(
-            "You are signed in, but your account profile could not be initialized in Firestore. Check the database rules and try again."
-          );
-        }
-
-        return { ok: true, session, needsVerification: false };
-      } catch (err) {
-        if (err instanceof BackendSessionError && (err.status === 401 || err.status === 403)) {
-          await signOut(auth).catch(() => undefined);
-          resetLocalSessionState(err.message);
-        }
-        const msg = formatFirebaseAuthError(err, "Sign-in failed. Verify your credentials.");
-        setAuthError(msg);
-        return { ok: false, error: msg };
-      } finally {
-        setAuthBusy(false);
-      }
-    },
-    [resetLocalSessionState]
-  );
-
-  const registerWithEmail = useCallback(
-    async (
-      fullName: string,
-      email: string,
-      password: string,
-      username: string
-    ): Promise<AuthActionResult> => {
-      setAuthError(null);
-      setAuthBusy(true);
-      try {
-        const cleanEmail = email.trim().toLowerCase();
-        const cleanName = fullName.trim().slice(0, 120);
-        const usernameCheck = validateUsername(username);
-        if (!usernameCheck.valid) {
-          const errMsg = usernameCheck.error || "Enter a valid username.";
-          setAuthError(errMsg);
-          return { ok: false, error: errMsg };
-        }
-        const cleanUsername = usernameCheck.normalized;
-
-        const availRes = await fetch("/api/auth/check-username", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: cleanUsername }),
-        });
-        const availBody = (await availRes.json().catch(() => ({}))) as {
-          available?: boolean | null;
-          error?: string;
-        };
-        if (availRes.status === 503 || availBody.available === false) {
-          const msg =
-            availBody.error ||
-            "This username is already taken. Please choose another username.";
-          setAuthError(msg);
-          return { ok: false, error: msg };
-        }
-
-        const methods = await fetchSignInMethodsForEmail(auth, cleanEmail).catch(
-          () => [] as string[]
-        );
-        if (methods.length > 0) {
-          const dupMsg =
-            "An account with this email address already exists. Sign in or reset your password.";
-          setAuthError(dupMsg);
-          return { ok: false, error: dupMsg };
-        }
-
-        const cred = await createUserWithEmailAndPassword(
-          auth,
-          cleanEmail,
-          password
-        );
-        await updateProfile(cred.user, { displayName: cleanName });
-
-        const token = await cred.user.getIdToken(true);
-        const claimRes = await fetch("/api/auth/claim-username", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ username: cleanUsername }),
-        });
-        const claimBody = (await claimRes.json().catch(() => ({}))) as {
-          ok?: boolean;
-          error?: string;
-        };
-        if (claimRes.status === 409) {
-          await cred.user.delete().catch(() => undefined);
-          const dupUserMsg =
-            claimBody.error || "This username was just claimed. Please choose another.";
-          setAuthError(dupUserMsg);
-          return { ok: false, error: dupUserMsg };
-        }
-
-        await sendEmailVerification(cred.user);
-        void fetch("/api/auth/registration-notice", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch((error) => {
-          console.warn("Registration mail event could not be queued:", error);
-        });
-
-        const session = await fetchBackendSession(token);
-        setIdToken(token);
-        setBackendSession(session);
-
-        if (cred.user.emailVerified) {
-          await ensureUserAccount(
-            cred.user.uid,
-            cred.user.email || cleanEmail,
-            cleanName,
-            cleanUsername
-          );
-        }
-
-        return {
-          ok: true,
-          session,
-          needsVerification: !cred.user.emailVerified,
-        };
-      } catch (err) {
-        if (err instanceof BackendSessionError && (err.status === 401 || err.status === 403)) {
-          await signOut(auth).catch(() => undefined);
-          resetLocalSessionState(err.message);
-        }
-        const msg = formatFirebaseAuthError(
-          err,
-          "Registration failed. Please check your details and try again."
-        );
-        setAuthError(msg);
-        return { ok: false, error: msg };
-      } finally {
-        setAuthBusy(false);
-      }
-    },
-    [resetLocalSessionState]
-  );
-
-  const updateAccountPassword = useCallback(
-    async (
-      newPassword: string,
-      currentPassword?: string
-    ): Promise<{ ok: boolean; error?: string }> => {
-      const current = auth.currentUser;
-      if (!current || !current.email) {
-        return { ok: false, error: "Authenticated email session required." };
-      }
-      if (newPassword.length < 8) {
-        return { ok: false, error: "New password must be at least 8 characters long." };
-      }
-
-      try {
-        const hasPwd = current.providerData.some((p) => p.providerId === "password");
-        if (hasPwd) {
-          if (!currentPassword) {
-            return { ok: false, error: "Enter your current password to confirm this change." };
-          }
-          const credential = EmailAuthProvider.credential(current.email, currentPassword);
-          await reauthenticateWithCredential(current, credential);
-          await updatePassword(current, newPassword);
-        } else {
-          const credential = EmailAuthProvider.credential(current.email, newPassword);
-          await linkWithCredential(current, credential);
-        }
-        await current.reload();
-        setSyncNonce((n) => n + 1);
-        return { ok: true };
-      } catch (err) {
-        return {
-          ok: false,
-          error: formatFirebaseAuthError(
-            err,
-            "Unable to update account password. Verify your current password."
-          ),
-        };
-      }
-    },
-    []
-  );
-
-  const sendPasswordReset = useCallback(async (email: string) => {
+  const signInWithEmail = useCallback(async (
+    identifier: string, password: string, rememberMe: boolean
+  ): Promise<AuthActionResult> => {
+    setAuthBusy(true);
     setAuthError(null);
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      let email = identifier.trim().toLowerCase();
+      if (!email.includes("@")) {
+        const check = validateUsername(email);
+        if (!check.valid) throw new Error(check.error || "Enter a valid username or email.");
+        const response = await fetch("/api/auth/username-email", {
+          method: "POST", credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: check.normalized }),
+        });
+        const body = await response.json().catch(() => ({})) as { email?: string; error?: string };
+        if (!response.ok || !body.email) throw new Error(body.error || "Invalid username or password.");
+        email = body.email;
+      }
+      const result = await betterAuthClient.signIn.email({ email, password, rememberMe });
+      if (result.error) throw new Error(result.error.message || "Sign-in failed.");
+      const session = await syncSession();
+      if (!session) throw new Error("Your credentials were accepted but the session could not be verified.");
+      return { ok: true, session, needsVerification: !session.emailVerified };
+    } catch (error) {
+      const message = authError(error, "Sign-in failed. Verify your credentials.");
+      setAuthError(message);
+      return { ok: false, error: message };
+    } finally {
+      setAuthBusy(false);
+    }
+  }, [syncSession]);
+
+  const registerWithEmail = useCallback(async (
+    fullName: string, email: string, password: string, username: string
+  ): Promise<AuthActionResult> => {
+    setAuthBusy(true);
+    setAuthError(null);
+    try {
+      const check = validateUsername(username);
+      if (!check.valid) throw new Error(check.error || "Enter a valid username.");
+      const availability = await fetch("/api/auth/check-username", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: check.normalized }),
+      });
+      const availabilityBody = await availability.json().catch(() => ({})) as { available?: boolean; error?: string };
+      if (!availability.ok || availabilityBody.available !== true) {
+        throw new Error(availabilityBody.error || "This username is already taken.");
+      }
+      const result = await betterAuthClient.signUp.email({
+        name: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        username: check.normalized,
+      } as Parameters<typeof betterAuthClient.signUp.email>[0]);
+      if (result.error) throw new Error(result.error.message || "Registration failed.");
+      setPendingVerificationEmail(email.trim().toLowerCase());
+      const session = await syncSession();
+      return { ok: true, session: session ?? undefined, needsVerification: !session?.emailVerified };
+    } catch (error) {
+      const message = authError(error, "Registration failed. Please check your details.");
+      setAuthError(message);
+      return { ok: false, error: message };
+    } finally {
+      setAuthBusy(false);
+    }
+  }, [syncSession]);
+
+  const updateAccountPassword = useCallback(async (
+    newPassword: string, currentPassword?: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      if (!currentPassword) return { ok: false, error: "Enter your current password to confirm this change." };
+      const result = await betterAuthClient.changePassword({
+        currentPassword, newPassword, revokeOtherSessions: true,
+      });
+      if (result.error) throw new Error(result.error.message || "Unable to update password.");
       return { ok: true };
-    } catch (err) {
-      const msg = formatFirebaseAuthError(
-        err,
-        "Unable to send password reset email. Verify the email address."
-      );
-      return { ok: false, error: msg };
+    } catch (error) {
+      return { ok: false, error: authError(error, "Unable to update account password.") };
+    }
+  }, []);
+
+  const sendPasswordReset = useCallback(async (email: string) => {
+    try {
+      const result = await betterAuthClient.forgetPassword({
+        email: email.trim().toLowerCase(),
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (result.error) throw new Error(result.error.message || "Unable to send password reset email.");
+      return { ok: true };
+    } catch (error) {
+      const message = authError(error, "Unable to send password recovery email.");
+      setAuthError(message);
+      return { ok: false, error: message };
     }
   }, []);
 
   const signInWithGoogle = useCallback(async (): Promise<AuthActionResult> => {
-    setAuthError(null);
     setAuthBusy(true);
+    setAuthError(null);
     try {
-      await setPersistence(auth, browserLocalPersistence);
-      const cred = await signInWithPopup(auth, googleAuthProvider);
-      const token = await cred.user.getIdToken(true);
-      const session = await fetchBackendSession(token);
-
-      setIdToken(token);
-      setBackendSession(session);
-
-      if (cred.user.emailVerified) {
-        try {
-          await ensureUserAccount(
-            cred.user.uid,
-            cred.user.email || "",
-            cred.user.displayName || "BitfuryTech Investor"
-          );
-        } catch (error) {
-          console.error("Firestore profile initialization failed after Google sign-in:", error);
-          setAuthError(
-            "You are signed in, but your account profile could not be initialized in Firestore. Check the database rules and try again."
-          );
-        }
-      }
-
-      return { ok: true, session, needsVerification: !cred.user.emailVerified };
-    } catch (err) {
-      if (err instanceof BackendSessionError && (err.status === 401 || err.status === 403)) {
-        await signOut(auth).catch(() => undefined);
-        resetLocalSessionState(err.message);
-      }
-      const msg = formatFirebaseAuthError(err, "Google authentication cancelled or failed.");
-      setAuthError(msg);
-      return { ok: false, error: msg };
+      const result = await betterAuthClient.signIn.social({
+        provider: "google",
+        callbackURL: `${window.location.origin}/dashboard`,
+      });
+      if (result.error) throw new Error(result.error.message || "Google sign-in failed.");
+      return { ok: true };
+    } catch (error) {
+      const message = authError(error, "Google authentication failed.");
+      setAuthError(message);
+      return { ok: false, error: message };
     } finally {
       setAuthBusy(false);
     }
-  }, [resetLocalSessionState]);
+  }, []);
 
   const signOutUser = useCallback(async () => {
-    setAuthError(null);
     setAuthBusy(true);
+    setAuthError(null);
     try {
-      await fetch("/api/auth/logout", { method: "POST", cache: "no-store" }).catch(
-        () => undefined
-      );
-      await signOut(auth);
-      try {
-        window.sessionStorage.clear();
-      } catch {
-        // Ignore storage errors in restricted contexts
-      }
-      resetLocalSessionState(null);
+      const result = await betterAuthClient.signOut();
+      if (result.error) throw new Error(result.error.message || "Unable to sign out.");
+      setBackendSession(null);
+      setPendingVerificationEmail(null);
+    } catch (error) {
+      setAuthError(authError(error, "Unable to sign out."));
+      throw error;
     } finally {
       setAuthBusy(false);
     }
-  }, [resetLocalSessionState]);
+  }, []);
 
-  // Role authorization is derived strictly from the server-verified backendSession.
-  const isAdmin = Boolean(
-    firebaseUser &&
-      backendSession &&
-      backendSession.emailVerified &&
-      backendSession.isAdmin === true &&
-      backendSession.role === "admin"
-  );
-
-  const hasPasswordProvider = Boolean(
-    firebaseUser?.providerData.some((p) => p.providerId === "password")
-  );
-  const needsEmailVerification = Boolean(firebaseUser && !firebaseUser.emailVerified);
+  const firebaseUser = useMemo(() => asCompatUser(backendSession), [backendSession]);
+  const isAdmin = Boolean(backendSession?.isAdmin && backendSession.emailVerified);
+  const needsEmailVerification = Boolean(firebaseUser && !backendSession?.emailVerified);
 
   return (
-    <AuthContext.Provider
-      value={{
-        firebaseUser,
-        idToken,
-        profile,
-        backendSession,
-        authReady,
-        authBusy,
-        isAdmin,
-        hasPasswordProvider,
-        needsEmailVerification,
-        authError,
-        clearAuthError,
-        retryAuthSync,
-        refreshUserSession,
-        verifyAdminSession,
-        resendVerificationEmail,
-        signInWithEmail,
-        registerWithEmail,
-        updateAccountPassword,
-        sendPasswordReset,
-        signInWithGoogle,
-        signOutUser,
-      }}
-    >
+    <AuthContext.Provider value={{
+      firebaseUser,
+      idToken: null,
+      profile: null,
+      backendSession,
+      authReady,
+      authBusy,
+      isAdmin,
+      hasPasswordProvider: Boolean(firebaseUser),
+      needsEmailVerification,
+      authError,
+      clearAuthError,
+      retryAuthSync,
+      refreshUserSession,
+      verifyAdminSession,
+      resendVerificationEmail,
+      signInWithEmail,
+      registerWithEmail,
+      updateAccountPassword,
+      sendPasswordReset,
+      signInWithGoogle,
+      signOutUser,
+    }}>
       {children}
     </AuthContext.Provider>
   );

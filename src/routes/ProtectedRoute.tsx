@@ -118,7 +118,6 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const {
     firebaseUser,
-    idToken,
     backendSession,
     authReady,
     isAdmin,
@@ -138,7 +137,7 @@ export default function ProtectedRoute({
       return;
     }
 
-    if (!firebaseUser || !idToken || !backendSession) {
+    if (!firebaseUser || !backendSession) {
       setAdminGate("unauthenticated");
       return;
     }
@@ -165,7 +164,7 @@ export default function ProtectedRoute({
     return () => {
       cancelled = true;
     };
-  }, [authReady, backendSession, firebaseUser, idToken, isAdmin, location.pathname, mode, verifyAdminSession]);
+  }, [authReady, backendSession, firebaseUser, isAdmin, location.pathname, mode, verifyAdminSession]);
 
   if (!authReady) {
     return (
@@ -180,7 +179,7 @@ export default function ProtectedRoute({
   }
 
   if (mode === "guestOnly") {
-    if (firebaseUser && backendSession && idToken && firebaseUser.emailVerified) {
+    if (firebaseUser && backendSession && firebaseUser.emailVerified) {
       const requestedFrom = (location.state as { from?: { pathname?: string } } | null)?.from
         ?.pathname;
       const target =
@@ -202,7 +201,7 @@ export default function ProtectedRoute({
     return <EmailVerificationGate />;
   }
 
-  if (!backendSession || !idToken) {
+  if (!backendSession) {
     if (authError) {
       return <RouteErrorState message={authError} onRetry={retryAuthSync} />;
     }

@@ -1,5 +1,6 @@
 import express from "express";
 import http from "http";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -115,6 +116,80 @@ app.get("/api/auth/better-admin-check", requireBetterAuth, requireBetterAdmin, (
     role: "admin",
   });
 });
+
+// Resend webhook receiver. Keep this raw-body route before express.json() for signature verification.
+app.post(
+  "/api/webhooks/resend",
+  express.raw({ type: "application/json", limit: "1mb" }),
+  async (req, res) => {
+    const secret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!secret) {
+      res.status(503).json({ ok: false, error: "Webhook receiver is not configured." });
+      return;
+    }
+    const webhookId = req.header("svix-id");
+    const timestamp = req.header("svix-timestamp");
+    const signatures = req.header("svix-signature");
+    if (!webhookId || !timestamp || !signatures || !Buffer.isBuffer(req.body)) {
+      res.status(400).json({ ok: false, error: "Missing webhook signature headers or raw body." });
+      return;
+    }
+    const timestampSeconds = Number(timestamp);
+    if (!Number.isFinite(timestampSeconds) || Math.abs(Date.now() / 1000 - timestampSeconds) > 5 * 60) {
+      res.status(400).json({ ok: false, error: "Webhook timestamp is outside the allowed window." });
+      return;
+    }
+    const encodedSecret = secret.startsWith("whsec_") ? secret.slice(6) : secret;
+    const signingKey = Buffer.from(encodedSecret, "base64");
+    if (signingKey.length === 0) {
+      res.status(503).json({ ok: false, error: "Webhook signing secret is invalid." });
+      return;
+    }
+    const signedContent = `${webhookId}.${timestamp}.${req.body.toString("utf8")}`;
+    const expected = createHmac("sha256", signingKey).update(signedContent).digest();
+    const validSignature = signatures.split(" ").some((part) => {
+      const [version, value] = part.split(",", 2);
+      if (version !== "v1" || !value) return false;
+      const supplied = Buffer.from(value, "base64");
+      return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+    });
+    if (!validSignature) {
+      res.status(401).json({ ok: false, error: "Invalid webhook signature." });
+      return;
+    }
+    let event: { type?: unknown; data?: Record<string, unknown> };
+    try {
+      event = JSON.parse(req.body.toString("utf8")) as typeof event;
+    } catch {
+      res.status(400).json({ ok: false, error: "Invalid webhook JSON." });
+      return;
+    }
+    if (typeof event.type !== "string" || !event.type.startsWith("email.")) {
+      res.status(400).json({ ok: false, error: "Unsupported webhook event type." });
+      return;
+    }
+    const data = event.data ?? {};
+    const emailId = typeof data.email_id === "string" ? data.email_id : typeof data.id === "string" ? data.id : null;
+    const rawTo = data.to;
+    const recipient = typeof rawTo === "string"
+      ? rawTo
+      : Array.isArray(rawTo) ? rawTo.filter((value): value is string => typeof value === "string").join(",")
+      : null;
+    try {
+      const saved = await queryDatabase(
+        `INSERT INTO email_webhook_events (event_id, event_type, email_id, recipient, payload)
+         VALUES ($1, $2, $3, $4, $5::jsonb)
+         ON CONFLICT (event_id) DO NOTHING
+         RETURNING event_id`,
+        [webhookId, event.type, emailId, recipient, req.body.toString("utf8")]
+      );
+      res.status(200).json({ ok: true, received: true, duplicate: saved.rowCount === 0 });
+    } catch (error) {
+      console.error("Resend webhook persistence failed:", error);
+      res.status(500).json({ ok: false, error: "Unable to persist webhook event." });
+    }
+  }
+);
 
 app.use(express.json({ limit: "6mb" }));
 
@@ -411,14 +486,14 @@ app.post("/api/auth/registration-notice", requireAuth, async (req: AuthRequest, 
         firstName: String(req.user.name || req.user.email.split("@")[0]).split(" ")[0],
       },
     });
-    res.status(202).json({ ok: true, queued, deliveryStatus: queued ? "awaiting_provider" : "disabled" });
+    res.status(queued ? 200 : 202).json({ ok: true, sent: queued, deliveryStatus: queued ? "accepted_by_resend" : "disabled" });
   } catch (error) {
     console.error("Registration mail event could not be queued:", error);
-    res.status(202).json({ ok: true, queued: false, deliveryStatus: "awaiting_provider" });
+    res.status(502).json({ ok: false, sent: false, deliveryStatus: "failed" });
   }
 });
 
-// Check whether a normalized username handle is available in Firestore
+// Username availability and lookup are backed by Neon, the active Better Auth identity store.
 app.post("/api/auth/check-username", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   const rawUsername = typeof req.body?.username === "string" ? req.body.username : "";
@@ -427,44 +502,44 @@ app.post("/api/auth/check-username", async (req, res) => {
     res.status(400).json({ ok: false, available: false, error: check.error });
     return;
   }
-
   try {
-    const docUrl = `${firestoreBaseUrl()}/usernames/${encodeURIComponent(check.normalized)}?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
-    const lookupRes = await fetch(docUrl, {
-      method: "GET",
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (lookupRes.status === 404) {
-      res.json({ ok: true, available: true, username: check.normalized });
-      return;
-    }
-
-    if (lookupRes.status === 403) {
-      res.status(503).json({
-        ok: false,
-        available: null,
-        rulesPendingDeploy: true,
-        error:
-          "Username database rules must be deployed in Firebase Console before checking availability.",
-      });
-      return;
-    }
-
-    if (!lookupRes.ok) {
-      res.status(502).json({ ok: false, available: null, error: "Unable to verify username availability." });
-      return;
-    }
-
+    const result = await queryDatabase<{ id: string }>(
+      'SELECT id FROM "user" WHERE lower(username) = lower($1) LIMIT 1',
+      [check.normalized]
+    );
     res.json({
       ok: true,
-      available: false,
+      available: result.rows.length === 0,
       username: check.normalized,
-      error: "This username is already taken. Please choose another.",
+      ...(result.rows.length ? { error: "This username is already taken. Please choose another." } : {}),
     });
-  } catch (err) {
-    console.error("Username availability check failed:", err);
-    res.status(500).json({ ok: false, available: null, error: "Unable to check username right now." });
+  } catch (error) {
+    console.error("Neon username availability check failed:", error);
+    res.status(503).json({ ok: false, available: null, error: "Username service is temporarily unavailable." });
+  }
+});
+
+app.post("/api/auth/username-email", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  const rawUsername = typeof req.body?.username === "string" ? req.body.username : "";
+  const check = validateUsername(rawUsername);
+  if (!check.valid) {
+    res.status(400).json({ error: "Invalid username or password." });
+    return;
+  }
+  try {
+    const result = await queryDatabase<{ email: string }>(
+      'SELECT email FROM "user" WHERE lower(username) = lower($1) LIMIT 1',
+      [check.normalized]
+    );
+    if (!result.rows[0]?.email) {
+      res.status(401).json({ error: "Invalid username or password." });
+      return;
+    }
+    res.json({ email: result.rows[0].email });
+  } catch (error) {
+    console.error("Neon username lookup failed:", error);
+    res.status(503).json({ error: "Username sign-in is temporarily unavailable." });
   }
 });
 

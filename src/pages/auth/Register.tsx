@@ -243,10 +243,10 @@ export default function Register() {
             </div>
 
             <p className="text-sm text-[#3B4C5E] leading-relaxed">
-              Your Firebase account for{" "}
+              Your BitfuryTech account for{" "}
               <strong className="text-[#102030]">{registeredEmail}</strong> has been created and a
               verification link has been sent to your inbox. Verify your email to provision your
-              Firestore custody profile.
+              Neon investor profile.
             </p>
 
             {verifyFeedback && (

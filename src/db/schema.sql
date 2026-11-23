@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   id text PRIMARY KEY,
   name text NOT NULL,
   email text NOT NULL UNIQUE,
+  username text UNIQUE,
   "emailVerified" boolean NOT NULL DEFAULT false,
   image text,
   "createdAt" timestamptz NOT NULL DEFAULT now(),
@@ -23,6 +24,10 @@ CREATE TABLE IF NOT EXISTS session (
   "userId" text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS session_user_id_idx ON session("userId");
+
+-- Safe for databases where the original Better Auth user table already exists.
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS username text;
+CREATE UNIQUE INDEX IF NOT EXISTS user_username_unique_idx ON "user"(username) WHERE username IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS account (
   id text PRIMARY KEY,
@@ -219,6 +224,18 @@ CREATE TABLE IF NOT EXISTS email_outbox (
   created_at timestamptz NOT NULL DEFAULT now(),
   sent_at timestamptz
 );
+
+-- Idempotent storage for verified Resend email lifecycle events.
+CREATE TABLE IF NOT EXISTS email_webhook_events (
+  event_id text PRIMARY KEY,
+  event_type text NOT NULL,
+  email_id text,
+  recipient text,
+  payload jsonb NOT NULL,
+  received_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS email_webhook_events_received_idx ON email_webhook_events(received_at DESC);
+CREATE INDEX IF NOT EXISTS email_webhook_events_email_id_idx ON email_webhook_events(email_id);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id bigserial PRIMARY KEY,
