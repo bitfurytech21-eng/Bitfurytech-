@@ -43,7 +43,6 @@ import {
   subscribeProperties,
 } from "../../services/firestoreService";
 import {
-  formatUsd,
   INVESTMENT_MANDATES,
   InvestmentMandate,
   MandateCategory,
