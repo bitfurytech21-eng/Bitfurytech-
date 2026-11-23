@@ -253,13 +253,17 @@ export function createBetterAuthAdminRouter(): Router {
             [tx.user_id, currency, amount]
           );
           await client.query(
-            "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'customer_available','debit',$3,$4,'Approved withdrawal'),($1,$2,'platform_custody','credit',$3,$4,'Approved withdrawal')",
+            "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'customer_reserved','debit',$3,$4,'Approved reserved withdrawal'),($1,$2,'platform_custody','credit',$3,$4,'Approved withdrawal settlement')",
             [id, tx.user_id, amount, currency]
           );
         } else {
           await client.query(
             "UPDATE wallets SET reserved_balance=reserved_balance-$3, available_balance=available_balance+$3, updated_at=now() WHERE user_id=$1 AND currency=$2",
             [tx.user_id, currency, amount]
+          );
+          await client.query(
+            "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'customer_reserved','debit',$3,$4,'Rejected withdrawal release'),($1,$2,'customer_available','credit',$3,$4,'Rejected withdrawal refund')",
+            [id, tx.user_id, amount, currency]
           );
         }
         await client.query(
