@@ -41,7 +41,7 @@ import {
 } from "../../trading/tradingPage";
 
 export default function MyInvestments() {
-  const { backendSession, authReady, profile } = useAuth();
+  const { firebaseUser, backendSession, authReady, profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPlanId = searchParams.get("plan");
 
