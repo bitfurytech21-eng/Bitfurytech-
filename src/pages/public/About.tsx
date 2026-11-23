@@ -136,13 +136,12 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
           {/* 2. Who We Are & What We Do */}
           <section className="grid md:grid-cols-12 gap-8 items-start border-b border-[#DCE4EC] pb-14">
-            <div className="md:col-span-4">
-              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                Reinventing Investor Access
-              </p>
-              <h2 className="text-2xl font-heading font-bold text-[#102030] mt-2">
-                Who We Are &amp; What We Do
-              </h2>
+            <div className="md:col-span-4 overflow-hidden rounded-md bg-white">
+              <img src="/images/team-meeting-fade.webp" alt="Bitfury Tech team members gathered around a meeting table" width="1200" height="1200" loading="lazy" className="aspect-[2/1] w-full object-cover object-top" />
+              <div className="relative bg-linear-to-b from-transparent via-white to-white -mt-4 px-3 pb-2 pt-4">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">Reinventing Investor Access</p>
+                <h2 className="mt-2 text-2xl font-heading font-bold text-[#102030]">Who We Are &amp; What We Do</h2>
+              </div>
             </div>
             <div className="md:col-span-8 space-y-4 text-sm sm:text-base text-[#5A6B7C] leading-relaxed">
               <p>
