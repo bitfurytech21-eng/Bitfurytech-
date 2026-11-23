@@ -57,7 +57,7 @@ function OverviewSkeleton() {
 }
 
 export default function Overview() {
-  const { firebaseUser, idToken, profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [data, setData] = useState<DashboardOverviewDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -65,7 +65,7 @@ export default function Overview() {
 
   const loadOverview = useCallback(
     async (isManualRefresh = false) => {
-      if (!firebaseUser) return;
+      if (!authReady || !backendSession) return;
       if (isManualRefresh) {
         setRefreshing(true);
       } else {
@@ -74,8 +74,7 @@ export default function Overview() {
       setError(null);
 
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const payload = await fetchDashboardOverview(token);
+        const payload = await fetchDashboardOverview();
         setData(payload);
       } catch (err) {
         setError(
@@ -88,7 +87,7 @@ export default function Overview() {
         setRefreshing(false);
       }
     },
-    [firebaseUser, idToken]
+    [backendSession, authReady]
   );
 
   useEffect(() => {
@@ -140,7 +139,7 @@ export default function Overview() {
                 Investor account
               </p>
               <h2 className="mt-1.5 text-xl font-bold font-heading tracking-tight sm:text-2xl">
-                Welcome back, {profile?.displayName || firebaseUser?.displayName || "Investor"}
+                Welcome back, {backendSession?.email?.split("@")[0] || "Investor"}
               </h2>
               <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-slate-300">
                 Your portfolio activity, settlements, and account figures are ready to review.
