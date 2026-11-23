@@ -16,8 +16,7 @@ import {
   TextAreaInput,
   TextInput,
 } from "../../components/ui";
-import { useAuth } from "../../hooks/useAuth";
-import { apiRequest } from "../../services/dashboardApi";
+import { sessionApiRequest } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 interface AdminPlanRow {
@@ -59,7 +58,6 @@ const EMPTY_PLAN: Omit<AdminPlanRow, "id"> & { id?: string } = {
 };
 
 export default function AdminInvestmentPlans() {
-  const { firebaseUser, idToken } = useAuth();
   const [plans, setPlans] = useState<AdminPlanRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,19 +68,17 @@ export default function AdminInvestmentPlans() {
   const [saving, setSaving] = useState(false);
 
   const loadPlans = useCallback(async () => {
-    if (!firebaseUser) return;
-    setLoading(true);
+        setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ plans: AdminPlanRow[] }>("/api/admin/plans", token);
+            const res = await sessionApiRequest<{ plans: AdminPlanRow[] }>("/api/admin/plans");
       setPlans(res.plans);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load investment plans.");
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, []);
 
   useEffect(() => {
     void loadPlans();
@@ -100,12 +96,10 @@ export default function AdminInvestmentPlans() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
-    setSaving(true);
+        setSaving(true);
     setBanner(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest("/api/admin/plans", token, {
+            await sessionApiRequest("/api/admin/plans", {
         method: "POST",
         body: JSON.stringify(form),
       });

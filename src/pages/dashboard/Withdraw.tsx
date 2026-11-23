@@ -16,7 +16,6 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import {
-  apiRequest,
   sessionApiRequest,
   DashboardTransactionDTO,
   formatIsoDate,
@@ -29,7 +28,7 @@ function makeWithdrawKey(): string {
 }
 
 export default function Withdraw() {
-  const { firebaseUser, idToken, backendSession, authReady, profile } = useAuth();
+  const { backendSession, authReady, profile } = useAuth();
   const [config, setConfig] = useState<WithdrawalConfigDTO>({
     minWithdrawal: 50,
     maxSingleWithdrawal: 250000,
@@ -93,7 +92,7 @@ export default function Withdraw() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!backendSession) return;
     setError(null);
     setReceipt(null);
 
@@ -116,8 +115,7 @@ export default function Withdraw() {
 
     setSubmitting(true);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{
+      const res = await sessionApiRequest<{
         ok: boolean;
         withdrawal: {
           reference: string;
@@ -128,7 +126,7 @@ export default function Withdraw() {
           destination: string;
           status: string;
         };
-      }>("/api/withdrawals", token, {
+      }>("/api/withdrawals", {
         method: "POST",
         body: JSON.stringify({
           method,

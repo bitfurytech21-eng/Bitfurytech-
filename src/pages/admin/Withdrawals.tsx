@@ -14,8 +14,7 @@ import {
   TableColumn,
   TextAreaInput,
 } from "../../components/ui";
-import { useAuth } from "../../hooks/useAuth";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 interface AdminWithdrawalRow {
@@ -31,7 +30,6 @@ interface AdminWithdrawalRow {
 }
 
 export default function AdminWithdrawals() {
-  const { firebaseUser, idToken } = useAuth();
   const [withdrawals, setWithdrawals] = useState<AdminWithdrawalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,16 +46,12 @@ export default function AdminWithdrawals() {
 
   const loadWithdrawals = useCallback(
     async (isRefresh = false) => {
-      if (!firebaseUser) return;
-      if (isRefresh) setRefreshing(true);
+            if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const res = await apiRequest<{ withdrawals: AdminWithdrawalRow[] }>(
-          "/api/admin/withdrawals",
-          token
-        );
+                const res = await sessionApiRequest<{ withdrawals: AdminWithdrawalRow[] }>(
+          "/api/admin/withdrawals");
         setWithdrawals(res.withdrawals);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load withdrawal queue.");
@@ -66,7 +60,7 @@ export default function AdminWithdrawals() {
         setRefreshing(false);
       }
     },
-    [firebaseUser, idToken]
+    []
   );
 
   useEffect(() => {
@@ -80,13 +74,12 @@ export default function AdminWithdrawals() {
 
   const handleResolve = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser || !reviewItem) return;
+    if (!reviewItem) return;
     setSubmitting(true);
     setBanner(null);
 
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest(`/api/admin/withdrawals/${reviewItem.tx.id}/resolve`, token, {
+            await sessionApiRequest(`/api/admin/withdrawals/${reviewItem.tx.id}/resolve`, {
         method: "POST",
         body: JSON.stringify({
           decision: reviewItem.decision,

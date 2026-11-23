@@ -15,8 +15,7 @@ import {
   TableColumn,
   TextAreaInput,
 } from "../../components/ui";
-import { useAuth } from "../../hooks/useAuth";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 interface AdminInvestmentRow {
@@ -37,7 +36,6 @@ interface AdminInvestmentRow {
 }
 
 export default function AdminInvestments() {
-  const { firebaseUser, idToken } = useAuth();
   const [investments, setInvestments] = useState<AdminInvestmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,16 +52,12 @@ export default function AdminInvestments() {
 
   const loadInvestments = useCallback(
     async (isRefresh = false) => {
-      if (!firebaseUser) return;
-      if (isRefresh) setRefreshing(true);
+            if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const res = await apiRequest<{ investments: AdminInvestmentRow[] }>(
-          "/api/admin/investments",
-          token
-        );
+                const res = await sessionApiRequest<{ investments: AdminInvestmentRow[] }>(
+          "/api/admin/investments");
         setInvestments(res.investments);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load platform investments.");
@@ -72,7 +66,7 @@ export default function AdminInvestments() {
         setRefreshing(false);
       }
     },
-    [firebaseUser, idToken]
+    []
   );
 
   useEffect(() => {
@@ -101,7 +95,7 @@ export default function AdminInvestments() {
 
   const handleStatusSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser || !editing) return;
+    if (!editing) return;
     if (auditReason.trim().length < 4) {
       setBanner({
         tone: "error",
@@ -113,8 +107,7 @@ export default function AdminInvestments() {
     setSubmitting(true);
     setBanner(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest(`/api/admin/investments/${editing.id}/status`, token, {
+            await sessionApiRequest(`/api/admin/investments/${editing.id}/status`, {
         method: "POST",
         body: JSON.stringify({
           status: nextStatus,

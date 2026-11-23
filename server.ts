@@ -13,6 +13,8 @@ import {
 import { getMandateById, INVESTMENT_MANDATES } from "./src/trading/tradingPage.ts";
 import { createCustomerRouter } from "./src/routes/apiCustomer.ts";
 import { createAdminRouter } from "./src/routes/apiAdmin.ts";
+import { createBetterAuthAdminRouter } from "./src/routes/betterAuthAdmin.ts";
+import { createBetterAuthFinancialRouter } from "./src/routes/betterAuthFinancial.ts";
 import { createSupportRouter } from "./src/routes/apiSupport.ts";
 import { attachSupportWebSocketServer } from "./src/services/supportWebSocketServer.ts";
 import {
@@ -939,7 +941,9 @@ app.get("/api/admin/overview", requireBetterAuth, requireBetterAdmin, async (_re
 
 // Modular Support, Customer & Admin API routers
 app.use("/api", createSupportRouter());
+app.use("/api", createBetterAuthFinancialRouter());
 app.use("/api", createCustomerRouter());
+app.use("/api/admin", createBetterAuthAdminRouter());
 app.use("/api/admin", createAdminRouter());
 
 async function startServer() {

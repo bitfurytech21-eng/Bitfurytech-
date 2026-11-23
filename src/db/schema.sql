@@ -65,9 +65,12 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   preferred_rail text NOT NULL DEFAULT 'USDT (TRC20)',
   email_alerts boolean NOT NULL DEFAULT true,
   two_factor_enabled boolean NOT NULL DEFAULT false,
+  account_status text NOT NULL DEFAULT 'Active' CHECK (account_status IN ('Active', 'Review', 'Suspended')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS account_status text NOT NULL DEFAULT 'Active' CHECK (account_status IN ('Active', 'Review', 'Suspended'));
 
 CREATE TABLE IF NOT EXISTS user_roles (
   user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,

@@ -16,8 +16,7 @@ import {
   TextAreaInput,
   TextInput,
 } from "../../components/ui";
-import { useAuth } from "../../hooks/useAuth";
-import { apiRequest } from "../../services/dashboardApi";
+import { sessionApiRequest } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 interface AdminPropertyRow {
@@ -66,7 +65,6 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 export default function AdminProperties() {
-  const { firebaseUser, idToken } = useAuth();
   const [properties, setProperties] = useState<AdminPropertyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,22 +78,18 @@ export default function AdminProperties() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const loadProperties = useCallback(async () => {
-    if (!firebaseUser) return;
-    setLoading(true);
+        setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ properties: AdminPropertyRow[] }>(
-        "/api/admin/properties",
-        token
-      );
+            const res = await sessionApiRequest<{ properties: AdminPropertyRow[] }>(
+        "/api/admin/properties");
       setProperties(res.properties);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load properties.");
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, []);
 
   useEffect(() => {
     void loadProperties();
@@ -128,17 +122,14 @@ export default function AdminProperties() {
   };
 
   const handleUpload = async (file: File, kind: "properties" | "document") => {
-    if (!firebaseUser) return;
-    if (kind === "properties") setUploadingImage(true);
+        if (kind === "properties") setUploadingImage(true);
     else setUploadingDoc(true);
     setBanner(null);
 
     try {
       const dataUrl = await readFileAsDataUrl(file);
-      const token = idToken || (await firebaseUser.getIdToken());
-      const res = await apiRequest<{ url: string; fileName: string }>(
+            const res = await sessionApiRequest<{ url: string; fileName: string }>(
         "/api/admin/uploads",
-        token,
         {
           method: "POST",
           body: JSON.stringify({
@@ -170,20 +161,18 @@ export default function AdminProperties() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
-    setSaving(true);
+        setSaving(true);
     setBanner(null);
 
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      if (editingId) {
-        await apiRequest(`/api/admin/properties/${editingId}`, token, {
+            if (editingId) {
+        await sessionApiRequest(`/api/admin/properties/${editingId}`, {
           method: "PUT",
           body: JSON.stringify(form),
         });
         setBanner({ tone: "success", text: `Updated property "${form.title}".` });
       } else {
-        await apiRequest("/api/admin/properties", token, {
+        await sessionApiRequest("/api/admin/properties", {
           method: "POST",
           body: JSON.stringify(form),
         });
@@ -202,11 +191,9 @@ export default function AdminProperties() {
   };
 
   const handleTogglePublished = async (p: AdminPropertyRow) => {
-    if (!firebaseUser) return;
-    const nextPublished = !(p.published !== false);
+        const nextPublished = !(p.published !== false);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest(`/api/admin/properties/${p.id}`, token, {
+            await sessionApiRequest(`/api/admin/properties/${p.id}`, {
         method: "PUT",
         body: JSON.stringify({ ...p, published: nextPublished }),
       });
@@ -224,10 +211,8 @@ export default function AdminProperties() {
   };
 
   const handleDelete = async (p: AdminPropertyRow) => {
-    if (!firebaseUser) return;
-    try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest(`/api/admin/properties/${p.id}`, token, {
+        try {
+            await sessionApiRequest(`/api/admin/properties/${p.id}`, {
         method: "DELETE",
       });
       setBanner({ tone: "success", text: `Removed property "${p.title}".` });
