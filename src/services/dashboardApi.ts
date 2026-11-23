@@ -127,6 +127,24 @@ export interface CustomerDocumentDTO {
   createdAt: string | null;
 }
 
+export async function sessionApiRequest<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(url, {
+    ...init,
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(init.headers || {}),
+    },
+  });
+  const body = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) {
+    throw new Error(body.error || `Request failed (${res.status}).`);
+  }
+  return body;
+}
+
 export async function apiRequest<T>(
   url: string,
   token: string,
@@ -168,14 +186,12 @@ export async function apiRequest<T>(
   return body;
 }
 
-export function fetchDashboardOverview(token: string): Promise<DashboardOverviewDTO> {
-  return apiRequest<DashboardOverviewDTO>("/api/dashboard/overview", token);
+export function fetchDashboardOverview(): Promise<DashboardOverviewDTO> {
+  return sessionApiRequest<DashboardOverviewDTO>("/api/dashboard/overview");
 }
 
-export function fetchDashboardInvestments(
-  token: string
-): Promise<DashboardInvestmentsDTO> {
-  return apiRequest<DashboardInvestmentsDTO>("/api/dashboard/investments", token);
+export function fetchDashboardInvestments(): Promise<DashboardInvestmentsDTO> {
+  return sessionApiRequest<DashboardInvestmentsDTO>("/api/dashboard/investments");
 }
 
 export function formatIsoDate(iso?: string | null): string {
