@@ -25,10 +25,29 @@ import {
   TextAreaInput,
   TextInput,
 } from "../../components/ui";
-import type {
-  SupportMessageDTO,
-  SupportThreadDTO,
-} from "../../components/LiveSupportWidget";
+interface SupportThreadDTO {
+  id: string;
+  visitorName: string;
+  visitorEmail: string;
+  topic: string;
+  status: "Open" | "Resolved";
+  lastMessageAt: string;
+  lastMessagePreview: string;
+  channel: string;
+  twilioConversationSid?: string | null;
+}
+
+interface SupportMessageDTO {
+  id: string;
+  threadId: string;
+  body: string;
+  senderName: string;
+  senderRole: string;
+  createdAt: string;
+  source?: string;
+  twilioMessageSid?: string | null;
+  clientMessageId?: string | null;
+}
 import { useAuth } from "../../hooks/useAuth";
 import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
