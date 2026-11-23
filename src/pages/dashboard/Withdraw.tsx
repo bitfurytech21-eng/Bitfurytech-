@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import {
   apiRequest,
+  sessionApiRequest,
   DashboardTransactionDTO,
   formatIsoDate,
   WithdrawalConfigDTO,
@@ -28,7 +29,7 @@ function makeWithdrawKey(): string {
 }
 
 export default function Withdraw() {
-  const { firebaseUser, idToken, profile } = useAuth();
+  const { firebaseUser, idToken, backendSession, authReady, profile } = useAuth();
   const [config, setConfig] = useState<WithdrawalConfigDTO>({
     minWithdrawal: 50,
     maxSingleWithdrawal: 250000,
@@ -59,13 +60,12 @@ export default function Withdraw() {
   } | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!authReady || !backendSession) return;
     setLoading(true);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
       const [cfg, txRes] = await Promise.all([
-        apiRequest<WithdrawalConfigDTO>("/api/withdrawals/config", token),
-        apiRequest<{ transactions: DashboardTransactionDTO[] }>("/api/transactions", token),
+        sessionApiRequest<WithdrawalConfigDTO>("/api/withdrawals/config"),
+        sessionApiRequest<{ transactions: DashboardTransactionDTO[] }>("/api/transactions"),
       ]);
       setConfig(cfg);
       setWithdrawals(txRes.transactions.filter((t) => t.type === "Withdrawal"));
@@ -74,7 +74,7 @@ export default function Withdraw() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [backendSession, authReady]);
 
   useEffect(() => {
     void loadData();
