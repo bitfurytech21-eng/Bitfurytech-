@@ -238,12 +238,15 @@ export function createBetterAuthFinancialRouter(): Router {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const targetType = body.targetType === "property" ? "property" : "plan";
     const targetId = cleanText(body.targetId, 100);
-    const units = Number(body.units);
+    const amountInput = body.amount == null ? null : Number(body.amount);
+    const amountBased = amountInput !== null;
+    const units = amountBased ? 1 : Number(body.units);
     const key = cleanText(body.idempotencyKey, 128);
     if (body.confirmed !== true) { res.status(400).json({ error: "Explicit investment confirmation is required." }); return; }
     if (!targetId) { res.status(400).json({ error: "Select an investment plan or property offering." }); return; }
     if (!key || key.length < 8) { res.status(400).json({ error: "A valid idempotency key is required." }); return; }
-    if (!Number.isInteger(units) || units < 1 || units > 1000) { res.status(400).json({ error: "Units must be a whole number between 1 and 1,000." }); return; }
+    if (amountBased && (!Number.isFinite(amountInput) || Number(amountInput) <= 0 || Number(amountInput) > 10_000_000)) { res.status(400).json({ error: "Enter a valid investment amount." }); return; }
+    if (!amountBased && (!Number.isInteger(units) || units < 1 || units > 1000)) { res.status(400).json({ error: "Units must be a whole number between 1 and 1,000." }); return; }
 
     try {
       const result = await withFinancialTransaction(async (client) => {
@@ -292,7 +295,7 @@ export function createBetterAuthFinancialRouter(): Router {
             durationDays = plan.durationDays; termsSummary = plan.returnTerms;
           }
         }
-        const principal = money(units * unitPrice);
+        const principal = money(amountBased ? Number(amountInput) : units * unitPrice);
         const feeAmount = money(principal * INVESTMENT_FEE_PCT / 100);
         const totalCost = money(principal + feeAmount);
         if (!(unitPrice > 0) || principal < unitPrice) throw httpError("Investment amount is below the minimum entry.", 400);
@@ -322,7 +325,7 @@ export function createBetterAuthFinancialRouter(): Router {
           [user.id, investmentId, JSON.stringify({ principal, feeAmount, totalCost, planName, targetType })]
         );
         await client.query("INSERT INTO notifications(id,user_id,category,title,body) VALUES($1,$2,'investment','Investment allocation confirmed',$3)", [randomUUID(), user.id, `Your allocation in ${planName} has been recorded.`]);
-        const response = { ok: true, receipt: { reference, investmentId, transactionId, planId: planId ?? propertyId ?? targetId, planName, category, units, unitPrice, principal, feeAmount, totalCost, currency: "USD", newWalletBalance: money(available - totalCost), termsSummary, createdAt: new Date().toISOString() } };
+        const response = { ok: true, receipt: { reference, investmentId, transactionId, planId: planId ?? propertyId ?? targetId, planName, category, units, unitPrice: amountBased ? principal : unitPrice, principal, feeAmount, totalCost, currency: "USD", newWalletBalance: money(available - totalCost), termsSummary, createdAt: new Date().toISOString() } };
         await finishIdempotent(client, user.id, key, response);
         return { response, duplicate: false };
       });
