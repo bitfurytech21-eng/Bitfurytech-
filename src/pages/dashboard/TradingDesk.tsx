@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, BarChart3, RefreshCw } from "lucide-react";
@@ -201,7 +202,7 @@ export default function TradingDesk() {
                       </div>
                       <p className="text-sm font-bold text-slate-900 mt-0.5">{m.name}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Min {formatUsd(m.minDeposit)} · {m.durationDays} days
+                        Min <FinancialAmount value={m.minDeposit} /> · {m.durationDays} days
                       </p>
                     </button>
                   );
@@ -248,13 +249,13 @@ export default function TradingDesk() {
                     <div>
                       <dt className="text-slate-500">Minimum Entry</dt>
                       <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                        {formatUsd(activePlan.minDeposit)}
+                        <FinancialAmount value={activePlan.minDeposit} />
                       </dd>
                     </div>
                     <div>
                       <dt className="text-slate-500">Maximum Cap</dt>
                       <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                        {formatUsd(activePlan.maxDeposit)}
+                        <FinancialAmount value={activePlan.maxDeposit} />
                       </dd>
                     </div>
                     <div>
