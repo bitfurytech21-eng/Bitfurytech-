@@ -31,9 +31,11 @@ import {
   DashboardInvestmentsDTO,
   DashboardTransactionDTO,
   fetchDashboardInvestments,
+  fetchDashboardOverview,
+  sessionApiRequest,
   formatIsoDate,
 } from "../../services/dashboardApi";
-import { createInvestmentAllocation } from "../../services/firestoreService";
+
 import {
   formatUsd,
   getMandateById,
@@ -41,8 +43,12 @@ import {
   validateAllocation,
 } from "../../trading/tradingPage";
 
+function makeAllocationKey(): string {
+  return `alloc_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export default function MyInvestments() {
-  const { firebaseUser, backendSession, authReady, profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPlanId = searchParams.get("plan");
 
@@ -65,6 +71,8 @@ export default function MyInvestments() {
   const [submitting, setSubmitting] = useState(false);
   const [allocateError, setAllocateError] = useState<string | null>(null);
   const [allocateSuccess, setAllocateSuccess] = useState<string | null>(null);
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(makeAllocationKey);
 
   useEffect(() => {
     if (requestedPlanId) {
@@ -87,8 +95,12 @@ export default function MyInvestments() {
       setError(null);
 
       try {
-        const payload = await fetchDashboardInvestments();
+        const [payload, overview] = await Promise.all([
+          fetchDashboardInvestments(),
+          fetchDashboardOverview(),
+        ]);
         setData(payload);
+        setAvailableBalance(overview.metrics.availableBalance ?? 0);
       } catch (err) {
         setError(
           err instanceof Error
@@ -108,7 +120,6 @@ export default function MyInvestments() {
   }, [loadInvestments]);
 
   const activeMandate = getMandateById(planId) || INVESTMENT_MANDATES[0];
-  const availableBalance = profile?.walletBalance ?? 0;
 
   const filteredInvestments = useMemo(() => {
     const items = data?.investments ?? [];
@@ -141,7 +152,7 @@ export default function MyInvestments() {
 
   const handleAllocateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!backendSession) return;
     setAllocateError(null);
     setAllocateSuccess(null);
 
@@ -154,12 +165,21 @@ export default function MyInvestments() {
 
     setSubmitting(true);
     try {
-      await createInvestmentAllocation(
-        firebaseUser.uid,
-        firebaseUser.email || "",
-        planId,
-        parsed
-      );
+      const result = await sessionApiRequest<{
+        ok: boolean;
+        receipt: { newWalletBalance: number };
+      }>("/api/investments/purchase", {
+        method: "POST",
+        body: JSON.stringify({
+          targetType: "plan",
+          targetId: planId,
+          amount: parsed,
+          confirmed: true,
+          idempotencyKey,
+        }),
+      });
+      setAvailableBalance(result.receipt.newWalletBalance);
+      setIdempotencyKey(makeAllocationKey());
       setAllocateSuccess(
         `Allocated ${formatUsd(parsed)} to ${activeMandate.name}. Your ledger and active mandates are updated.`
       );
