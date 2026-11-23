@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
-    "start": "tsx server.ts",
+    "start": "npm run db:migrate && tsx server.ts",
     "lint": "eslint .",
     "db:migrate": "tsx src/db/migrate.ts"
   },
