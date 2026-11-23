@@ -18,6 +18,7 @@ import {
   Shield,
   TrendingUp,
   Users,
+  WalletCards,
   X,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin/plans", label: "Investment Plans", icon: Layers },
   { to: "/admin/investments", label: "Investments", icon: TrendingUp },
   { to: "/admin/deposits", label: "Deposits", icon: ArrowDownCircle },
+  { to: "/admin/financial-approvals", label: "Financial Approvals", icon: WalletCards },
   { to: "/admin/withdrawals", label: "Withdrawals", icon: ArrowUpRight },
   { to: "/admin/transactions", label: "Transactions", icon: FileText },
   { to: "/admin/referrals", label: "Referrals", icon: Share2 },

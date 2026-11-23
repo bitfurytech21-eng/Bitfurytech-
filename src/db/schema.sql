@@ -250,3 +250,26 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS audit_logs_created_idx ON audit_logs(created_at DESC);
+
+ 
+-- Admin-issued payment instructions. This is separate from deposits and never credits balances.
+CREATE TABLE IF NOT EXISTS manual_payment_assignments (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES "user"(id) ON DELETE RESTRICT,
+  user_email text NOT NULL,
+  customer_name text NOT NULL,
+  method text NOT NULL CHECK (method IN ('USDT (TRC20)', 'Bitcoin (BTC)', 'Ethereum (ETH)', 'Bank Wire')),
+  amount numeric(20, 2) NOT NULL CHECK (amount > 0),
+  destination text NOT NULL,
+  network text NOT NULL,
+  reference text NOT NULL,
+  note text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'Assigned' CHECK (status = 'Assigned'),
+  created_by text NOT NULL REFERENCES "user"(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS manual_payment_assignments_reference_unique_idx
+  ON manual_payment_assignments (user_id, method, lower(reference));
+CREATE INDEX IF NOT EXISTS manual_payment_assignments_created_idx
+  ON manual_payment_assignments (created_at DESC);

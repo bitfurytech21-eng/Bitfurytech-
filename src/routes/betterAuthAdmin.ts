@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { INVESTMENT_MANDATES } from "../trading/tradingPage.ts";
+import { MANUAL_PAYMENT_METHODS } from "../trading/manualPaymentMethods.ts";
 import {
   addMockAuditLog,
   addMockBroadcast,
@@ -82,7 +83,7 @@ export function createBetterAuthAdminRouter(): Router {
     }
     try {
       const result = await queryDatabase<Row>(
-        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(w.available_balance,0) AS \"walletBalance\", 'Active'::text AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items FROM investments i WHERE i.user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items FROM transactions t WHERE t.user_id=u.id) tx ON true ORDER BY u.\"createdAt\" DESC"
+        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(w.available_balance,0) AS \"walletBalance\", 'Active'::text AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items FROM investments i WHERE i.user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items FROM transactions t WHERE t.user_id=u.id) tx ON true WHERE NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role='admin') ORDER BY u.\"createdAt\" DESC"
       );
       res.setHeader("Cache-Control", "no-store");
       res.json({ customers: result.rows });
@@ -683,6 +684,135 @@ export function createBetterAuthAdminRouter(): Router {
     } catch (error) {
       console.error("Neon admin upload failed:", error);
       res.status(500).json({ error: "Unable to persist uploaded file." });
+    }
+  });
+
+
+  // Manual payment instructions are stored in Neon and never approve or credit deposits.
+  router.get("/manual-payment-assignments", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.status(503).json({ error: "Neon database is required for payment assignments." });
+      return;
+    }
+    try {
+      const result = await queryDatabase<Row>(
+        `SELECT a.id, a.user_id AS "userId", a.user_email AS "userEmail",
+                a.customer_name AS "customerName", a.method, a.amount,
+                a.destination, a.network, a.reference, a.note, a.status,
+                a.created_at AS "createdAt"
+         FROM manual_payment_assignments a
+         ORDER BY a.created_at DESC
+         LIMIT 500`
+      );
+      res.json({ assignments: result.rows.map((row) => ({
+        ...row,
+        amount: Number(row.amount),
+        createdAt: row.createdAt ? new Date(row.createdAt as string).toISOString() : null,
+      })) });
+    } catch (error) {
+      console.error("Neon manual payment assignments query failed:", error);
+      res.status(502).json({ error: "Unable to load payment assignments from Neon." });
+    }
+  });
+
+  router.post("/manual-payment-assignments", async (req: BetterAuthRequest, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.status(503).json({ error: "Neon database is required for payment assignments." });
+      return;
+    }
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const userId = textValue(body.userId).trim();
+    const methodId = textValue(body.method).trim();
+    const method = MANUAL_PAYMENT_METHODS.find((item) => item.id === methodId);
+    const amount = Number(body.amount);
+    const destination = textValue(body.destination).trim();
+    const network = textValue(body.network).trim();
+    const reference = textValue(body.reference).trim();
+    const note = textValue(body.note).trim();
+
+    if (!userId || userId.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
+      res.status(400).json({ error: "Select a valid customer account." });
+      return;
+    }
+    if (!method) {
+      res.status(400).json({ error: "Select one of the available payment methods." });
+      return;
+    }
+    if (!Number.isFinite(amount) || amount < 0.01 || amount > 10000000 ||
+        Math.abs(amount - Number(amount.toFixed(2))) > 0.0000001) {
+      res.status(400).json({ error: "Payment amount must be a valid USD amount with up to two decimals." });
+      return;
+    }
+    if (destination.length < 3 || destination.length > 220 || /[\r\n]/.test(destination)) {
+      res.status(400).json({ error: "Enter a valid payment destination (maximum 220 characters)." });
+      return;
+    }
+    if (network !== method.network) {
+      res.status(400).json({ error: "The selected network does not match the payment method." });
+      return;
+    }
+    if (reference.length < 3 || reference.length > 120 || /[\r\n]/.test(reference)) {
+      res.status(400).json({ error: "Enter a valid transaction hash or payment reference." });
+      return;
+    }
+    if (note.length > 500) {
+      res.status(400).json({ error: "Internal note must be 500 characters or fewer." });
+      return;
+    }
+
+    try {
+      const customerResult = await queryDatabase<Row>(
+        `SELECT u.id, u.email, u.name
+         FROM "user" u
+         WHERE u.id = $1
+           AND NOT EXISTS (
+             SELECT 1 FROM user_roles r WHERE r.user_id = u.id AND r.role = 'admin'
+           )
+         LIMIT 1`,
+        [userId]
+      );
+      const customer = customerResult.rows[0];
+      if (!customer) {
+        res.status(404).json({ error: "Customer account not found." });
+        return;
+      }
+      const userEmail = textValue(customer.email).trim().slice(0, 200);
+      const customerName = textValue(customer.name, "Investor").trim().slice(0, 160);
+      if (!userEmail) {
+        res.status(400).json({ error: "Customer account has no email address." });
+        return;
+      }
+      const id = `mpa_${randomUUID()}`;
+      const saved = await queryDatabase<Row>(
+        `INSERT INTO manual_payment_assignments
+          (id, user_id, user_email, customer_name, method, amount, destination,
+           network, reference, note, status, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'Assigned',$11)
+         RETURNING created_at AS "createdAt"`,
+        [id, userId, userEmail, customerName, method.id, amount, destination,
+         method.network, reference, note, auditActor(req)]
+      );
+      await recordAudit(req, "CREATE_MANUAL_PAYMENT_ASSIGNMENT", "manual_payment_assignment", id, {
+        userId, userEmail, method: method.id, amount, reference,
+      });
+      res.status(201).json({
+        assignment: {
+          id, userId, userEmail, customerName, method: method.id, amount,
+          destination, network: method.network, reference, note, status: "Assigned",
+          createdAt: saved.rows[0]?.createdAt
+            ? new Date(saved.rows[0].createdAt as string).toISOString()
+            : new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      if ((error as { code?: string })?.code === "23505") {
+        res.status(409).json({ error: "This customer already has an assignment with that reference." });
+        return;
+      }
+      console.error("Neon manual payment assignment save failed:", error);
+      res.status(502).json({ error: "Unable to save payment assignment in Neon." });
     }
   });
 
