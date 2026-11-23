@@ -12,6 +12,7 @@ import { createSupportRouter } from "./src/routes/apiSupport.ts";
 import { attachSupportWebSocketServer } from "./src/services/supportWebSocketServer.ts";
 import { enqueueMailEvent } from "./src/services/mailOutbox.ts";
 import { startDailyRoiEmailScheduler } from "./src/services/dailyRoiEmailScheduler.ts";
+import { startPlanDrivenRoiEngine } from "./src/services/planDrivenRoiEngine.ts";
 import { validateUsername } from "./src/lib/username.ts";
 import { isDatabaseConfigured, queryDatabase } from "./src/db/pool.ts";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
@@ -765,7 +766,10 @@ async function startServer() {
 
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`BitfuryTech server listening on http://0.0.0.0:${PORT}`);
-    if (isDatabaseConfigured) startDailyRoiEmailScheduler();
+    if (isDatabaseConfigured) {
+      startDailyRoiEmailScheduler();
+      startPlanDrivenRoiEngine();
+    }
   });
 }
 
