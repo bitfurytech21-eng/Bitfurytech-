@@ -1,5 +1,6 @@
 import express from "express";
 import http from "http";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -115,6 +116,80 @@ app.get("/api/auth/better-admin-check", requireBetterAuth, requireBetterAdmin, (
     role: "admin",
   });
 });
+
+// Resend webhook receiver. Keep this raw-body route before express.json() for signature verification.
+app.post(
+  "/api/webhooks/resend",
+  express.raw({ type: "application/json", limit: "1mb" }),
+  async (req, res) => {
+    const secret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!secret) {
+      res.status(503).json({ ok: false, error: "Webhook receiver is not configured." });
+      return;
+    }
+    const webhookId = req.header("svix-id");
+    const timestamp = req.header("svix-timestamp");
+    const signatures = req.header("svix-signature");
+    if (!webhookId || !timestamp || !signatures || !Buffer.isBuffer(req.body)) {
+      res.status(400).json({ ok: false, error: "Missing webhook signature headers or raw body." });
+      return;
+    }
+    const timestampSeconds = Number(timestamp);
+    if (!Number.isFinite(timestampSeconds) || Math.abs(Date.now() / 1000 - timestampSeconds) > 5 * 60) {
+      res.status(400).json({ ok: false, error: "Webhook timestamp is outside the allowed window." });
+      return;
+    }
+    const encodedSecret = secret.startsWith("whsec_") ? secret.slice(6) : secret;
+    const signingKey = Buffer.from(encodedSecret, "base64");
+    if (signingKey.length === 0) {
+      res.status(503).json({ ok: false, error: "Webhook signing secret is invalid." });
+      return;
+    }
+    const signedContent = `${webhookId}.${timestamp}.${req.body.toString("utf8")}`;
+    const expected = createHmac("sha256", signingKey).update(signedContent).digest();
+    const validSignature = signatures.split(" ").some((part) => {
+      const [version, value] = part.split(",", 2);
+      if (version !== "v1" || !value) return false;
+      const supplied = Buffer.from(value, "base64");
+      return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+    });
+    if (!validSignature) {
+      res.status(401).json({ ok: false, error: "Invalid webhook signature." });
+      return;
+    }
+    let event: { type?: unknown; data?: Record<string, unknown> };
+    try {
+      event = JSON.parse(req.body.toString("utf8")) as typeof event;
+    } catch {
+      res.status(400).json({ ok: false, error: "Invalid webhook JSON." });
+      return;
+    }
+    if (typeof event.type !== "string" || !event.type.startsWith("email.")) {
+      res.status(400).json({ ok: false, error: "Unsupported webhook event type." });
+      return;
+    }
+    const data = event.data ?? {};
+    const emailId = typeof data.email_id === "string" ? data.email_id : typeof data.id === "string" ? data.id : null;
+    const rawTo = data.to;
+    const recipient = typeof rawTo === "string"
+      ? rawTo
+      : Array.isArray(rawTo) ? rawTo.filter((value): value is string => typeof value === "string").join(",")
+      : null;
+    try {
+      const saved = await queryDatabase(
+        `INSERT INTO email_webhook_events (event_id, event_type, email_id, recipient, payload)
+         VALUES ($1, $2, $3, $4, $5::jsonb)
+         ON CONFLICT (event_id) DO NOTHING
+         RETURNING event_id`,
+        [webhookId, event.type, emailId, recipient, req.body.toString("utf8")]
+      );
+      res.status(200).json({ ok: true, received: true, duplicate: saved.rowCount === 0 });
+    } catch (error) {
+      console.error("Resend webhook persistence failed:", error);
+      res.status(500).json({ ok: false, error: "Unable to persist webhook event." });
+    }
+  }
+);
 
 app.use(express.json({ limit: "6mb" }));
 
