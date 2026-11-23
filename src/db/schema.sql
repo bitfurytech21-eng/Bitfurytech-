@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS account_status text NOT NULL DEFAULT 'Active' CHECK (account_status IN ('Active', 'Review', 'Suspended'));
+
 CREATE TABLE IF NOT EXISTS user_roles (
   user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   role text NOT NULL CHECK (role IN ('investor', 'admin', 'support')),
