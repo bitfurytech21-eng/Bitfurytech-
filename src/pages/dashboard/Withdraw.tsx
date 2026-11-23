@@ -115,7 +115,7 @@ export default function Withdraw() {
 
     setSubmitting(true);
     try {
-      const res = await apiRequest<{
+      const res = await sessionApiRequest<{
         ok: boolean;
         withdrawal: {
           reference: string;
