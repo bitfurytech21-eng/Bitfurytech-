@@ -7,7 +7,6 @@ import {
   NotificationMessage,
   subscribeUserNotifications,
 } from "../services/firestoreService";
-import LiveSupportWidget from "../components/LiveSupportWidget";
 
 export interface DashboardLayoutProps {
   title?: string;
@@ -136,7 +135,6 @@ export default function DashboardLayout({
         </main>
       </div>
 
-      <LiveSupportWidget />
     </div>
   );
 }
