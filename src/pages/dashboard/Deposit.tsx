@@ -16,7 +16,6 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import {
-  apiRequest,
   sessionApiRequest,
   DashboardTransactionDTO,
   DepositRailDTO,
@@ -29,7 +28,7 @@ function makeDepositKey(): string {
 }
 
 export default function Deposit() {
-  const { firebaseUser, idToken, backendSession, authReady, profile } = useAuth();
+  const { backendSession, authReady, profile } = useAuth();
   const [methods, setMethods] = useState<DepositRailDTO[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState<string>(
     profile?.preferredRail || "USDT (TRC20)"
@@ -79,7 +78,7 @@ export default function Deposit() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser || !activeRail) return;
+    if (!backendSession || !activeRail) return;
     setError(null);
     setSubmittedNotice(null);
 
@@ -93,7 +92,6 @@ export default function Deposit() {
 
     setSubmitting(true);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
       const res = await apiRequest<{
         ok: boolean;
         deposit: {
@@ -104,7 +102,7 @@ export default function Deposit() {
           status: string;
           confirmationInfo: string;
         };
-      }>("/api/deposits", token, {
+      }>("/api/deposits", {
         method: "POST",
         body: JSON.stringify({
           method: activeRail.id,
