@@ -1,5 +1,6 @@
 import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
 import {
   ArrowDownCircle,
@@ -28,7 +29,6 @@ import {
   fetchDashboardOverview,
   formatIsoDate,
 } from "../../services/dashboardApi";
-import { formatUsd } from "../../trading/tradingPage";
 
 function OverviewSkeleton() {
   return (
@@ -164,38 +164,38 @@ export default function Overview() {
             <Card padding="md" className="space-y-2 border-[#DCE4EC] bg-white text-[#102030]">
               <div className="text-xs font-medium text-[#5A6B7C]">Available Balance</div>
               <p className="text-xl font-bold font-mono tabular-nums text-white sm:text-2xl">
-                <FinancialAmount value={data.metrics.availableBalance} size="lg" />
+                {<FinancialAmount value={data.metrics.availableBalance} size="lg" />}
               </p>
               <p className="text-xs text-slate-300">
-                Deposited <span className="font-mono tabular-nums"><FinancialAmount value={data.metrics.totalDeposit} /></span>
+                Deposited <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalDeposit} size="md" />}</span>
               </p>
             </Card>
 
             <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
               <div className="text-xs font-medium text-[#5A6B7C]">Total Invested</div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                <FinancialAmount value={data.metrics.totalInvested} size="lg" />
+                {<FinancialAmount value={data.metrics.totalInvested} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
-                Active principal <span className="font-mono tabular-nums"><FinancialAmount value={data.metrics.activeInvested} /></span>
+                Active principal <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.activeInvested} size="md" />}</span>
               </p>
             </Card>
 
             <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
               <div className="text-xs font-medium text-[#5A6B7C]">Total Earnings</div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                <FinancialAmount value={data.metrics.totalEarnings} size="lg" />
+                {<FinancialAmount value={data.metrics.totalEarnings} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
-                Profit <span className="font-mono tabular-nums"><FinancialAmount value={data.metrics.totalProfit} /></span> · Referral{" "}
-                <span className="font-mono tabular-nums"><FinancialAmount value={data.metrics.referralBonus} /></span>
+                Profit <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalProfit} size="md" />}</span> · Referral{" "}
+                <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.referralBonus} size="md" />}</span>
               </p>
             </Card>
 
             <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
               <div className="text-xs font-medium text-[#5A6B7C]">Pending Payments</div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                <FinancialAmount value={data.metrics.pendingPayments} size="lg" />
+                {<FinancialAmount value={data.metrics.pendingPayments} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
                 {data.metrics.pendingCount} pending settlement{data.metrics.pendingCount === 1 ? "" : "s"}
@@ -280,7 +280,7 @@ export default function Overview() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-sm font-semibold font-mono tabular-nums text-slate-900">
-                              <FinancialAmount value={inv.amount} />
+                              {<FinancialAmount value={inv.amount} size="md" />}
                             </p>
                             <StatusText status={inv.status} />
                           </div>
@@ -316,7 +316,7 @@ export default function Overview() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-[#102030]">{bucket.label}</span>
                         <span className="font-mono tabular-nums text-[#5A6B7C]">
-                          <FinancialAmount value={bucket.investedAmount} /> ({bucket.sharePct}%)
+                          {<FinancialAmount value={bucket.investedAmount} size="md" />} ({bucket.sharePct}%)
                         </span>
                       </div>
                       <div className="h-2 rounded-full bg-[#EDF3F7] overflow-hidden">
@@ -400,7 +400,7 @@ export default function Overview() {
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-semibold font-mono tabular-nums text-slate-900">
-                            <FinancialAmount value={tx.amount} />
+                            {<FinancialAmount value={tx.amount} size="md" />}
                           </p>
                           <StatusText status={tx.status} />
                         </div>
@@ -440,7 +440,7 @@ export default function Overview() {
                           {plan.name}
                         </p>
                         <p className="text-xs font-mono tabular-nums text-slate-600 mt-0.5">
-                          Min <FinancialAmount value={plan.minDeposit} /> · Target {plan.dailyRatePct}%/day
+                          Min {<FinancialAmount value={plan.minDeposit} size="md" />} · Target {plan.dailyRatePct}%/day
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">

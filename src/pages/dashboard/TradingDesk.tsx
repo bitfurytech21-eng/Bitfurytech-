@@ -1,5 +1,6 @@
 import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, BarChart3, RefreshCw } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -16,7 +17,6 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { apiRequest } from "../../services/dashboardApi";
 import {
-  formatUsd,
   INVESTMENT_MANDATES,
   type InvestmentMandate,
   type MandateCategory,
@@ -202,7 +202,7 @@ export default function TradingDesk() {
                       </div>
                       <p className="text-sm font-bold text-slate-900 mt-0.5">{m.name}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Min <FinancialAmount value={m.minDeposit} /> · {m.durationDays} days
+                        Min {<FinancialAmount value={m.minDeposit} size="md" />} · {m.durationDays} days
                       </p>
                     </button>
                   );
@@ -250,12 +250,13 @@ export default function TradingDesk() {
                       <dt className="text-slate-500">Minimum Entry</dt>
                       <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
                         <FinancialAmount value={activePlan.minDeposit} />
+                        {<FinancialAmount value={activePlan.minDeposit} size="md" />}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-slate-500">Maximum Cap</dt>
                       <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                        <FinancialAmount value={activePlan.maxDeposit} />
+                        {<FinancialAmount value={activePlan.maxDeposit} size="md" />}
                       </dd>
                     </div>
                     <div>

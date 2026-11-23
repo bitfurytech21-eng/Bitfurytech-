@@ -19,7 +19,10 @@ export default function FinancialAmount({
   className = "",
   ...spanProps
 }: FinancialAmountProps) {
-  const numericValue = typeof value === "number" ? value : Number(String(value ?? 0).replace(/[$,\s]/g, ""));
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : Number(String(value ?? 0).replace(/[$,\s]/g, ""));
   const formatted = usdFormatter.format(Number.isFinite(numericValue) ? numericValue : 0);
 
   return (

@@ -1,5 +1,6 @@
 import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { Download, Eye, RefreshCw, Search } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
@@ -135,7 +136,7 @@ export default function Transactions() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-slate-900">
-          <FinancialAmount value={tx.amount} />
+          {<FinancialAmount value={tx.amount} size="md" />}
         </span>
       ),
     },
@@ -301,7 +302,7 @@ export default function Transactions() {
             <div>
               <dt className="text-slate-500">Amount</dt>
               <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                <FinancialAmount value={selectedTx.amount} /> {selectedTx.currency || "USD"}
+                {<FinancialAmount value={selectedTx.amount} size="md" />} {selectedTx.currency || "USD"}
               </dd>
             </div>
             <div className="sm:col-span-2">

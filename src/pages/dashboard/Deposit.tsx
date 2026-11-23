@@ -1,5 +1,6 @@
 import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { ArrowDownCircle, CheckCircle2, RefreshCw } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
@@ -150,7 +151,7 @@ export default function Deposit() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-slate-900">
-          <FinancialAmount value={tx.amount} />
+          {<FinancialAmount value={tx.amount} size="md" />}
         </span>
       ),
     },
@@ -199,7 +200,7 @@ export default function Deposit() {
                       <p>
                         Reference:{" "}
                         <span className="font-mono font-semibold">{submittedNotice.reference}</span>{" "}
-                        · <FinancialAmount value={submittedNotice.amount} /> ({submittedNotice.currency}) via{" "}
+                        · {<FinancialAmount value={submittedNotice.amount} size="md" />} ({submittedNotice.currency}) via{" "}
                         {submittedNotice.method}
                       </p>
                       <p>{submittedNotice.confirmationInfo}</p>
@@ -303,7 +304,7 @@ export default function Deposit() {
             <div>
               <p className="text-slate-500">Verified Available Balance</p>
               <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                <FinancialAmount value={availableBalance} />
+                {<FinancialAmount value={profile?.walletBalance ?? 0} size="lg" />}
               </p>
             </div>
             <div className="pt-3 border-t border-slate-200 space-y-2 text-slate-600 leading-relaxed">
