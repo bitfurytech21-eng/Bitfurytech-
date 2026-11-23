@@ -3,10 +3,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const reviews = [
   { name: 'Jenifer Smit', photo: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8251-lYNLlVcetPoC7Keg9SBkDZ4OyvMGYL.jpeg', localPhoto: '/images/testimonials/jenifer.jpeg', scale: 2.4, topic: 'Asset management', quote: 'I have never trusted any investment platform before, but Bitfury Tech Investments changed everything. They manage my assets and funds.' },
-  { name: 'Mr. Kelvin', topic: 'Deposits and withdrawals', quote: 'I am happy I found Bitfury Tech Investments. They keep exceeding my expectations, and I have found deposits and withdrawals quick.' },
-  { name: 'Richard', topic: 'Trading session insights', quote: 'I appreciate the insights shared in each trading session report and look forward to continued investments together.' },
+  { name: 'Mr. Kelvin', photo: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8249-6lMgLJVH2n11TPwEdXfbrJY4RyF6FR.jpeg', localPhoto: '/images/testimonials/kelvin.jpeg', scale: 1.25, topic: 'Deposits and withdrawals', quote: 'I am happy I found Bitfury Tech Investments. They keep exceeding my expectations, and I have found deposits and withdrawals quick.' },
+  { name: 'Richard', photo: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8247-uT4OemEHMu22H8ENr53PZ3fGNktM3t.jpeg', localPhoto: '/images/testimonials/richard.jpeg', scale: 1.25, topic: 'Trading session insights', quote: 'I appreciate the insights shared in each trading session report and look forward to continued investments together.' },
   { name: 'Micheal Abraham', photo: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8253-tE0yfRY2SZwnwq0iKEUxQ1pOSEacBf.jpeg', localPhoto: '/images/testimonials/micheal.jpeg', scale: 1, topic: 'Account updates', quote: 'I received my investment account update this morning, and I am pleased with the work being done. I would like to invest more in future opportunities.' },
-  { name: 'Joseph Bricks', topic: 'Attention to detail', quote: 'For me, investing is about trust, ability, affinity and availability. I have found the team attentive to detail and focused on their clients.' },
+  { name: 'Joseph', photo: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8255-YDbYKED2AcxTmzrQKUohEXwpleJv8A.jpeg', localPhoto: '/images/testimonials/joseph.jpeg', scale: 1, topic: 'Attention to detail', quote: 'For me, investing is about trust, ability, affinity and availability. I have found the team attentive to detail and focused on their clients.' },
 ];
 
 export default function InvestorTestimonials() {
