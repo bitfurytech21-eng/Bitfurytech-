@@ -237,3 +237,36 @@
   .bf-reveal { animation: none; }
   .bf-reveal:hover { transform: none; }
 }
+
+
+/* Consistent, bank-style currency figures */
+.financial-amount {
+  display: inline-block;
+  max-width: 100%;
+  color: #102030;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.financial-amount--sm {
+  font-size: 0.875rem;
+}
+
+.financial-amount--md {
+  font-size: 1rem;
+}
+
+.financial-amount--lg {
+  font-size: clamp(1.375rem, 2.8vw, 1.875rem);
+}
+
+@media (max-width: 420px) {
+  .financial-amount--lg {
+    font-size: clamp(1.25rem, 5.2vw, 1.5rem);
+  }
+}
