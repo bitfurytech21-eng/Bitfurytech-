@@ -31,7 +31,6 @@ import {
   fetchDashboardOverview,
   formatIsoDate,
 } from "../../services/dashboardApi";
-import { formatUsd } from "../../trading/tradingPage";
 
 function OverviewSkeleton() {
   return (
