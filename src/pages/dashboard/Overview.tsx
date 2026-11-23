@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
 import {
   ArrowDownCircle,
@@ -30,7 +31,6 @@ import {
   fetchDashboardOverview,
   formatIsoDate,
 } from "../../services/dashboardApi";
-import { formatUsd } from "../../trading/tradingPage";
 
 function OverviewSkeleton() {
   return (
@@ -169,10 +169,10 @@ export default function Overview() {
                 <Wallet className="h-4 w-4 shrink-0 text-[#B9D1DE]" aria-hidden="true" />
               </div>
               <p className="text-xl font-bold font-mono tabular-nums text-white sm:text-2xl">
-                {formatUsd(data.metrics.availableBalance)}
+                {<FinancialAmount value={data.metrics.availableBalance} size="lg" />}
               </p>
               <p className="text-xs text-slate-300">
-                Deposited <span className="font-mono tabular-nums">{formatUsd(data.metrics.totalDeposit)}</span>
+                Deposited <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalDeposit} size="md" />}</span>
               </p>
             </Card>
 
@@ -182,10 +182,10 @@ export default function Overview() {
                 <TrendingUp className="h-4 w-4 shrink-0 text-[#E94D65]" aria-hidden="true" />
               </div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {formatUsd(data.metrics.totalInvested)}
+                {<FinancialAmount value={data.metrics.totalInvested} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
-                Active principal <span className="font-mono tabular-nums">{formatUsd(data.metrics.activeInvested)}</span>
+                Active principal <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.activeInvested} size="md" />}</span>
               </p>
             </Card>
 
@@ -195,11 +195,11 @@ export default function Overview() {
                 <Coins className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
               </div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {formatUsd(data.metrics.totalEarnings)}
+                {<FinancialAmount value={data.metrics.totalEarnings} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
-                Profit <span className="font-mono tabular-nums">{formatUsd(data.metrics.totalProfit)}</span> · Referral{" "}
-                <span className="font-mono tabular-nums">{formatUsd(data.metrics.referralBonus)}</span>
+                Profit <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalProfit} size="md" />}</span> · Referral{" "}
+                <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.referralBonus} size="md" />}</span>
               </p>
             </Card>
 
@@ -209,7 +209,7 @@ export default function Overview() {
                 <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
               </div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {formatUsd(data.metrics.pendingPayments)}
+                {<FinancialAmount value={data.metrics.pendingPayments} size="lg" />}
               </p>
               <p className="text-xs text-[#5A6B7C]">
                 {data.metrics.pendingCount} pending settlement{data.metrics.pendingCount === 1 ? "" : "s"}
@@ -294,7 +294,7 @@ export default function Overview() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-sm font-semibold font-mono tabular-nums text-slate-900">
-                              {formatUsd(inv.amount)}
+                              {<FinancialAmount value={inv.amount} size="md" />}
                             </p>
                             <StatusText status={inv.status} />
                           </div>
@@ -330,7 +330,7 @@ export default function Overview() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-[#102030]">{bucket.label}</span>
                         <span className="font-mono tabular-nums text-[#5A6B7C]">
-                          {formatUsd(bucket.investedAmount)} ({bucket.sharePct}%)
+                          {<FinancialAmount value={bucket.investedAmount} size="md" />} ({bucket.sharePct}%)
                         </span>
                       </div>
                       <div className="h-2 rounded-full bg-[#EDF3F7] overflow-hidden">
@@ -414,7 +414,7 @@ export default function Overview() {
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-semibold font-mono tabular-nums text-slate-900">
-                            {formatUsd(tx.amount)}
+                            {<FinancialAmount value={tx.amount} size="md" />}
                           </p>
                           <StatusText status={tx.status} />
                         </div>
@@ -454,7 +454,7 @@ export default function Overview() {
                           {plan.name}
                         </p>
                         <p className="text-xs font-mono tabular-nums text-slate-600 mt-0.5">
-                          Min {formatUsd(plan.minDeposit)} · Target {plan.dailyRatePct}%/day
+                          Min {<FinancialAmount value={plan.minDeposit} size="md" />} · Target {plan.dailyRatePct}%/day
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">

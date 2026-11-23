@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -190,7 +191,7 @@ export default function MyInvestments() {
       align: "right",
       render: (inv) => (
         <span className="font-mono tabular-nums font-semibold text-slate-900">
-          {formatUsd(inv.amount)}
+          {<FinancialAmount value={inv.amount} size="md" />}
         </span>
       ),
     },
@@ -287,7 +288,7 @@ export default function MyInvestments() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-slate-900">
-          {formatUsd(tx.amount)}
+          {<FinancialAmount value={tx.amount} size="md" />}
         </span>
       ),
     },
@@ -356,13 +357,13 @@ export default function MyInvestments() {
             <Card padding="md">
               <p className="text-xs text-slate-500">Total Invested</p>
               <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {formatUsd(data?.summary.totalInvested ?? 0)}
+                {<FinancialAmount value={data?.summary.totalInvested ?? 0} size="md" />}
               </p>
             </Card>
             <Card padding="md">
               <p className="text-xs text-slate-500">Active Capital</p>
               <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {formatUsd(data?.summary.activeCapital ?? 0)}
+                {<FinancialAmount value={data?.summary.activeCapital ?? 0} size="md" />}
               </p>
             </Card>
             <Card padding="md">
@@ -483,7 +484,7 @@ export default function MyInvestments() {
               <div>
                 <p className="text-slate-500">Amount Invested</p>
                 <p className="text-lg font-bold font-mono tabular-nums text-slate-900">
-                  {formatUsd(selectedInvestment.amount)}
+                  {<FinancialAmount value={selectedInvestment.amount} size="md" />}
                 </p>
               </div>
               <StatusText status={selectedInvestment.status} />
@@ -567,7 +568,7 @@ export default function MyInvestments() {
                       </div>
                       <div className="text-right">
                         <p className="font-mono tabular-nums font-semibold text-slate-900">
-                          {formatUsd(tx.amount)}
+                          {<FinancialAmount value={tx.amount} size="md" />}
                         </p>
                         <StatusText status={tx.status} />
                       </div>
@@ -626,7 +627,7 @@ export default function MyInvestments() {
             <div className="flex justify-between">
               <span className="text-slate-500">Allocation Range</span>
               <span className="font-mono text-slate-900">
-                {formatUsd(activeMandate.minDeposit)} – {formatUsd(activeMandate.maxDeposit)}
+                {<FinancialAmount value={activeMandate.minDeposit} size="md" />} – {<FinancialAmount value={activeMandate.maxDeposit} size="md" />}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
