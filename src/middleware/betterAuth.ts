@@ -42,10 +42,10 @@ export async function resolveBetterAuthRole(userId: string, email?: string | nul
     "SELECT role FROM user_roles WHERE user_id = $1 ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'support' THEN 1 ELSE 2 END LIMIT 1",
     [userId]
   );
-  if (result.rows[0]?.role) return result.rows[0].role;
-  // Only the configured bootstrap identity receives this initial admin fallback.
+  // The explicitly configured bootstrap identity takes precedence over the default
+  // investor role created automatically for every new account.
   if (email && email.trim().toLowerCase() === BOOTSTRAP_ADMIN_EMAIL) return "admin";
-  return "investor";
+  return result.rows[0]?.role ?? "investor";
 }
 
 export async function requireBetterVerifiedEmail(
