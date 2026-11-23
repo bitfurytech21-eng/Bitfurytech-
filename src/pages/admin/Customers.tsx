@@ -30,6 +30,7 @@ interface AdminCustomerRow {
   referralBonus: number;
   role: string;
   accountStatus: string;
+  kycStatus: string;
   createdAt: string | null;
   investmentsCount: number;
   transactionsCount: number;
@@ -49,6 +50,8 @@ export default function AdminCustomers() {
   const [selected, setSelected] = useState<AdminCustomerRow | null>(null);
   const [editStatus, setEditStatus] = useState("Active");
   const [savingStatus, setSavingStatus] = useState(false);
+  const [editKycStatus, setEditKycStatus] = useState("not_submitted");
+  const [savingKyc, setSavingKyc] = useState(false);
 
   const loadCustomers = useCallback(
     async (isRefresh = false) => {
@@ -91,6 +94,7 @@ export default function AdminCustomers() {
   const openInspector = (customer: AdminCustomerRow) => {
     setSelected(customer);
     setEditStatus(customer.accountStatus || "Active");
+    setEditKycStatus(customer.kycStatus || "not_submitted");
   };
 
   const handleStatusUpdate = async () => {
@@ -115,6 +119,31 @@ export default function AdminCustomers() {
       });
     } finally {
       setSavingStatus(false);
+    }
+  };
+
+  const handleKycUpdate = async () => {
+    if (!selected) return;
+    setSavingKyc(true);
+    setBanner(null);
+    try {
+      await sessionApiRequest(`/api/admin/customers/${selected.uid}/kyc`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: editKycStatus }),
+      });
+      setBanner({
+        tone: "success",
+        text: `Updated ${selected.email} identity verification status to ${editKycStatus.replace(/_/g, " ")}.`,
+      });
+      setSelected((prev) => (prev ? { ...prev, kycStatus: editKycStatus } : null));
+      await loadCustomers(true);
+    } catch (err) {
+      setBanner({
+        tone: "error",
+        text: err instanceof Error ? err.message : "Unable to update KYC status.",
+      });
+    } finally {
+      setSavingKyc(false);
     }
   };
 
@@ -329,6 +358,36 @@ export default function AdminCustomers() {
                   onClick={() => void handleStatusUpdate()}
                 >
                   Save Status
+                </Button>
+              </div>
+            </div>
+
+            <div className="border border-slate-200 rounded-md p-4 space-y-3">
+              <p className="font-bold text-slate-900">Identity Verification (KYC)</p>
+              <p className="text-slate-500">Current status: {String(selected.kycStatus || "not_submitted").replace(/_/g, " ")}</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="flex-1 min-w-[180px]">
+                  <FormField id="cust-kyc-status" label="KYC Review Status">
+                    <SelectInput
+                      id="cust-kyc-status"
+                      value={editKycStatus}
+                      onChange={(e) => setEditKycStatus(e.target.value)}
+                    >
+                      <option value="not_submitted">Not submitted</option>
+                      <option value="pending">Pending review</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="needs_information">More information required</option>
+                    </SelectInput>
+                  </FormField>
+                </div>
+                <Button
+                  size="md"
+                  loading={savingKyc}
+                  disabled={editKycStatus === (selected.kycStatus || "not_submitted")}
+                  onClick={() => void handleKycUpdate()}
+                >
+                  Save KYC Status
                 </Button>
               </div>
             </div>

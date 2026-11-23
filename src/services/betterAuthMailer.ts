@@ -21,6 +21,6 @@ export async function sendBetterAuthEmail(kind: AuthMailKind, recipient: string,
     to: recipient,
     subject,
     text: `${intro}\n\n${action}: ${actionUrl}\n\nIf you did not request this, you can ignore this email.`,
-    html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#171717;line-height:1.6"><h2>BitfuryTech</h2><p>${intro}</p><p><a href="${safeUrl}" style="display:inline-block;padding:12px 20px;background:#eab308;color:#111;text-decoration:none;border-radius:6px">${action}</a></p><p>If you did not request this, you can ignore this email.</p></body></html>`,
+    html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#171717;line-height:1.6"><h2>BitfuryTech</h2><p>${intro}</p><p><a href="${safeUrl}" style="display:inline-block;padding:12px 20px;background:#3F8A3F;color:#FFFFFF;font-weight:bold;text-decoration:none;border-radius:6px">${action}</a></p><p>If you did not request this, you can ignore this email.</p></body></html>`,
   });
 }

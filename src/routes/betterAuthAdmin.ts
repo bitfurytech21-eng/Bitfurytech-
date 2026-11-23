@@ -25,6 +25,7 @@ import {
   upsertMockProperty,
 } from "../services/inMemoryFinancialMock.ts";
 import { DEFAULT_MAIL_TEMPLATES } from "../services/mailTemplates.ts";
+import { enqueueMailEvent } from "../services/mailOutbox.ts";
 import type { CustomerDocumentDTO } from "../services/dashboardApi.ts";
 
 
@@ -83,7 +84,7 @@ export function createBetterAuthAdminRouter(): Router {
     }
     try {
       const result = await queryDatabase<Row>(
-        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(w.available_balance,0) AS \"walletBalance\", 'Active'::text AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items FROM investments i WHERE i.user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items FROM transactions t WHERE t.user_id=u.id) tx ON true WHERE NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role='admin') ORDER BY u.\"createdAt\" DESC"
+        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(p.kyc_status,'not_submitted') AS \"kycStatus\", COALESCE(w.available_balance,0) AS \"walletBalance\", COALESCE(p.account_status,'Active') AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items FROM investments i WHERE i.user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items FROM transactions t WHERE t.user_id=u.id) tx ON true WHERE NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role='admin') ORDER BY u.\"createdAt\" DESC"
       );
       res.setHeader("Cache-Control", "no-store");
       res.json({ customers: result.rows });
@@ -297,6 +298,56 @@ export function createBetterAuthAdminRouter(): Router {
     } catch (error) {
       const code = Number((error as { statusCode?: number }).statusCode) || 502;
       res.status(code).json({ error: code === 404 ? "Customer not found." : "Unable to update customer status." });
+    }
+  });
+
+  router.patch("/customers/:uid/kyc", async (req, res) => {
+    const uid = typeof req.params.uid === "string" ? req.params.uid : "";
+    const status = typeof req.body?.status === "string" ? req.body.status.trim().toLowerCase() : "";
+    const allowed = new Set(["pending", "approved", "rejected", "needs_information"]);
+    const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 500) : "";
+    if (!uid || !allowed.has(status)) {
+      res.status(400).json({ error: "A valid customer ID and KYC status are required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      res.status(503).json({ error: "KYC review requires the configured Neon database." });
+      return;
+    }
+
+    try {
+      const result = await withAdminTransaction(async (client) => {
+        const user = await client.query<{ id: string; email: string; name: string }>(
+          'SELECT id, email, name FROM "user" WHERE id=$1 FOR UPDATE',
+          [uid]
+        );
+        if (!user.rows[0]) throw Object.assign(new Error("Customer not found."), { statusCode: 404 });
+        await client.query(
+          "INSERT INTO user_profiles (user_id, kyc_status) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET kyc_status=EXCLUDED.kyc_status, updated_at=now()",
+          [uid, status]
+        );
+        await auditInTransaction(client, auditActor(req as BetterAuthRequest)!, "UPDATE_KYC_STATUS", "user", uid, { status, note });
+        return user.rows[0];
+      });
+
+      let emailSent = false;
+      try {
+        emailSent = await enqueueMailEvent({
+          eventType: "kyc_status",
+          userId: uid,
+          recipient: result.email,
+          values: {
+            firstName: result.name.trim().split(/\\s+/)[0] || "Investor",
+            status: status.replace(/_/g, " "),
+          },
+        });
+      } catch (mailError) {
+        console.error("KYC status email failed:", mailError);
+      }
+      res.json({ ok: true, uid, kycStatus: status, emailSent });
+    } catch (error) {
+      const code = Number((error as { statusCode?: number }).statusCode) || 502;
+      res.status(code).json({ error: code === 404 ? "Customer not found." : "Unable to update KYC status." });
     }
   });
 
