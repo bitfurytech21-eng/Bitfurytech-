@@ -209,6 +209,14 @@ export default function Deposit() {
                 />
               )}
 
+              {methods.length === 0 && !loading && (
+                <NotificationBanner
+                  tone="error"
+                  title="No payment methods available"
+                  message="The payment team has not enabled a receiving wallet yet. Please contact support before sending funds."
+                />
+              )}
+
               <FormField id="dep-method" label="Supported Payment Method">
                 <SelectInput
                   id="dep-method"
