@@ -184,7 +184,7 @@ export default function EmailTemplatesPage() {
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                 definition.triggerStatus === "wired"
                   ? "bg-emerald-100 text-emerald-800"
-                  : definition.triggerStatus === "firebase_auth"
+                  : definition.triggerStatus === "better_auth"
                     ? "bg-sky-100 text-sky-800"
                     : "bg-slate-100 text-slate-700"
               }`}
@@ -192,7 +192,7 @@ export default function EmailTemplatesPage() {
               {definition.triggerStatus === "wired"
                 ? "Event connected"
                 : definition.triggerStatus === "firebase_auth"
-                  ? "Firebase Auth managed"
+                  ? "Better Auth managed"
                   : "Workflow not connected"}
             </span>
             <span className="text-xs text-slate-600">{definition.triggerDescription}</span>
