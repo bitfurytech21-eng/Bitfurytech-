@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FileText, Mail, MapPin, ShieldCheck } from "lucide-react";
+import { EditorialIcon } from "../../components/EditorialArtwork";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
@@ -30,24 +31,28 @@ const SOLUTIONS = [
   {
     index: "01",
     title: "Market Analysis",
+    art: "analysis" as const,
     description:
       "We study the attractiveness and underlying dynamics across digital assets, equities, and real estate sectors within global financial markets.",
   },
   {
     index: "02",
     title: "Allocation & Advisory Desk",
+    art: "advisory" as const,
     description:
       "Our specialists focus on more than simple trade execution—helping align structured mandates, liquidity horizons, and risk parameters with client objectives.",
   },
   {
     index: "03",
     title: "Professional Research Team",
+    art: "team" as const,
     description:
       "Experienced financial analysts, network engineers, macroeconomists, research scientists, and quantitative analysts collaborate on systematic execution.",
   },
   {
     index: "04",
     title: "Structured Portfolio",
+    art: "strategy" as const,
     description:
       "Multi-asset allocations built to balance performance potential and controlled risk brackets across changing market regimes.",
   },
@@ -131,13 +136,12 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
           {/* 2. Who We Are & What We Do */}
           <section className="grid md:grid-cols-12 gap-8 items-start border-b border-[#DCE4EC] pb-14">
-            <div className="md:col-span-4">
-              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                Reinventing Investor Access
-              </p>
-              <h2 className="text-2xl font-heading font-bold text-[#102030] mt-2">
-                Who We Are &amp; What We Do
-              </h2>
+            <div className="md:col-span-4 overflow-hidden rounded-md bg-white">
+              <img src="/images/team-meeting-fade.webp" alt="Bitfury Tech team members gathered around a meeting table" width="1200" height="1200" loading="lazy" className="aspect-[2/1] w-full object-cover object-top" />
+              <div className="relative bg-linear-to-b from-transparent via-white to-white -mt-4 px-3 pb-2 pt-4">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">Reinventing Investor Access</p>
+                <h2 className="mt-2 text-2xl font-heading font-bold text-[#102030]">Who We Are &amp; What We Do</h2>
+              </div>
             </div>
             <div className="md:col-span-8 space-y-4 text-sm sm:text-base text-[#5A6B7C] leading-relaxed">
               <p>
@@ -222,6 +226,7 @@ export default function About() {
           <section className="grid md:grid-cols-2 gap-6 border-b border-[#DCE4EC] pb-14">
             <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-3">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                <EditorialIcon name="mission" className="mb-4 size-12" />
                 Our Mission
               </p>
               <h2 className="text-xl font-heading font-bold text-[#102030]">
@@ -235,6 +240,7 @@ export default function About() {
             </div>
             <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-3">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                <EditorialIcon name="oversight" className="mb-4 size-12" />
                 Our Approach &amp; IPC Oversight
               </p>
               <h2 className="text-xl font-heading font-bold text-[#102030]">
@@ -265,7 +271,10 @@ export default function About() {
                   key={sol.index}
                   className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-2.5 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
                 >
-                  <p className="text-xs font-mono font-semibold text-[#B92841]">{sol.index}.</p>
+                  <div className="mb-4 flex items-start justify-between">
+                    <EditorialIcon name={sol.art} />
+                    <span className="text-xs font-mono font-semibold text-[#5A6B7C]">{sol.index}</span>
+                  </div>
                   <h3 className="text-base font-heading font-bold text-[#102030]">{sol.title}</h3>
                   <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">
                     {sol.description}

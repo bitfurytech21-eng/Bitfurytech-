@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Mail, MessageSquare, ShieldCheck } from "lucide-react";
+import { OfficeMap } from "../../components/EditorialArtwork";
 import PublicLayout from "../../components/PublicLayout";
 import { openLiveSupportChat } from "../../components/LiveSupportWidget";
 import {
@@ -168,6 +169,7 @@ export default function Contact() {
                   <div>
                     <dt className="text-xs text-[#5A6B7C]">Office</dt>
                     <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
+                      <OfficeMap />
                       171 Crescent Road, Oxford, England, OX4 2NX
                     </dd>
                   </div>
