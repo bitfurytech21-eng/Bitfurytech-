@@ -265,27 +265,10 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             </p>
             <div className="pt-1 text-xs text-slate-300 space-y-1.5">
               <p>171 Crescent Road, Oxford, England, OX4 2NX</p>
-              <a
-                href="mailto:admin@bitfurytechinvestment.com"
-                className="flex items-center gap-2 hover:text-white"
-              >
-                <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-                <span>admin@bitfurytechinvestment.com</span>
-              </a>
-              <a
-                href="mailto:support@bitfurytechinvestment.com"
-                className="flex items-center gap-2 hover:text-white"
-              >
-                <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-                <span>support@bitfurytechinvestment.com</span>
-              </a>
-              <a
-                href="mailto:bitfurytech21@gmail.com"
-                className="flex items-center gap-2 hover:text-white"
-              >
-                <Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-                <span>bitfurytech21@gmail.com</span>
-              </a>
+              <a href="mailto:support@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Client Support: support@bitfurytech.cloud</span></a>
+              <a href="mailto:compliance.notice@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Compliance: compliance.notice@bitfurytech.cloud</span></a>
+              <a href="mailto:news@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Newsletter: news@bitfurytech.cloud</span></a>
+              <a href="mailto:info@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Trust Wallet: info@bitfurytech.cloud</span></a>
             </div>
           </div>
 
