@@ -27,6 +27,7 @@ interface AdminWithdrawalRow {
   reference: string;
   status: string;
   createdAt: string | null;
+  metadata?: { fee?: number; netPayout?: number };
 }
 
 export default function AdminWithdrawals() {
@@ -133,9 +134,16 @@ export default function AdminWithdrawals() {
       header: "Reserved Amount",
       align: "right",
       render: (w) => (
-        <span className="font-mono tabular-nums font-semibold text-slate-900">
-          {formatUsd(w.amount)}
-        </span>
+        <div className="text-right">
+          <span className="font-mono tabular-nums font-semibold text-slate-900">
+            {formatUsd(w.amount)}
+          </span>
+          {w.metadata && (
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              Fee {formatUsd(Number(w.metadata.fee ?? 0))} · Net payout {formatUsd(Number(w.metadata.netPayout ?? w.amount))}
+            </p>
+          )}
+        </div>
       ),
     },
     {
