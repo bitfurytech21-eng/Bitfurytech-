@@ -2,30 +2,24 @@ import { useEffect } from "react";
 
 declare global {
   interface Window {
-    Tawk_API?: {
-      onLoad?: () => void;
-      onStatusChange?: (status: string) => void;
-    };
+    Tawk_API?: Record<string, unknown>;
     Tawk_LoadStart?: Date;
   }
 }
 
 /**
- * Loads the official Tawk.to widget once for the entire application.
- * App.tsx already mounts this component globally, so the widget is available
- * on public pages and inside the authenticated dashboard.
+ * Application-wide Tawk.to support widget.
+ * Mounted by App.tsx so the same support widget is available on public
+ * pages and authenticated dashboard routes.
  */
 export default function LiveSupportWidget() {
   useEffect(() => {
     const widgetSrc =
       "https://embed.tawk.to/6b03a14ab939fa3cd8ee2298/default";
 
-    // Avoid inserting the same widget more than once during route changes
-    // or React StrictMode's development effect cycle.
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[src="' + widgetSrc + '"]'
-    );
-    if (existing) return;
+    // Prevent duplicate embeds if React StrictMode or route rendering
+    // causes this effect to run more than once.
+    if (document.querySelector('script[src="' + widgetSrc + '"]')) return;
 
     window.Tawk_API = window.Tawk_API || {};
     window.Tawk_LoadStart = new Date();
@@ -37,17 +31,16 @@ export default function LiveSupportWidget() {
     script.setAttribute("crossorigin", "*");
     script.setAttribute("data-tawk-widget", "bitfurytech");
 
+    script.onerror = () => {
+      console.error("Unable to load the BitfuryTech Tawk.to support widget.");
+    };
+
     const firstScript = document.getElementsByTagName("script")[0];
     if (firstScript?.parentNode) {
       firstScript.parentNode.insertBefore(script, firstScript);
     } else {
       document.head.appendChild(script);
     }
-
-    return () => {
-      // Keep the provider script alive across SPA route changes.
-      // Tawk owns its iframe lifecycle after it has loaded.
-    };
   }, []);
 
   return null;
