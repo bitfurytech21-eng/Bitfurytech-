@@ -165,7 +165,7 @@ export default function Deposit() {
   return (
     <DashboardLayout
       title="Deposit Funds"
-      subtitle="Select a supported rail, review transfer instructions, and submit a deposit notice for settlement verification."
+      subtitle="Choose an administrator-configured payment method, transfer to the official receiving address, and submit your transaction reference for verification."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadData()}>
           <RefreshCw className="w-3.5 h-3.5" />
@@ -240,7 +240,7 @@ export default function Deposit() {
                       <strong className="text-slate-800">Network:</strong> {activeRail.network}
                     </p>
                     <p>
-                      <strong className="text-slate-800">Destination:</strong>{" "}
+                      <strong className="text-slate-800">Payment Wallet / Bank Details:</strong>{" "}
                       {activeRail.custodyDestination}
                     </p>
                   </div>
