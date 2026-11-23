@@ -105,7 +105,7 @@ export default function Invest() {
     setLoading(true);
     setError(null);
     try {
-            const res = await apiRequest<{
+            const res = await sessionApiRequest<{
         plans: CatalogPlan[];
         properties: CatalogProperty[];
         feeRatePct: number;
@@ -173,7 +173,7 @@ export default function Invest() {
 
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser) return;
+    if (!authReady || !backendSession) return;
     setSubmitError(null);
     setInsufficientFunds(null);
 
@@ -206,7 +206,6 @@ export default function Invest() {
 
     setSubmitting(true);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
       const resolvedId =
         targetType === "property" ? selectedProperty?.id || "" : selectedPlan?.id || "";
 
