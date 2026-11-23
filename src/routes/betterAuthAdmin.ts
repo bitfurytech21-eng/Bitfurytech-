@@ -1010,6 +1010,72 @@ export function createBetterAuthAdminRouter(): Router {
     }
   });
 
+  router.get("/payment-wallets", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.status(503).json({ error: "Payment wallet management requires the Neon database." });
+      return;
+    }
+    try {
+      const result = await queryDatabase<Row>(
+        'SELECT method_id AS id, label, currency, network, wallet_address AS "walletAddress", min_deposit AS "minDeposit", instructions, confirmation_info AS "confirmationInfo", enabled, updated_at AS "updatedAt" FROM platform_payment_wallets ORDER BY method_id'
+      );
+      res.json({ wallets: result.rows.map((row) => ({ ...row, minDeposit: number(row.minDeposit) })) });
+    } catch (error) {
+      console.error("Payment wallet settings query failed:", error);
+      res.status(503).json({ error: "Payment wallet settings are unavailable. Apply the latest database migration." });
+    }
+  });
+
+  router.put("/payment-wallets/:methodId", async (req: BetterAuthRequest, res) => {
+    const methodId = typeof req.params.methodId === "string" ? req.params.methodId : "";
+    const allowedMethods = ["USDT (TRC20)", "Bitcoin (BTC)", "Ethereum (ETH)", "Bank Wire"];
+    if (!allowedMethods.includes(methodId)) {
+      res.status(400).json({ error: "Unsupported payment method." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      res.status(503).json({ error: "Payment wallet management requires the Neon database." });
+      return;
+    }
+    const label = textValue(req.body?.label).trim().slice(0, 100);
+    const currency = textValue(req.body?.currency).trim().slice(0, 40);
+    const network = textValue(req.body?.network).trim().slice(0, 100);
+    const walletAddress = textValue(req.body?.walletAddress).trim().slice(0, 1200);
+    const instructions = textValue(req.body?.instructions).trim().slice(0, 1200);
+    const confirmationInfo = textValue(req.body?.confirmationInfo).trim().slice(0, 1200);
+    const minDeposit = number(req.body?.minDeposit, 0);
+    const enabled = req.body?.enabled === true;
+    if (!label || !currency || !network || !Number.isFinite(minDeposit) || minDeposit <= 0) {
+      res.status(400).json({ error: "Label, currency, network, and a positive minimum deposit are required." });
+      return;
+    }
+    if (enabled && walletAddress.length < 6) {
+      res.status(400).json({ error: "Add a valid receiving wallet address or bank details before enabling this method." });
+      return;
+    }
+    try {
+      await queryDatabase(
+        `INSERT INTO platform_payment_wallets
+          (method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info, enabled, updated_by, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now())
+         ON CONFLICT (method_id) DO UPDATE SET
+          label=EXCLUDED.label, currency=EXCLUDED.currency, network=EXCLUDED.network,
+          wallet_address=EXCLUDED.wallet_address, min_deposit=EXCLUDED.min_deposit,
+          instructions=EXCLUDED.instructions, confirmation_info=EXCLUDED.confirmation_info,
+          enabled=EXCLUDED.enabled, updated_by=EXCLUDED.updated_by, updated_at=now()`,
+        [methodId, label, currency, network, walletAddress, minDeposit, instructions, confirmationInfo, enabled, auditActor(req)]
+      );
+      await recordAudit(req, "UPDATE_PAYMENT_WALLET", "payment_wallet", methodId, {
+        enabled, network, walletAddressChanged: walletAddress.length > 0, minDeposit,
+      });
+      res.json({ ok: true, methodId, enabled });
+    } catch (error) {
+      console.error("Payment wallet save failed:", error);
+      res.status(502).json({ error: "Unable to save payment wallet settings." });
+    }
+  });
+
   router.get("/email-templates", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     if (!isDatabaseConfigured) {

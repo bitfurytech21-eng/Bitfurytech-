@@ -299,6 +299,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS manual_payment_assignments_reference_unique_id
 CREATE INDEX IF NOT EXISTS manual_payment_assignments_created_idx
   ON manual_payment_assignments (created_at DESC);
 
+-- Administrator-managed receiving destinations shown consistently in customer payment flows.
+CREATE TABLE IF NOT EXISTS platform_payment_wallets (
+  method_id text PRIMARY KEY,
+  label text NOT NULL,
+  currency text NOT NULL,
+  network text NOT NULL,
+  wallet_address text NOT NULL DEFAULT '',
+  min_deposit numeric(20, 2) NOT NULL DEFAULT 100 CHECK (min_deposit > 0),
+  instructions text NOT NULL DEFAULT '',
+  confirmation_info text NOT NULL DEFAULT '',
+  enabled boolean NOT NULL DEFAULT false,
+  updated_by text REFERENCES "user"(id),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS platform_payment_wallets_enabled_idx
+  ON platform_payment_wallets (enabled, method_id);
+
 
 -- Idempotent per-investment daily ROI accrual ledger.
 CREATE TABLE IF NOT EXISTS roi_accruals (
