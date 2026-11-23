@@ -52,7 +52,7 @@ function mapTransaction(row: DbTransaction, email: string) {
     reference: row.reference ?? row.id,
     status: transactionStatus(row.status),
     currency: row.currency,
-    description: typeof row.metadata?.description === "string" ? row.metadata.description : undefined,
+    description: typeof row.metadata?.description === "string" ? row.metadata.description : row.type.toLowerCase() === "deposit" ? `Deposit notice via ${row.method ?? "account rail"}` : row.type.toLowerCase() === "withdrawal" ? `Withdrawal disbursement via ${row.method ?? "account rail"} to ${row.destination ?? "registered destination"}` : row.type.toLowerCase() === "investment" ? `Investment allocation: ${row.method ?? "investment plan"}` : row.type.toLowerCase() === "referral" ? `Referral commission settlement (${row.method ?? "referral"})` : `Yield distribution: ${row.method ?? "account ledger"}`,
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),
   };
@@ -113,8 +113,8 @@ async function loadFinancialRows(userId: string) {
       "SELECT id, user_id, plan_id, plan_snapshot, principal, currency, status, started_at, matures_at, created_at, updated_at FROM investments WHERE user_id = $1 ORDER BY created_at DESC", [userId]),
     queryDatabase<DbTransaction>(
       "SELECT id, user_id, type, amount, currency, method, destination, reference, status, metadata, created_at, updated_at FROM transactions WHERE user_id = $1 ORDER BY created_at DESC", [userId]),
-    queryDatabase<{ entry_count: string; net_ledger_amount: string }>(
-      "SELECT COUNT(*)::text AS entry_count, COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount ELSE -amount END), 0)::text AS net_ledger_amount FROM ledger_entries WHERE user_id = $1", [userId]),
+    queryDatabase<{ entry_count: string; last_entry_at: Date | string | null }>(
+      "SELECT COUNT(*)::text AS entry_count, MAX(created_at) AS last_entry_at FROM ledger_entries WHERE user_id = $1", [userId]),
   ]);
   if (!user.rows[0]) throw new Error("Authenticated Better Auth account was not found in Neon.");
   const email = user.rows[0].email;
@@ -180,7 +180,7 @@ export async function getNeonDashboardOverview(userId: string) {
     syncedAt: new Date().toISOString(),
     ledgerSummary: {
       entryCount: amount(rows.ledger?.entry_count),
-      netPostedAmount: amount(rows.ledger?.net_ledger_amount),
+      lastEntryAt: iso(rows.ledger?.last_entry_at),
     },
   };
 }
