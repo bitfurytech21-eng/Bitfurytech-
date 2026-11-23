@@ -18,7 +18,6 @@ import {
   DashboardTransactionDTO,
   formatIsoDate,
 } from "../../services/dashboardApi";
-import { formatUsd } from "../../trading/tradingPage";
 
 interface ReferralResponse {
   referralCode: string;
