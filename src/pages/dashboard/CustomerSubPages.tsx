@@ -375,7 +375,7 @@ export function DashboardPropertiesPage() {
 }
 
 export function ReferralProgramPage() {
-  const { firebaseUser, idToken } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [overview, setOverview] = useState<DashboardOverviewDTO | null>(null);
   const [referralTxs, setReferralTxs] = useState<DashboardTransactionDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -383,14 +383,13 @@ export function ReferralProgramPage() {
   const [copied, setCopied] = useState(false);
 
   const loadReferralLedger = useCallback(async () => {
-    if (!firebaseUser) return;
+    if (!authReady || !backendSession) return;
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
       const [ov, inv] = await Promise.all([
-        fetchDashboardOverview(token),
-        fetchDashboardInvestments(token),
+        fetchDashboardOverview(),
+        fetchDashboardInvestments(),
       ]);
       setOverview(ov);
       setReferralTxs(inv.allTransactions.filter((tx) => tx.type === "Referral"));
@@ -403,7 +402,7 @@ export function ReferralProgramPage() {
     } finally {
       setLoading(false);
     }
-  }, [firebaseUser, idToken]);
+  }, [backendSession, authReady]);
 
   useEffect(() => {
     void loadReferralLedger();
@@ -569,8 +568,7 @@ export function DocumentsPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      const payload = await fetchDashboardInvestments(token);
+      const payload = await fetchDashboardInvestments();
       setData(payload);
     } catch (err) {
       setError(
