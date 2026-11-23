@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -99,7 +100,7 @@ export function InvestmentOpportunitiesPage() {
         <p className="text-xs text-slate-600">
           Available Custody Balance:{" "}
           <span className="font-mono tabular-nums font-semibold text-slate-900">
-            {formatUsd(profile?.walletBalance ?? 0)}
+            <FinancialAmount value={profile?.walletBalance ?? 0} size="md" />
           </span>
         </p>
       </div>
@@ -131,13 +132,13 @@ export function InvestmentOpportunitiesPage() {
                   <div>
                     <dt className="text-slate-500">Minimum Entry</dt>
                     <dd className="font-mono tabular-nums font-semibold text-slate-900 mt-0.5">
-                      {formatUsd(m.minDeposit)}
+                      <FinancialAmount value={m.minDeposit} size="md" />
                     </dd>
                   </div>
                   <div>
                     <dt className="text-slate-500">Maximum Cap</dt>
                     <dd className="font-mono tabular-nums font-semibold text-slate-900 mt-0.5">
-                      {formatUsd(m.maxDeposit)}
+                      <FinancialAmount value={m.maxDeposit} size="md" />
                     </dd>
                   </div>
                   <div>
@@ -198,13 +199,13 @@ export function InvestmentOpportunitiesPage() {
               <div>
                 <p className="text-slate-500">Minimum</p>
                 <p className="font-mono tabular-nums font-semibold text-slate-900 mt-0.5">
-                  {formatUsd(inspectMandate.minDeposit)}
+                  <FinancialAmount value={inspectMandate.minDeposit} size="md" />
                 </p>
               </div>
               <div>
                 <p className="text-slate-500">Maximum</p>
                 <p className="font-mono tabular-nums font-semibold text-slate-900 mt-0.5">
-                  {formatUsd(inspectMandate.maxDeposit)}
+                  <FinancialAmount value={inspectMandate.maxDeposit} size="md" />
                 </p>
               </div>
               <div>
@@ -334,13 +335,13 @@ export function DashboardPropertiesPage() {
                     <div>
                       <dt className="text-slate-500">Min Entry</dt>
                       <dd className="font-mono tabular-nums font-semibold text-slate-900">
-                        {formatUsd(p.minEntry)}
+                        <FinancialAmount value={p.minEntry} size="md" />
                       </dd>
                     </div>
                     <div>
                       <dt className="text-slate-500">Appraised Valuation</dt>
                       <dd className="font-mono tabular-nums font-semibold text-slate-900">
-                        {formatUsd(p.valuation)}
+                        <FinancialAmount value={p.valuation} size="md" />
                       </dd>
                     </div>
                     <div>
@@ -453,7 +454,7 @@ export function ReferralProgramPage() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-emerald-700">
-          {formatUsd(tx.amount)}
+          <FinancialAmount value={tx.amount} size="md" />
         </span>
       ),
     },
@@ -753,7 +754,7 @@ export function DocumentsPage() {
                       {m.name} — Term Schedule
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {m.categoryLabel} · {m.durationDays} days · Min {formatUsd(m.minDeposit)} ·{" "}
+                      {m.categoryLabel} · {m.durationDays} days · Min <FinancialAmount value={m.minDeposit} size="md" /> ·{" "}
                       {m.paymentFrequency}
                     </p>
                   </div>
