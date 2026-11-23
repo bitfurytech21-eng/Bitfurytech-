@@ -29,7 +29,7 @@ function makeWithdrawKey(): string {
 }
 
 export default function Withdraw() {
-  const { backendSession, authReady, profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [config, setConfig] = useState<WithdrawalConfigDTO>({
     minWithdrawal: 50,
     maxSingleWithdrawal: 250000,
@@ -38,7 +38,8 @@ export default function Withdraw() {
     currency: "USD",
     supportedRails: ["USDT (TRC20)", "Bitcoin (BTC)", "Ethereum (ETH)", "Bank Wire"],
   });
-  const [method, setMethod] = useState<string>(profile?.preferredRail || "USDT (TRC20)");
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [method, setMethod] = useState<string>("USDT (TRC20)");
   const [amount, setAmount] = useState("");
   const [destination, setDestination] = useState("");
   const [accountDetails, setAccountDetails] = useState("");
@@ -63,11 +64,13 @@ export default function Withdraw() {
     if (!authReady || !backendSession) return;
     setLoading(true);
     try {
-      const [cfg, txRes] = await Promise.all([
+      const [cfg, txRes, overview] = await Promise.all([
         sessionApiRequest<WithdrawalConfigDTO>("/api/withdrawals/config"),
         sessionApiRequest<{ transactions: DashboardTransactionDTO[] }>("/api/transactions"),
+        sessionApiRequest<{ metrics: { availableBalance: number } }>("/api/dashboard/overview"),
       ]);
       setConfig(cfg);
+      setAvailableBalance(overview.metrics.availableBalance ?? 0);
       setWithdrawals(txRes.transactions.filter((t) => t.type === "Withdrawal"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load withdrawal configuration.");
@@ -80,7 +83,7 @@ export default function Withdraw() {
     void loadData();
   }, [loadData]);
 
-  const available = profile?.walletBalance ?? 0;
+  const available = availableBalance;
   const parsedAmount = Number(amount) || 0;
   const estimatedFee =
     parsedAmount > 0
@@ -98,7 +101,7 @@ export default function Withdraw() {
     setReceipt(null);
 
     if (!Number.isFinite(parsedAmount) || parsedAmount < config.minWithdrawal) {
-      setError(`Minimum withdrawal amount is $<FinancialAmount value={config.minWithdrawal} />.`);
+      setError(`Minimum withdrawal amount is ${formatUsd(config.minWithdrawal)}.`);
       return;
     }
     if (parsedAmount > available) {
@@ -213,7 +216,7 @@ export default function Withdraw() {
         <Card className="lg:col-span-7">
           <CardHeader
             title="Withdrawal Disbursement Request"
-            subtitle={`Minimum withdrawal $<FinancialAmount value={config.minWithdrawal} /> · Fee ${config.feeRatePct}% (min $<FinancialAmount value={config.minFeeUsd} />)`}
+            subtitle={`Minimum withdrawal ${formatUsd(config.minWithdrawal)} · Fee ${config.feeRatePct}% (min ${formatUsd(config.minFeeUsd)})`}
             action={<ArrowUpRight className="w-4 h-4 text-slate-400" />}
           />
           <CardBody>
@@ -230,7 +233,7 @@ export default function Withdraw() {
                 <NotificationBanner
                   tone="success"
                   title={`Withdrawal Queued (${receipt.status})`}
-                  message={`Reference ${receipt.reference}: Requested $<FinancialAmount value={receipt.amount} /> (fee $<FinancialAmount value={receipt.fee} />, net payout $<FinancialAmount value={receipt.netPayout} />) to ${receipt.destination}.`}
+                  message={`Reference ${receipt.reference}: Requested ${formatUsd(receipt.amount)} (fee ${formatUsd(receipt.fee)}, net payout ${formatUsd(receipt.netPayout)}) to ${receipt.destination}.`}
                   onDismiss={() => setReceipt(null)}
                 />
               )}
@@ -253,7 +256,7 @@ export default function Withdraw() {
                 <FormField
                   id="wdr-amt"
                   label="Withdrawal Amount (USD)"
-                  hint={`Min $<FinancialAmount value={config.minWithdrawal} /> · Max $<FinancialAmount value={available} />`}
+                  hint={`Min ${formatUsd(config.minWithdrawal)} · Max ${formatUsd(available)}`}
                 >
                   <TextInput
                     id="wdr-amt"
