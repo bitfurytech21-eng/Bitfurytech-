@@ -182,10 +182,7 @@ export default function Overview() {
             </Card>
 
             <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
-              <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#5A6B7C]">
-                <span>Total Earnings</span>
-                <Coins className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-              </div>
+              <div className="text-xs font-medium text-[#5A6B7C]">Total Earnings</div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 <FinancialAmount value={data.metrics.totalEarnings} size="lg" />
               </p>
@@ -196,10 +193,7 @@ export default function Overview() {
             </Card>
 
             <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
-              <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#5A6B7C]">
-                <span>Pending Payments</span>
-                <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-              </div>
+              <div className="text-xs font-medium text-[#5A6B7C]">Pending Payments</div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 <FinancialAmount value={data.metrics.pendingPayments} size="lg" />
               </p>
