@@ -355,17 +355,17 @@ export function createBetterAuthAdminRouter(): Router {
     const b = (req.body ?? {}) as Row;
     try {
       const result = await queryDatabase(
-        "UPDATE properties SET property_data=property_data || $2::jsonb, updated_at=now() WHERE id=$1 RETURNING id",
-        [id, JSON.stringify({ published: b.published !== false })]
+        "UPDATE properties SET title=COALESCE(NULLIF($2,''),title), location=COALESCE(NULLIF($3,''),location), asset_type=COALESCE(NULLIF($4,''),asset_type), target_yield_pct=COALESCE($5,target_yield_pct), minimum_entry=COALESCE($6,minimum_entry), valuation=COALESCE($7,valuation), occupancy_pct=COALESCE($8,occupancy_pct), status=COALESCE(NULLIF($9,''),status), image_url=COALESCE(NULLIF($10,''),image_url), summary=COALESCE(NULLIF($11,''),summary), supporting_document_url=COALESCE(NULLIF($12,''),supporting_document_url), property_data=property_data || $13::jsonb, updated_at=now() WHERE id=$1 RETURNING id",
+        [id, textValue(b.title), textValue(b.location), textValue(b.assetType), b.targetYieldPct == null ? null : number(b.targetYieldPct), b.minEntry == null ? null : number(b.minEntry), b.valuation == null ? null : number(b.valuation), b.occupancyPct == null ? null : number(b.occupancyPct), textValue(b.status), textValue(b.image), textValue(b.summary), textValue(b.supportingDocUrl), JSON.stringify({ published: b.published !== false, supportingDocName: textValue(b.supportingDocName) })]
       );
       if (!result.rowCount) {
         res.status(404).json({ error: "Property not found." });
         return;
       }
-      await recordAudit(req as BetterAuthRequest, "UPDATE_PROPERTY_VISIBILITY", "property", id, { published: b.published !== false });
+      await recordAudit(req as BetterAuthRequest, "UPDATE_PROPERTY", "property", id, { published: b.published !== false });
       res.json({ ok: true, id });
     } catch (error) {
-      res.status(502).json({ error: "Unable to update property visibility." });
+      res.status(502).json({ error: "Unable to update property." });
     }
   });
 
