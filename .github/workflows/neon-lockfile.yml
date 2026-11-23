@@ -38,5 +38,7 @@ jobs:
           cache: npm
       - name: Verify committed lockfile without modifying it
         run: npm ci --no-audit --no-fund
+      - name: Type-check server and application TypeScript
+        run: npx tsc --noEmit
       - name: Build production frontend
         run: npm run build
