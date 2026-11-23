@@ -35,5 +35,7 @@ jobs:
           cache: npm
       - name: Install exact committed dependency tree
         run: npm ci --no-audit --no-fund
+      - name: Type-check server and application TypeScript
+        run: npx tsc --noEmit
       - name: Build production frontend
         run: npm run build

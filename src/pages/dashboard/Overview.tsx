@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
@@ -5,11 +6,8 @@ import {
   ArrowDownCircle,
   ArrowRight,
   ArrowUpRight,
-  Clock,
-  Coins,
   Compass,
   RefreshCw,
-  TrendingUp,
   Wallet,
 } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -163,11 +161,8 @@ export default function Overview() {
             aria-label="Primary financial metrics"
             className="grid grid-cols-1 min-[390px]:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4"
           >
-            <Card padding="md" className="space-y-2 border-[#1B4962] bg-[#1B4962] text-white shadow-sm">
-              <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-200">
-                <span>Available Balance</span>
-                <Wallet className="h-4 w-4 shrink-0 text-[#B9D1DE]" aria-hidden="true" />
-              </div>
+            <Card padding="md" className="space-y-2 border-[#DCE4EC] bg-white text-[#102030]">
+              <div className="text-xs font-medium text-[#5A6B7C]">Available Balance</div>
               <p className="text-xl font-bold font-mono tabular-nums text-white sm:text-2xl">
                 {<FinancialAmount value={data.metrics.availableBalance} size="lg" />}
               </p>
@@ -177,10 +172,7 @@ export default function Overview() {
             </Card>
 
             <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
-              <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#5A6B7C]">
-                <span>Total Invested</span>
-                <TrendingUp className="h-4 w-4 shrink-0 text-[#E94D65]" aria-hidden="true" />
-              </div>
+              <div className="text-xs font-medium text-[#5A6B7C]">Total Invested</div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 {<FinancialAmount value={data.metrics.totalInvested} size="lg" />}
               </p>
@@ -190,10 +182,7 @@ export default function Overview() {
             </Card>
 
             <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
-              <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#5A6B7C]">
-                <span>Total Earnings</span>
-                <Coins className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-              </div>
+              <div className="text-xs font-medium text-[#5A6B7C]">Total Earnings</div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 {<FinancialAmount value={data.metrics.totalEarnings} size="lg" />}
               </p>
@@ -204,10 +193,7 @@ export default function Overview() {
             </Card>
 
             <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
-              <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#5A6B7C]">
-                <span>Pending Payments</span>
-                <Clock className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-              </div>
+              <div className="text-xs font-medium text-[#5A6B7C]">Pending Payments</div>
               <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 {<FinancialAmount value={data.metrics.pendingPayments} size="lg" />}
               </p>

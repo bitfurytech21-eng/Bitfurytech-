@@ -55,7 +55,7 @@ type SessionResponse = {
   error?: string;
 };
 
-function authError(error: unknown, fallback: string): string {
+function toAuthErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) return error.message;
   if (typeof error === "object" && error !== null && "message" in error) {
     return String((error as { message?: unknown }).message || fallback);
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAuthError(null);
         }
       } catch (error) {
-        if (active) setAuthError(authError(error, "Unable to verify your session."));
+        if (active) setAuthError(toAuthErrorMessage(error, "Unable to verify your session."));
       } finally {
         if (active) setAuthReady(true);
       }
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthReady(false);
     setAuthError(null);
     try { await syncSession(); }
-    catch (error) { setAuthError(authError(error, "Unable to verify your session.")); }
+    catch (error) { setAuthError(toAuthErrorMessage(error, "Unable to verify your session.")); }
     finally { setAuthReady(true); }
   }, [syncSession]);
 
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) return { ok: false, status: response.status, error: "Administrator authorization required." };
       return { ok: true, status: 200 };
     } catch (error) {
-      return { ok: false, status: 503, error: authError(error, "Unable to verify administrator access.") };
+      return { ok: false, status: 503, error: toAuthErrorMessage(error, "Unable to verify administrator access.") };
     }
   }, []);
 
@@ -215,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { ok: true, session, needsVerification: false };
     } catch (error) {
-      const message = authError(error, "Sign-in failed. Verify your credentials.");
+      const message = toAuthErrorMessage(error, "Sign-in failed. Verify your credentials.");
       setAuthError(message);
       return { ok: false, error: message };
     } finally {
@@ -250,7 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const session = await syncSession();
       return { ok: true, session: session ?? undefined, needsVerification: !session?.emailVerified };
     } catch (error) {
-      const message = authError(error, "Registration failed. Please check your details.");
+      const message = toAuthErrorMessage(error, "Registration failed. Please check your details.");
       setAuthError(message);
       return { ok: false, error: message };
     } finally {
@@ -269,20 +269,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (result.error) throw new Error(result.error.message || "Unable to update password.");
       return { ok: true };
     } catch (error) {
-      return { ok: false, error: authError(error, "Unable to update account password.") };
+      return { ok: false, error: toAuthErrorMessage(error, "Unable to update account password.") };
     }
   }, []);
 
   const sendPasswordReset = useCallback(async (email: string) => {
     try {
-      const result = await betterAuthClient.forgetPassword({
+      const result = await betterAuthClient.requestPasswordReset({
         email: email.trim().toLowerCase(),
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (result.error) throw new Error(result.error.message || "Unable to send password reset email.");
       return { ok: true };
     } catch (error) {
-      const message = authError(error, "Unable to send password recovery email.");
+      const message = toAuthErrorMessage(error, "Unable to send password recovery email.");
       setAuthError(message);
       return { ok: false, error: message };
     }
@@ -299,7 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (result.error) throw new Error(result.error.message || "Google sign-in failed.");
       return { ok: true };
     } catch (error) {
-      const message = authError(error, "Google authentication failed.");
+      const message = toAuthErrorMessage(error, "Google authentication failed.");
       setAuthError(message);
       return { ok: false, error: message };
     } finally {
@@ -311,12 +311,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthBusy(true);
     setAuthError(null);
     try {
-      const result = await betterAuthClient.signOut();
+      const result = await betterAuthClient.signOut({});
       if (result.error) throw new Error(result.error.message || "Unable to sign out.");
       setBackendSession(null);
       setPendingVerificationEmail(null);
     } catch (error) {
-      setAuthError(authError(error, "Unable to sign out."));
+      setAuthError(toAuthErrorMessage(error, "Unable to sign out."));
       throw error;
     } finally {
       setAuthBusy(false);

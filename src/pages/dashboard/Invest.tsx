@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { Link, useSearchParams } from "react-router-dom";
@@ -71,7 +72,7 @@ function makeIdempotencyKey(): string {
 }
 
 export default function Invest() {
-  const { backendSession, authReady, profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [searchParams] = useSearchParams();
   const initialPlanParam = searchParams.get("plan");
   const initialPropParam = searchParams.get("property");
@@ -79,6 +80,7 @@ export default function Invest() {
   const [plans, setPlans] = useState<CatalogPlan[]>([]);
   const [properties, setProperties] = useState<CatalogProperty[]>([]);
   const [feeRatePct, setFeeRatePct] = useState<number>(0.5);
+  const [availableBalance, setAvailableBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,11 +108,15 @@ export default function Invest() {
     setLoading(true);
     setError(null);
     try {
-            const res = await sessionApiRequest<{
-        plans: CatalogPlan[];
-        properties: CatalogProperty[];
-        feeRatePct: number;
-      }>("/api/investments/catalog");
+      const [res, overview] = await Promise.all([
+        sessionApiRequest<{
+          plans: CatalogPlan[];
+          properties: CatalogProperty[];
+          feeRatePct: number;
+        }>("/api/investments/catalog"),
+        sessionApiRequest<{ metrics: { availableBalance: number } }>("/api/dashboard/overview"),
+      ]);
+      setAvailableBalance(overview.metrics.availableBalance ?? 0);
       setPlans(res.plans);
       setProperties(res.properties);
       setFeeRatePct(res.feeRatePct ?? 0.5);
@@ -151,7 +157,6 @@ export default function Invest() {
     [properties, targetId, targetType]
   );
 
-  const availableBalance = profile?.walletBalance ?? 0;
   const units = Math.max(1, Math.floor(Number(unitsInput) || 1));
 
   const unitPrice =
@@ -225,6 +230,7 @@ export default function Invest() {
       );
 
       setReceipt(res.receipt);
+      setAvailableBalance(res.receipt.newWalletBalance);
       setTermsAccepted(false);
       setConfirmExplicit(false);
       setUnitsInput("1");
@@ -411,7 +417,7 @@ export default function Invest() {
                       >
                         {plans.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} — {p.categoryLabel} (Min {formatUsd(p.minDeposit)} / unit ·{" "}
+                            {p.name} — {p.categoryLabel} (Min <FinancialAmount value={p.minDeposit} /> / unit ·{" "}
                             {p.availabilityStatus})
                           </option>
                         ))}
@@ -435,7 +441,7 @@ export default function Invest() {
                       >
                         {properties.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.title} ({p.location}) — Min {formatUsd(p.minEntry)} / unit ·{" "}
+                            {p.title} ({p.location}) — Min <FinancialAmount value={p.minEntry} /> / unit ·{" "}
                             {p.status}
                           </option>
                         ))}

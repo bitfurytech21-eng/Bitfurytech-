@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Building2,
   RefreshCw,
+  Shield,
   TrendingUp,
   UserPlus,
   Users,

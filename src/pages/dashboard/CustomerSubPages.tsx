@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
@@ -49,7 +50,17 @@ import {
 } from "../../trading/tradingPage";
 
 export function InvestmentOpportunitiesPage() {
-  const { profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
+  const [availableBalance, setAvailableBalance] = useState(0);
+
+  useEffect(() => {
+    if (!authReady || !backendSession) return;
+    let active = true;
+    void fetchDashboardOverview().then((overview) => {
+      if (active) setAvailableBalance(overview.metrics.availableBalance);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [authReady, backendSession]);
   const [categoryFilter, setCategoryFilter] = useState<"all" | MandateCategory>("all");
   const [inspectMandate, setInspectMandate] = useState<InvestmentMandate | null>(null);
 

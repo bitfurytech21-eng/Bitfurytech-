@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { Check, Copy, RefreshCw, Share2 } from "lucide-react";

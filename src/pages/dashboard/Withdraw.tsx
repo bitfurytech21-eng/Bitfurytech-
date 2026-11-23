@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
@@ -29,7 +30,7 @@ function makeWithdrawKey(): string {
 }
 
 export default function Withdraw() {
-  const { backendSession, authReady, profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [config, setConfig] = useState<WithdrawalConfigDTO>({
     minWithdrawal: 50,
     maxSingleWithdrawal: 250000,
@@ -38,7 +39,8 @@ export default function Withdraw() {
     currency: "USD",
     supportedRails: ["USDT (TRC20)", "Bitcoin (BTC)", "Ethereum (ETH)", "Bank Wire"],
   });
-  const [method, setMethod] = useState<string>(profile?.preferredRail || "USDT (TRC20)");
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [method, setMethod] = useState<string>("USDT (TRC20)");
   const [amount, setAmount] = useState("");
   const [destination, setDestination] = useState("");
   const [accountDetails, setAccountDetails] = useState("");
@@ -63,11 +65,13 @@ export default function Withdraw() {
     if (!authReady || !backendSession) return;
     setLoading(true);
     try {
-      const [cfg, txRes] = await Promise.all([
+      const [cfg, txRes, overview] = await Promise.all([
         sessionApiRequest<WithdrawalConfigDTO>("/api/withdrawals/config"),
         sessionApiRequest<{ transactions: DashboardTransactionDTO[] }>("/api/transactions"),
+        sessionApiRequest<{ metrics: { availableBalance: number } }>("/api/dashboard/overview"),
       ]);
       setConfig(cfg);
+      setAvailableBalance(overview.metrics.availableBalance ?? 0);
       setWithdrawals(txRes.transactions.filter((t) => t.type === "Withdrawal"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load withdrawal configuration.");
@@ -80,7 +84,7 @@ export default function Withdraw() {
     void loadData();
   }, [loadData]);
 
-  const available = profile?.walletBalance ?? 0;
+  const available = availableBalance;
   const parsedAmount = Number(amount) || 0;
   const estimatedFee =
     parsedAmount > 0

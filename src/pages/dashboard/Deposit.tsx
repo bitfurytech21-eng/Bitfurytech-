@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { ArrowDownCircle, CheckCircle2, RefreshCw } from "lucide-react";
@@ -29,11 +30,10 @@ function makeDepositKey(): string {
 }
 
 export default function Deposit() {
-  const { backendSession, authReady, profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [methods, setMethods] = useState<DepositRailDTO[]>([]);
-  const [selectedMethodId, setSelectedMethodId] = useState<string>(
-    profile?.preferredRail || "USDT (TRC20)"
-  );
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("USDT (TRC20)");
+  const [availableBalance, setAvailableBalance] = useState(0);
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [idempotencyKey, setIdempotencyKey] = useState<string>(makeDepositKey);
@@ -55,10 +55,12 @@ export default function Deposit() {
     if (!authReady || !backendSession) return;
     setLoading(true);
     try {
-      const [railsRes, txRes] = await Promise.all([
+      const [railsRes, txRes, overview] = await Promise.all([
         sessionApiRequest<{ methods: DepositRailDTO[] }>("/api/deposits/methods"),
         sessionApiRequest<{ transactions: DashboardTransactionDTO[] }>("/api/transactions"),
+        sessionApiRequest<{ metrics: { availableBalance: number } }>("/api/dashboard/overview"),
       ]);
+      setAvailableBalance(overview.metrics.availableBalance ?? 0);
       setMethods(railsRes.methods);
       if (railsRes.methods.length > 0 && !railsRes.methods.some((m) => m.id === selectedMethodId)) {
         setSelectedMethodId(railsRes.methods[0].id);
@@ -219,7 +221,7 @@ export default function Deposit() {
                 >
                   {methods.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.label} ({m.currency}) — Min {formatUsd(m.minDeposit)}
+                      {m.label} ({m.currency}) — Min <FinancialAmount value={m.minDeposit} />
                     </option>
                   ))}
                 </SelectInput>

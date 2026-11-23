@@ -1,3 +1,4 @@
+import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
@@ -248,6 +249,7 @@ export default function TradingDesk() {
                     <div>
                       <dt className="text-slate-500">Minimum Entry</dt>
                       <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
+                        <FinancialAmount value={activePlan.minDeposit} />
                         {<FinancialAmount value={activePlan.minDeposit} size="md" />}
                       </dd>
                     </div>
