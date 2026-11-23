@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
@@ -185,7 +186,7 @@ export default function Withdraw() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-slate-900">
-          {formatUsd(tx.amount)}
+          {<FinancialAmount value={tx.amount} size="md" />}
         </span>
       ),
     },
@@ -304,9 +305,9 @@ export default function Withdraw() {
                 />
                 <span>
                   I confirm the payout destination above belongs to me and authorize reserving{" "}
-                  <strong className="font-mono">{formatUsd(parsedAmount)}</strong> (estimated net
-                  disbursement <strong className="font-mono">{formatUsd(netPayout)}</strong> after{" "}
-                  <strong className="font-mono">{formatUsd(estimatedFee)}</strong> fee).
+                  <strong className="font-mono">{<FinancialAmount value={parsedAmount} size="md" />}</strong> (estimated net
+                  disbursement <strong className="font-mono">{<FinancialAmount value={netPayout} size="md" />}</strong> after{" "}
+                  <strong className="font-mono">{<FinancialAmount value={estimatedFee} size="md" />}</strong> fee).
                 </span>
               </label>
 
@@ -327,26 +328,26 @@ export default function Withdraw() {
             <div>
               <p className="text-slate-500">Available Wallet Balance</p>
               <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {formatUsd(available)}
+                {<FinancialAmount value={available} size="md" />}
               </p>
             </div>
             <dl className="space-y-2.5 pt-3 border-t border-slate-200">
               <div className="flex justify-between">
                 <dt className="text-slate-500">Minimum Withdrawal</dt>
                 <dd className="font-mono tabular-nums font-semibold text-slate-900">
-                  {formatUsd(config.minWithdrawal)}
+                  {<FinancialAmount value={config.minWithdrawal} size="md" />}
                 </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-slate-500">Applicable Fee</dt>
                 <dd className="font-mono tabular-nums text-slate-800">
-                  {formatUsd(estimatedFee)} ({config.feeRatePct}%)
+                  {<FinancialAmount value={estimatedFee} size="md" />} ({config.feeRatePct}%)
                 </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-slate-500">Estimated Net Payout</dt>
                 <dd className="font-mono tabular-nums font-bold text-emerald-700">
-                  {formatUsd(netPayout)}
+                  {<FinancialAmount value={netPayout} size="md" />}
                 </dd>
               </div>
             </dl>
