@@ -158,6 +158,10 @@ export function createBetterAuthFinancialRouter(): Router {
           [id, user.id, normalizedAmount, rail.label, rail.custodyDestination, reference, `${user.id}:${key}`, JSON.stringify({ rail: rail.id, submittedReference: referenceInput || null, confirmationInfo: rail.confirmationInfo })]
         );
         await client.query(
+          "INSERT INTO financial_audit_log(actor_user_id,subject_user_id,action,entity_type,entity_id,details) VALUES($1,$1,'CUSTOMER_DEPOSIT_REQUEST','transaction',$2,$3::jsonb)",
+          [user.id, id, JSON.stringify({ amount: normalizedAmount, method: rail.label, reference })]
+        );
+        await client.query(
           "INSERT INTO notifications(id,user_id,category,title,body) VALUES($1,$2,'deposit','Deposit request received',$3)",
           [randomUUID(), user.id, `Your ${rail.label} deposit request for $${normalizedAmount.toFixed(2)} is awaiting verification.`]
         );
@@ -210,6 +214,10 @@ export function createBetterAuthFinancialRouter(): Router {
         await client.query(
           "INSERT INTO ledger_entries(transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES($1,$2,'customer_available','debit',$3,'USD','Withdrawal funds reserved'),($1,$2,'customer_reserved','credit',$3,'USD','Withdrawal funds reserved')",
           [id, user.id, requested]
+        );
+        await client.query(
+          "INSERT INTO financial_audit_log(actor_user_id,subject_user_id,action,entity_type,entity_id,details) VALUES($1,$1,'CUSTOMER_WITHDRAWAL_REQUEST','transaction',$2,$3::jsonb)",
+          [user.id, id, JSON.stringify({ amount: requested, fee, netPayout, method })]
         );
         await client.query("INSERT INTO notifications(id,user_id,category,title,body) VALUES($1,$2,'withdrawal','Withdrawal request received',$3)", [randomUUID(), user.id, `Your withdrawal request for $${requested.toFixed(2)} is awaiting review.`]);
         await finishIdempotent(client, user.id, key, response);
@@ -308,6 +316,10 @@ export function createBetterAuthFinancialRouter(): Router {
         await client.query(
           "INSERT INTO ledger_entries(transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES($1,$2,'customer_available','debit',$3,'USD','Investment allocation and fee'),($1,$2,'platform_custody','credit',$3,'USD','Investment allocation and fee')",
           [transactionId, user.id, totalCost]
+        );
+        await client.query(
+          "INSERT INTO financial_audit_log(actor_user_id,subject_user_id,action,entity_type,entity_id,details) VALUES($1,$1,'CUSTOMER_INVESTMENT_PURCHASE','investment',$2,$3::jsonb)",
+          [user.id, investmentId, JSON.stringify({ principal, feeAmount, totalCost, planName, targetType })]
         );
         await client.query("INSERT INTO notifications(id,user_id,category,title,body) VALUES($1,$2,'investment','Investment allocation confirmed',$3)", [randomUUID(), user.id, `Your allocation in ${planName} has been recorded.`]);
         const response = { ok: true, receipt: { reference, investmentId, transactionId, planId: planId ?? propertyId ?? targetId, planName, category, units, unitPrice, principal, feeAmount, totalCost, currency: "USD", newWalletBalance: money(available - totalCost), termsSummary, createdAt: new Date().toISOString() } };
