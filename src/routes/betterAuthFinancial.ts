@@ -107,7 +107,7 @@ export function createBetterAuthFinancialRouter(): Router {
         plansById.set(String(row.id), {
           id: String(row.id), name: String(row.name), category: row.category === "stock" || row.category === "estate" ? row.category : "crypto",
           categoryLabel: String(data.categoryLabel ?? row.category), audience: String(data.audience ?? ""),
-          description: String(row.description ?? ""), minDeposit: Number(row.min_deposit), maxDeposit: Number(row.max_deposit ?? Number.MAX_SAFE_INTEGER),
+          description: String(row.description ?? ""), minDeposit: Number(row.min_deposit), maxDeposit: row.max_deposit == null ? Number.MAX_SAFE_INTEGER : Number(row.max_deposit),
           dailyRatePct: Number(row.daily_rate_pct ?? 0), durationDays: Number(row.duration_days), paymentFrequency: String(data.paymentFrequency ?? ""),
           settlementRail: String(data.settlementRail ?? "USD"), image: String(data.image ?? ""), returnTerms: String(data.returnTerms ?? row.description ?? ""),
           highlights: Array.isArray(data.highlights) ? data.highlights.map(String) : [],
@@ -180,7 +180,7 @@ export function createBetterAuthFinancialRouter(): Router {
     const accountDetails = cleanText(body.accountDetails, 160);
     const key = cleanText(body.idempotencyKey, 128);
     if (body.confirmed !== true) { res.status(400).json({ error: "Explicit withdrawal confirmation is required." }); return; }
-    if (!WITHDRAWAL_CONFIG.supportedRails.includes(method)) { res.status(400).json({ error: "Unsupported payout rail selected." }); return; }
+    if (!WITHDRAWAL_CONFIG.supportedRails.some((rail) => rail === method)) { res.status(400).json({ error: "Unsupported payout rail selected." }); return; }
     if (!key || key.length < 8) { res.status(400).json({ error: "A valid idempotency key is required." }); return; }
     if (!Number.isFinite(amount) || amount < WITHDRAWAL_CONFIG.minWithdrawal || amount > WITHDRAWAL_CONFIG.maxSingleWithdrawal) { res.status(400).json({ error: "Withdrawal amount is outside the permitted range." }); return; }
     if (destination.length < 4) { res.status(400).json({ error: "Provide a valid destination wallet or bank beneficiary." }); return; }
@@ -268,13 +268,13 @@ export function createBetterAuthFinancialRouter(): Router {
             const row = dbPlan.rows[0];
             const data = row.plan_data && typeof row.plan_data === "object" ? row.plan_data as Record<string, unknown> : {};
             planId = String(row.id); planName = String(row.name); category = String(row.category);
-            unitPrice = Number(row.min_deposit); maxCap = Number(row.max_deposit ?? Number.MAX_SAFE_INTEGER);
+            unitPrice = Number(row.min_deposit); maxCap = row.max_deposit == null ? Number.MAX_SAFE_INTEGER : Number(row.max_deposit);
             dailyRatePct = Number(row.daily_rate_pct ?? 0); durationDays = Number(row.duration_days);
             termsSummary = String(data.returnTerms ?? row.description ?? "");
           } else {
             plan = INVESTMENT_MANDATES.find((item) => item.id === targetId) ?? null;
             if (!plan) throw httpError("Selected investment plan does not exist.", 404);
-            planId = plan.id; planName = plan.name; category = plan.category;
+            planId = null; planName = plan.name; category = plan.category;
             unitPrice = plan.minDeposit; maxCap = plan.maxDeposit; dailyRatePct = plan.dailyRatePct;
             durationDays = plan.durationDays; termsSummary = plan.returnTerms;
           }
