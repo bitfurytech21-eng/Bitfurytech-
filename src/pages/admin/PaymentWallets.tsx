@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Copy, RefreshCw, Save, WalletCards } from "lucide-react";
+import { RefreshCw, Save, WalletCards } from "lucide-react";
 import AdminLayout from "../../layouts/AdminLayout";
 import { Button, Card, CardBody, CardHeader, FormField, NotificationBanner, TextInput } from "../../components/ui";
 import { sessionApiRequest } from "../../services/dashboardApi";
