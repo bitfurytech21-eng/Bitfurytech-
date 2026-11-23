@@ -3,6 +3,7 @@ import { useEffect } from "react";
 interface TawkApi {
   maximize?: () => void;
   toggle?: () => void;
+  setAttributes?: (attributes: Record<string, string>, callback?: () => void) => void;
 }
 
 declare global {
@@ -13,12 +14,14 @@ declare global {
 }
 
 /**
- * Opens the application-wide Tawk.to chat widget.
- * The optional subject is retained for callers that pass the Contact form
- * subject; Tawk's standard widget API does not provide a subject parameter.
+ * Opens the application-wide Tawk.to chat widget and attaches optional topic context.
  */
-export function openLiveSupportChat(_subject?: string) {
+export function openLiveSupportChat(subject?: string) {
   const api = window.Tawk_API;
+
+  if (subject && typeof api?.setAttributes === "function") {
+    api.setAttributes({ topic: subject });
+  }
 
   if (typeof api?.maximize === "function") {
     api.maximize();

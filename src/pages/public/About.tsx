@@ -3,6 +3,7 @@ import { FileText, Mail, MapPin, ShieldCheck } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
+import { LEADERSHIP_TEAM } from "../../data/leadershipTeam";
 
 const SECTORS = [
   {
@@ -317,6 +318,38 @@ export default function About() {
                   <h3 className="text-base font-heading font-bold text-[#102030]">{val.title}</h3>
                   <p className="text-sm text-[#5A6B7C] leading-relaxed">{val.body}</p>
                 </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 6b. Executive Board & Leadership */}
+          <section className="space-y-6 border-b border-[#DCE4EC] pb-14" aria-labelledby="about-board-heading">
+            <div className="space-y-2">
+              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                Executive Board
+              </p>
+              <h2 id="about-board-heading" className="text-2xl sm:text-3xl font-heading font-bold text-[#102030]">
+                Meet the Board Members
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {LEADERSHIP_TEAM.map((member) => (
+                <article
+                  key={member.name}
+                  className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
+                >
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-[#EDF3F7]">
+                    <img
+                      src={member.image}
+                      alt={`${member.name}, ${member.role}`}
+                      className="h-full w-full object-cover object-top"
+                    />
+                  </div>
+                  <div className="p-5 space-y-1">
+                    <h3 className="text-base font-heading font-bold text-[#102030]">{member.name}</h3>
+                    <p className="text-xs font-medium text-[#5A6B7C]">{member.role}</p>
+                  </div>
+                </article>
               ))}
             </div>
           </section>

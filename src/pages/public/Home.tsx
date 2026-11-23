@@ -27,6 +27,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
 import InvestorTestimonials from "../../components/InvestorTestimonials";
+import BoardLeadershipSection from "../../components/BoardLeadershipSection";
 import PaymentMethods from "../../components/PaymentMethods";
 import AnimatedStatValue from "../../components/AnimatedStatValue";
 import { PropertyOffering } from "../../services/dashboardApi";
@@ -40,8 +41,8 @@ const HERO_SLIDES = [
     headline: "Algorithmic trading precision and multi-asset wealth management you can verify.",
     description:
       "Founded in 2017 by financial analysts, fund managers, and research scientists, Bitfury Tech Investment applies mathematical and statistical discipline with direct access to over 50 financial markets through one unified account.",
-    image: "/images/hero-private-capital.jpg",
-    imageAlt: "BitfuryTech financial district architectural skyline",
+    image: "/assets/aistudio/c9d1cd5d-361a-72ac-7842-0d0d62fc526e_b56f286f.jpeg",
+    imageAlt: "Bitfury Tech Investment data center facility and power infrastructure",
     primaryLabel: "Explore Opportunities",
     primaryTo: "/investments-catalog",
     secondaryLabel: "Create an Account",
@@ -498,12 +499,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. Live TradingView Market Ticker */}
+      {/* Additional TradingView Ticker Tape */}
       <section
         aria-label="Live TradingView market ticker"
-        className="bg-[#112E3E] text-white border-y border-white/10"
+        className="bg-[#112E3E] text-white border-b border-white/10"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1">
           <TradingViewTickerTape colorTheme="dark" displayMode="adaptive" />
         </div>
       </section>
@@ -1038,7 +1039,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Investor testimonials retained; executive team section removed. */}
+      {/* 10. Executive Board & Investor Testimonials */}
+      <BoardLeadershipSection />
       <section className="bg-white border-b border-[#DCE4EC]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <InvestorTestimonials />

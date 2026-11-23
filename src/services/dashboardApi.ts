@@ -204,6 +204,7 @@ export async function sessionApiRequest<T>(url: string, init: RequestInit = {}):
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       ...(init.headers || {}),
     },
   });

@@ -160,12 +160,12 @@ export default function Overview() {
             aria-label="Primary financial metrics"
             className="grid grid-cols-1 min-[390px]:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4"
           >
-            <Card padding="md" className="space-y-2 border-[#DCE4EC] bg-white text-[#102030]">
+            <Card padding="md" className="space-y-2 border-[#DCE4EC] bg-white text-[#102030] shadow-sm transition-shadow hover:shadow-md">
               <div className="text-xs font-medium text-[#5A6B7C]">Available Balance</div>
-              <p className="text-xl font-bold font-mono tabular-nums text-white sm:text-2xl">
+              <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                 {<FinancialAmount value={data.metrics.availableBalance} size="lg" />}
               </p>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-[#5A6B7C]">
                 Deposited <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalDeposit} size="md" />}</span>
               </p>
             </Card>

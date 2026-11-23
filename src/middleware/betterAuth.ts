@@ -13,12 +13,30 @@ function noStore(res: Response): void {
   res.setHeader("Pragma", "no-cache");
 }
 
+function isSafeSameOriginMutation(req: Request): boolean {
+  const method = req.method.toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return true;
+  if (req.header("x-requested-with") === "XMLHttpRequest") return true;
+  const host = (req.header("x-forwarded-host") || req.header("host") || "").split(",")[0].trim().toLowerCase();
+  const originHeader = req.header("origin") || req.header("referer") || "";
+  if (!host || !originHeader) return false;
+  try {
+    return new URL(originHeader).host.toLowerCase() === host;
+  } catch {
+    return false;
+  }
+}
+
 export async function requireBetterAuth(
   req: BetterAuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   noStore(res);
+  if (!isSafeSameOriginMutation(req)) {
+    res.status(403).json({ error: "Cross-origin request blocked." });
+    return;
+  }
   try {
     const session = await betterAuthInstance.api.getSession({
       headers: fromNodeHeaders(req.headers),

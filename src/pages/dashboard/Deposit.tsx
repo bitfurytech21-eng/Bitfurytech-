@@ -228,7 +228,7 @@ export default function Deposit() {
                 >
                   {methods.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.label} ({m.currency}) — Min <FinancialAmount value={m.minDeposit} />
+                      {m.label} ({m.currency}) — Min {formatUsd(m.minDeposit)}
                     </option>
                   ))}
                 </SelectInput>

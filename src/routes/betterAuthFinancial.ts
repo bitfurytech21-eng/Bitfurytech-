@@ -102,7 +102,7 @@ export function createBetterAuthFinancialRouter(): Router {
   router.get("/deposits/methods", async (_req, res) => {
     if (!isDatabaseConfigured) {
       res.setHeader("Cache-Control", "no-store");
-      res.json({ methods: [] });
+      res.json({ methods: DEPOSIT_RAILS });
       return;
     }
     try {
@@ -180,7 +180,9 @@ export function createBetterAuthFinancialRouter(): Router {
       id: string; label: string; currency: string; network: string; minDeposit: number;
       instructions: string; custodyDestination: string; confirmationInfo: string;
     } | undefined;
-    if (isDatabaseConfigured) {
+    if (!isDatabaseConfigured) {
+      rail = DEPOSIT_RAILS.find((item) => item.id === method);
+    } else {
       try {
         const configured = await databasePool!.query(
           "SELECT method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info FROM platform_payment_wallets WHERE method_id=$1 AND enabled=true AND length(trim(wallet_address)) >= 6",
