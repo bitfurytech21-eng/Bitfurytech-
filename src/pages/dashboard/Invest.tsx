@@ -71,7 +71,7 @@ function makeIdempotencyKey(): string {
 }
 
 export default function Invest() {
-  const { backendSession, authReady, profile } = useAuth();
+  const { backendSession, authReady } = useAuth();
   const [searchParams] = useSearchParams();
   const initialPlanParam = searchParams.get("plan");
   const initialPropParam = searchParams.get("property");
@@ -79,6 +79,7 @@ export default function Invest() {
   const [plans, setPlans] = useState<CatalogPlan[]>([]);
   const [properties, setProperties] = useState<CatalogProperty[]>([]);
   const [feeRatePct, setFeeRatePct] = useState<number>(0.5);
+  const [availableBalance, setAvailableBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,11 +107,15 @@ export default function Invest() {
     setLoading(true);
     setError(null);
     try {
-            const res = await sessionApiRequest<{
-        plans: CatalogPlan[];
-        properties: CatalogProperty[];
-        feeRatePct: number;
-      }>("/api/investments/catalog");
+      const [res, overview] = await Promise.all([
+        sessionApiRequest<{
+          plans: CatalogPlan[];
+          properties: CatalogProperty[];
+          feeRatePct: number;
+        }>("/api/investments/catalog"),
+        sessionApiRequest<{ metrics: { availableBalance: number } }>("/api/dashboard/overview"),
+      ]);
+      setAvailableBalance(overview.metrics.availableBalance ?? 0);
       setPlans(res.plans);
       setProperties(res.properties);
       setFeeRatePct(res.feeRatePct ?? 0.5);
@@ -151,7 +156,6 @@ export default function Invest() {
     [properties, targetId, targetType]
   );
 
-  const availableBalance = profile?.walletBalance ?? 0;
   const units = Math.max(1, Math.floor(Number(unitsInput) || 1));
 
   const unitPrice =
@@ -194,13 +198,13 @@ export default function Invest() {
         requiredAmount: totalCost,
       });
       setSubmitError(
-        `Insufficient custody wallet balance ($<FinancialAmount value={availableBalance} /> available vs $<FinancialAmount value={totalCost} /> required).`
+        `Insufficient custody wallet balance (${formatUsd(availableBalance)} available vs ${formatUsd(totalCost)} required).`
       );
       return;
     }
     if (exceedsMax) {
       setSubmitError(
-        `Total principal exceeds maximum allocation cap of $<FinancialAmount value={maxCap} /> for this mandate.`
+        `Total principal exceeds maximum allocation cap of ${formatUsd(maxCap)} for this mandate.`
       );
       return;
     }
@@ -225,6 +229,7 @@ export default function Invest() {
       );
 
       setReceipt(res.receipt);
+      setAvailableBalance(res.receipt.newWalletBalance);
       setTermsAccepted(false);
       setConfirmExplicit(false);
       setUnitsInput("1");
@@ -447,7 +452,7 @@ export default function Invest() {
                     <FormField
                       id="invest-units"
                       label="Number of Investment Units"
-                      hint={`1 unit = $<FinancialAmount value={unitPrice} /> minimum unit entry`}
+                      hint={`1 unit = ${formatUsd(unitPrice)} minimum unit entry`}
                     >
                       <TextInput
                         id="invest-units"
@@ -585,7 +590,7 @@ export default function Invest() {
                       }`}
                     >
                       {hasShortfall
-                        ? `Shortfall $<FinancialAmount value={totalCost - availableBalance} />`
+                        ? `Shortfall ${formatUsd(totalCost - availableBalance)}`
                         : formatUsd(availableBalance - totalCost)}
                     </dd>
                   </div>
