@@ -44,7 +44,7 @@ async function startIdempotent(client: any, userId: string, operation: "deposit_
   if (row.rows[0]?.response) return row.rows[0].response;
   const pending = await client.query(
     "SELECT id FROM transactions WHERE user_id=$1 AND idempotency_key=$2 LIMIT 1",
-    [userId, key]
+    [userId, `${userId}:${key}`]
   );
   if (pending.rowCount) throw httpError("This financial request is already being processed.", 409);
   return null;
@@ -104,6 +104,7 @@ export function createBetterAuthFinancialRouter(): Router {
       for (const mandate of INVESTMENT_MANDATES) plansById.set(mandate.id, mandate);
       for (const row of plansResult.rows) {
         const data = row.plan_data && typeof row.plan_data === "object" ? row.plan_data as Record<string, unknown> : {};
+        const availabilityStatus = data.availabilityStatus === "Paused" || data.availabilityStatus === "Closed" ? data.availabilityStatus : "Open";
         plansById.set(String(row.id), {
           id: String(row.id), name: String(row.name), category: row.category === "stock" || row.category === "estate" ? row.category : "crypto",
           categoryLabel: String(data.categoryLabel ?? row.category), audience: String(data.audience ?? ""),
@@ -152,7 +153,7 @@ export function createBetterAuthFinancialRouter(): Router {
         const response = { ok: true, deposit: { id, reference, method: rail.label, currency: rail.currency, amount: normalizedAmount, status: "Pending", instructions: rail.instructions, confirmationInfo: rail.confirmationInfo, createdAt: new Date().toISOString() } };
         await client.query(
           "INSERT INTO transactions(id,user_id,type,amount,currency,method,destination,reference,status,idempotency_key,metadata) VALUES($1,$2,'deposit',$3,'USD',$4,$5,$6,'pending',$7,$8::jsonb)",
-          [id, user.id, normalizedAmount, rail.label, rail.custodyDestination, reference, key, JSON.stringify({ rail: rail.id, submittedReference: referenceInput || null, confirmationInfo: rail.confirmationInfo })]
+          [id, user.id, normalizedAmount, rail.label, rail.custodyDestination, reference, `${user.id}:${key}`, JSON.stringify({ rail: rail.id, submittedReference: referenceInput || null, confirmationInfo: rail.confirmationInfo })]
         );
         await client.query(
           "INSERT INTO notifications(id,user_id,category,title,body) VALUES($1,$2,'deposit','Deposit request received',$3)",
@@ -202,7 +203,7 @@ export function createBetterAuthFinancialRouter(): Router {
         await client.query("UPDATE wallets SET available_balance=available_balance-$2,reserved_balance=reserved_balance+$2,updated_at=now() WHERE user_id=$1 AND currency='USD'", [user.id, requested]);
         await client.query(
           "INSERT INTO transactions(id,user_id,type,amount,currency,method,destination,reference,status,idempotency_key,metadata) VALUES($1,$2,'withdrawal',$3,'USD',$4,$5,$6,'pending',$7,$8::jsonb)",
-          [id, user.id, requested, method, combinedDestination, reference, key, JSON.stringify({ fee, netPayout, accountDetails: accountDetails || null })]
+          [id, user.id, requested, method, combinedDestination, reference, `${user.id}:${key}`, JSON.stringify({ fee, netPayout, accountDetails: accountDetails || null })]
         );
         await client.query(
           "INSERT INTO ledger_entries(transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES($1,$2,'customer_available','debit',$3,'USD','Withdrawal funds reserved'),($1,$2,'customer_reserved','credit',$3,'USD','Withdrawal funds reserved')",
@@ -267,6 +268,8 @@ export function createBetterAuthFinancialRouter(): Router {
           if (dbPlan.rows[0]) {
             const row = dbPlan.rows[0];
             const data = row.plan_data && typeof row.plan_data === "object" ? row.plan_data as Record<string, unknown> : {};
+            const availabilityStatus = data.availabilityStatus === "Paused" || data.availabilityStatus === "Closed" ? data.availabilityStatus : "Open";
+            if (availabilityStatus !== "Open") throw httpError(`${String(row.name)} is currently ${availabilityStatus.toLowerCase()} for new allocations.`, 400);
             planId = String(row.id); planName = String(row.name); category = String(row.category);
             unitPrice = Number(row.min_deposit); maxCap = row.max_deposit == null ? Number.MAX_SAFE_INTEGER : Number(row.max_deposit);
             dailyRatePct = Number(row.daily_rate_pct ?? 0); durationDays = Number(row.duration_days);
@@ -298,7 +301,7 @@ export function createBetterAuthFinancialRouter(): Router {
         );
         await client.query(
           "INSERT INTO transactions(id,user_id,type,amount,currency,method,destination,reference,status,idempotency_key,metadata) VALUES($1,$2,'investment',$3,'USD',$4,$5,$6,'completed',$7,$8::jsonb)",
-          [transactionId, user.id, totalCost, planName, propertyId ?? planId ?? "", reference, key, JSON.stringify({ investmentId, principal, feeAmount, units, unitPrice, targetType })]
+          [transactionId, user.id, totalCost, planName, propertyId ?? planId ?? "", reference, `${user.id}:${key}`, JSON.stringify({ investmentId, principal, feeAmount, units, unitPrice, targetType })]
         );
         await client.query(
           "INSERT INTO ledger_entries(transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES($1,$2,'customer_available','debit',$3,'USD','Investment allocation and fee'),($1,$2,'platform_custody','credit',$3,'USD','Investment allocation and fee')",
