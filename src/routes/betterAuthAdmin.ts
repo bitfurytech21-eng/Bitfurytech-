@@ -4,6 +4,7 @@ import { databasePool, queryDatabase } from "../db/pool.ts";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { INVESTMENT_MANDATES } from "../trading/tradingPage.ts";
 
 type Row = Record<string, unknown>;
 
@@ -81,8 +82,13 @@ export function createBetterAuthAdminRouter(): Router {
       const result = await queryDatabase<Row>(
         "SELECT id, name, category, CASE category WHEN 'crypto' THEN 'Digital Assets' WHEN 'stock' THEN 'Global Equities' ELSE 'Real Estate' END AS \"categoryLabel\", COALESCE(plan_data->>'audience','Verified investors') AS audience, description, min_deposit AS \"minDeposit\", max_deposit AS \"maxDeposit\", daily_rate_pct AS \"dailyRatePct\", duration_days AS \"durationDays\", COALESCE(plan_data->>'paymentFrequency','At maturity') AS \"paymentFrequency\", COALESCE(plan_data->>'settlementRail','USDT (TRC20) / Bank Wire') AS \"settlementRail\", COALESCE(plan_data->>'returnTerms','') AS \"returnTerms\", COALESCE(plan_data->>'availabilityStatus','Open') AS \"availabilityStatus\", published, COALESCE(plan_data->>'image','/images/hero-private-capital.jpg') AS image, 'database' AS source FROM investment_plans ORDER BY created_at DESC"
       );
+      const plans = new Map<string, Row>();
+      for (const mandate of INVESTMENT_MANDATES) {
+        plans.set(mandate.id, { ...mandate, availabilityStatus: "Open", published: true, source: "default" });
+      }
+      for (const row of result.rows) plans.set(String(row.id), row);
       res.setHeader("Cache-Control", "no-store");
-      res.json({ plans: result.rows });
+      res.json({ plans: Array.from(plans.values()) });
     } catch (error) {
       console.error("Neon admin plans query failed:", error);
       res.status(502).json({ error: "Unable to load investment plans from Neon." });
