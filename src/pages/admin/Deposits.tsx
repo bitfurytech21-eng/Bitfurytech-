@@ -14,8 +14,7 @@ import {
   TableColumn,
   TextAreaInput,
 } from "../../components/ui";
-import { useAuth } from "../../hooks/useAuth";
-import { apiRequest, formatIsoDate } from "../../services/dashboardApi";
+import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 
 interface AdminDepositRow {
@@ -31,7 +30,6 @@ interface AdminDepositRow {
 }
 
 export default function AdminDeposits() {
-  const { firebaseUser, idToken } = useAuth();
   const [deposits, setDeposits] = useState<AdminDepositRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,16 +46,12 @@ export default function AdminDeposits() {
 
   const loadDeposits = useCallback(
     async (isRefresh = false) => {
-      if (!firebaseUser) return;
-      if (isRefresh) setRefreshing(true);
+            if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const res = await apiRequest<{ deposits: AdminDepositRow[] }>(
-          "/api/admin/deposits",
-          token
-        );
+                const res = await sessionApiRequest<{ deposits: AdminDepositRow[] }>(
+          "/api/admin/deposits");
         setDeposits(res.deposits);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load deposit queue.");
@@ -66,7 +60,7 @@ export default function AdminDeposits() {
         setRefreshing(false);
       }
     },
-    [firebaseUser, idToken]
+    []
   );
 
   useEffect(() => {
@@ -85,7 +79,7 @@ export default function AdminDeposits() {
 
   const handleResolve = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firebaseUser || !reviewItem) return;
+    if (!reviewItem) return;
     if (reviewItem.decision === "Completed" && !evidenceNote.trim()) {
       setBanner({
         tone: "error",
@@ -97,8 +91,7 @@ export default function AdminDeposits() {
     setSubmitting(true);
     setBanner(null);
     try {
-      const token = idToken || (await firebaseUser.getIdToken());
-      await apiRequest(`/api/admin/deposits/${reviewItem.tx.id}/resolve`, token, {
+            await sessionApiRequest(`/api/admin/deposits/${reviewItem.tx.id}/resolve`, {
         method: "POST",
         body: JSON.stringify({
           decision: reviewItem.decision,
