@@ -328,7 +328,7 @@ export default function Withdraw() {
             <div>
               <p className="text-slate-500">Available Wallet Balance</p>
               <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {<FinancialAmount value={available} size="md" />}
+                {<FinancialAmount value={available} size="lg" />}
               </p>
             </div>
             <dl className="space-y-2.5 pt-3 border-t border-slate-200">
