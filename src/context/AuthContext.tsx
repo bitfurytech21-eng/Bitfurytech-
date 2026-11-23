@@ -37,7 +37,7 @@ export interface AuthContextValue {
   retryAuthSync: () => Promise<void>;
   refreshUserSession: () => Promise<BackendSessionProfile | null>;
   verifyAdminSession: () => Promise<AdminVerifyResult>;
-  resendVerificationEmail: () => Promise<void>;
+  resendVerificationEmail: (email?: string) => Promise<void>;
   signInWithEmail: (identifier: string, password: string, rememberMe: boolean) => Promise<AuthActionResult>;
   registerWithEmail: (fullName: string, email: string, password: string, username: string) => Promise<AuthActionResult>;
   updateAccountPassword: (newPassword: string, currentPassword?: string) => Promise<{ ok: boolean; error?: string }>;
@@ -163,12 +163,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const resendVerificationEmail = useCallback(async () => {
-    const email = pendingVerificationEmail || backendSession?.email;
+  const resendVerificationEmail = useCallback(async (requestedEmail?: string) => {
+    const email = requestedEmail?.trim().toLowerCase() || pendingVerificationEmail || backendSession?.email;
     if (!email) throw new Error("Enter your registered email address to resend verification.");
     const result = await betterAuthClient.sendVerificationEmail({
       email,
-      callbackURL: window.location.origin,
+      callbackURL: `${window.location.origin}/dashboard`,
     });
     if (result.error) throw new Error(result.error.message || "Unable to send verification email.");
   }, [backendSession?.email, pendingVerificationEmail]);
@@ -192,11 +192,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!response.ok || !body.email) throw new Error(body.error || "Invalid username or password.");
         email = body.email;
       }
-      const result = await betterAuthClient.signIn.email({ email, password, rememberMe });
-      if (result.error) throw new Error(result.error.message || "Sign-in failed.");
+      const result = await betterAuthClient.signIn.email({
+        email,
+        password,
+        rememberMe,
+        callbackURL: `${window.location.origin}/dashboard`,
+      });
+      if (result.error) {
+        const code = String((result.error as { code?: unknown }).code || "").toUpperCase();
+        const message = result.error.message || "Sign-in failed.";
+        if (code.includes("EMAIL_NOT_VERIFIED") || /email.*(not verified|verification required|verify)/i.test(message)) {
+          setPendingVerificationEmail(email);
+          return { ok: false, needsVerification: true, error: "Your email address must be verified before you can access the dashboard. Resend the verification email below." };
+        }
+        throw new Error(message);
+      }
       const session = await syncSession();
-      if (!session) throw new Error("Your credentials were accepted but the session could not be verified.");
-      return { ok: true, session, needsVerification: !session.emailVerified };
+      if (!session) throw new Error("Sign-in was accepted, but the server did not return an authenticated session. Please try again; if this continues, contact support.");
+      if (!session.emailVerified) {
+        setPendingVerificationEmail(email);
+        return { ok: false, session, needsVerification: true, error: "Your email address is not verified yet. Resend the verification email below, then open its link." };
+      }
+      return { ok: true, session, needsVerification: false };
     } catch (error) {
       const message = authError(error, "Sign-in failed. Verify your credentials.");
       setAuthError(message);
