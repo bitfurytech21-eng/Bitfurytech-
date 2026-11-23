@@ -41,7 +41,7 @@ import {
 } from "../../trading/tradingPage";
 
 export default function MyInvestments() {
-  const { firebaseUser, idToken, profile } = useAuth();
+  const { backendSession, authReady, profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPlanId = searchParams.get("plan");
 
@@ -77,7 +77,7 @@ export default function MyInvestments() {
 
   const loadInvestments = useCallback(
     async (isRefresh = false) => {
-      if (!firebaseUser) return;
+      if (!authReady || !backendSession) return;
       if (isRefresh) {
         setRefreshing(true);
       } else {
@@ -86,8 +86,7 @@ export default function MyInvestments() {
       setError(null);
 
       try {
-        const token = idToken || (await firebaseUser.getIdToken());
-        const payload = await fetchDashboardInvestments(token);
+        const payload = await fetchDashboardInvestments();
         setData(payload);
       } catch (err) {
         setError(
@@ -100,7 +99,7 @@ export default function MyInvestments() {
         setRefreshing(false);
       }
     },
-    [firebaseUser, idToken]
+    [backendSession, authReady]
   );
 
   useEffect(() => {
