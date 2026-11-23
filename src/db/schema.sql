@@ -206,6 +206,31 @@ CREATE TABLE IF NOT EXISTS inquiries (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Newsletter consent is stored separately from general contact inquiries.
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id text PRIMARY KEY,
+  email text NOT NULL UNIQUE,
+  status text NOT NULL DEFAULT 'subscribed' CHECK (status IN ('subscribed', 'unsubscribed')),
+  subscribed_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS newsletter_subscribers_status_idx ON newsletter_subscribers(status);
+
+-- Idempotency ledger for scheduled daily summaries; this never creates or accrues returns.
+CREATE TABLE IF NOT EXISTS daily_roi_email_runs (
+  user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  report_date date NOT NULL,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
+  last_error text,
+  sent_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, report_date)
+);
+
+ALTER TABLE user_profiles
+  ADD COLUMN IF NOT EXISTS kyc_status text NOT NULL DEFAULT 'not_submitted'
+  CHECK (kyc_status IN ('not_submitted', 'pending', 'approved', 'rejected', 'needs_information'));
+
 CREATE TABLE IF NOT EXISTS email_templates (
   event_type text PRIMARY KEY,
   subject text NOT NULL,
