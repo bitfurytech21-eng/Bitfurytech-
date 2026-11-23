@@ -220,6 +220,18 @@ CREATE TABLE IF NOT EXISTS email_outbox (
   sent_at timestamptz
 );
 
+-- Idempotent storage for verified Resend email lifecycle events.
+CREATE TABLE IF NOT EXISTS email_webhook_events (
+  event_id text PRIMARY KEY,
+  event_type text NOT NULL,
+  email_id text,
+  recipient text,
+  payload jsonb NOT NULL,
+  received_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS email_webhook_events_received_idx ON email_webhook_events(received_at DESC);
+CREATE INDEX IF NOT EXISTS email_webhook_events_email_id_idx ON email_webhook_events(email_id);
+
 CREATE TABLE IF NOT EXISTS audit_logs (
   id bigserial PRIMARY KEY,
   actor_user_id text REFERENCES "user"(id),
