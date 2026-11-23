@@ -11,7 +11,7 @@ export function createBetterAuthAdminRouter(): Router {
   router.get("/customers", async (_req, res) => {
     try {
       const result = await queryDatabase<Row>(
-        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(w.available_balance,0) AS \"walletBalance\", COALESCE(p.account_status,'Active') AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count FROM investments WHERE user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count FROM transactions WHERE user_id=u.id) tx ON true ORDER BY u.\"createdAt\" DESC"
+        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(w.available_balance,0) AS \"walletBalance\", 'Active'::text AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count FROM investments WHERE user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count FROM transactions WHERE user_id=u.id) tx ON true ORDER BY u.\"createdAt\" DESC"
       );
       res.setHeader("Cache-Control", "no-store");
       res.json({ customers: result.rows });
