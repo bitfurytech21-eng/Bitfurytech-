@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import FinancialAmount from "../../components/FinancialAmount";
 import { Check, Copy, RefreshCw, Share2 } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
@@ -105,7 +106,7 @@ export default function Referrals() {
       align: "right",
       render: (tx) => (
         <span className="font-mono tabular-nums font-semibold text-emerald-700">
-          {formatUsd(tx.amount)}
+          {<FinancialAmount value={tx.amount} size="md" />}
         </span>
       ),
     },
@@ -161,7 +162,7 @@ export default function Referrals() {
             <Card padding="md">
               <p className="text-xs font-medium text-slate-500">Referral Earnings</p>
               <p className="text-2xl font-bold font-mono tabular-nums text-emerald-700 mt-1.5">
-                {loading ? "—" : formatUsd(data?.referralEarnings ?? 0)}
+                {loading ? "—" : <FinancialAmount value={data?.referralEarnings ?? 0} size="md" />}
               </p>
               <p className="text-xs text-slate-500 mt-1">Verified backend total</p>
             </Card>
