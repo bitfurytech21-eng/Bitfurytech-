@@ -25,6 +25,7 @@ import {
   upsertMockProperty,
 } from "../services/inMemoryFinancialMock.ts";
 import { DEFAULT_MAIL_TEMPLATES } from "../services/mailTemplates.ts";
+import { enqueueMailEvent } from "../services/mailOutbox.ts";
 import type { CustomerDocumentDTO } from "../services/dashboardApi.ts";
 
 
@@ -83,7 +84,7 @@ export function createBetterAuthAdminRouter(): Router {
     }
     try {
       const result = await queryDatabase<Row>(
-        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(w.available_balance,0) AS \"walletBalance\", 'Active'::text AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items FROM investments i WHERE i.user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items FROM transactions t WHERE t.user_id=u.id) tx ON true WHERE NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role='admin') ORDER BY u.\"createdAt\" DESC"
+        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(p.kyc_status,'not_submitted') AS \"kycStatus\", COALESCE(w.available_balance,0) AS \"walletBalance\", COALESCE(p.account_status,'Active') AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items FROM investments i WHERE i.user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items FROM transactions t WHERE t.user_id=u.id) tx ON true WHERE NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role='admin') ORDER BY u.\"createdAt\" DESC"
       );
       res.setHeader("Cache-Control", "no-store");
       res.json({ customers: result.rows });
@@ -297,6 +298,56 @@ export function createBetterAuthAdminRouter(): Router {
     } catch (error) {
       const code = Number((error as { statusCode?: number }).statusCode) || 502;
       res.status(code).json({ error: code === 404 ? "Customer not found." : "Unable to update customer status." });
+    }
+  });
+
+  router.patch("/customers/:uid/kyc", async (req, res) => {
+    const uid = typeof req.params.uid === "string" ? req.params.uid : "";
+    const status = typeof req.body?.status === "string" ? req.body.status.trim().toLowerCase() : "";
+    const allowed = new Set(["pending", "approved", "rejected", "needs_information"]);
+    const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 500) : "";
+    if (!uid || !allowed.has(status)) {
+      res.status(400).json({ error: "A valid customer ID and KYC status are required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      res.status(503).json({ error: "KYC review requires the configured Neon database." });
+      return;
+    }
+
+    try {
+      const result = await withAdminTransaction(async (client) => {
+        const user = await client.query<{ id: string; email: string; name: string }>(
+          'SELECT id, email, name FROM "user" WHERE id=$1 FOR UPDATE',
+          [uid]
+        );
+        if (!user.rows[0]) throw Object.assign(new Error("Customer not found."), { statusCode: 404 });
+        await client.query(
+          "INSERT INTO user_profiles (user_id, kyc_status) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET kyc_status=EXCLUDED.kyc_status, updated_at=now()",
+          [uid, status]
+        );
+        await auditInTransaction(client, auditActor(req as BetterAuthRequest)!, "UPDATE_KYC_STATUS", "user", uid, { status, note });
+        return user.rows[0];
+      });
+
+      let emailSent = false;
+      try {
+        emailSent = await enqueueMailEvent({
+          eventType: "kyc_status",
+          userId: uid,
+          recipient: result.email,
+          values: {
+            firstName: result.name.trim().split(/\\s+/)[0] || "Investor",
+            status: status.replace(/_/g, " "),
+          },
+        });
+      } catch (mailError) {
+        console.error("KYC status email failed:", mailError);
+      }
+      res.json({ ok: true, uid, kycStatus: status, emailSent });
+    } catch (error) {
+      const code = Number((error as { statusCode?: number }).statusCode) || 502;
+      res.status(code).json({ error: code === 404 ? "Customer not found." : "Unable to update KYC status." });
     }
   });
 
@@ -956,6 +1007,72 @@ export function createBetterAuthAdminRouter(): Router {
     } catch (error) {
       console.error("Broadcast creation failed:", error);
       res.status(502).json({ error: "Unable to publish broadcast." });
+    }
+  });
+
+  router.get("/payment-wallets", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.status(503).json({ error: "Payment wallet management requires the Neon database." });
+      return;
+    }
+    try {
+      const result = await queryDatabase<Row>(
+        'SELECT method_id AS id, label, currency, network, wallet_address AS "walletAddress", min_deposit AS "minDeposit", instructions, confirmation_info AS "confirmationInfo", enabled, updated_at AS "updatedAt" FROM platform_payment_wallets ORDER BY method_id'
+      );
+      res.json({ wallets: result.rows.map((row) => ({ ...row, minDeposit: number(row.minDeposit) })) });
+    } catch (error) {
+      console.error("Payment wallet settings query failed:", error);
+      res.status(503).json({ error: "Payment wallet settings are unavailable. Apply the latest database migration." });
+    }
+  });
+
+  router.put("/payment-wallets/:methodId", async (req: BetterAuthRequest, res) => {
+    const methodId = typeof req.params.methodId === "string" ? req.params.methodId : "";
+    const allowedMethods = ["USDT (TRC20)", "Bitcoin (BTC)", "Ethereum (ETH)", "Bank Wire"];
+    if (!allowedMethods.includes(methodId)) {
+      res.status(400).json({ error: "Unsupported payment method." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      res.status(503).json({ error: "Payment wallet management requires the Neon database." });
+      return;
+    }
+    const label = textValue(req.body?.label).trim().slice(0, 100);
+    const currency = textValue(req.body?.currency).trim().slice(0, 40);
+    const network = textValue(req.body?.network).trim().slice(0, 100);
+    const walletAddress = textValue(req.body?.walletAddress).trim().slice(0, 1200);
+    const instructions = textValue(req.body?.instructions).trim().slice(0, 1200);
+    const confirmationInfo = textValue(req.body?.confirmationInfo).trim().slice(0, 1200);
+    const minDeposit = number(req.body?.minDeposit, 0);
+    const enabled = req.body?.enabled === true;
+    if (!label || !currency || !network || !Number.isFinite(minDeposit) || minDeposit <= 0) {
+      res.status(400).json({ error: "Label, currency, network, and a positive minimum deposit are required." });
+      return;
+    }
+    if (enabled && walletAddress.length < 6) {
+      res.status(400).json({ error: "Add a valid receiving wallet address or bank details before enabling this method." });
+      return;
+    }
+    try {
+      await queryDatabase(
+        `INSERT INTO platform_payment_wallets
+          (method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info, enabled, updated_by, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now())
+         ON CONFLICT (method_id) DO UPDATE SET
+          label=EXCLUDED.label, currency=EXCLUDED.currency, network=EXCLUDED.network,
+          wallet_address=EXCLUDED.wallet_address, min_deposit=EXCLUDED.min_deposit,
+          instructions=EXCLUDED.instructions, confirmation_info=EXCLUDED.confirmation_info,
+          enabled=EXCLUDED.enabled, updated_by=EXCLUDED.updated_by, updated_at=now()`,
+        [methodId, label, currency, network, walletAddress, minDeposit, instructions, confirmationInfo, enabled, auditActor(req)]
+      );
+      await recordAudit(req, "UPDATE_PAYMENT_WALLET", "payment_wallet", methodId, {
+        enabled, network, walletAddressChanged: walletAddress.length > 0, minDeposit,
+      });
+      res.json({ ok: true, methodId, enabled });
+    } catch (error) {
+      console.error("Payment wallet save failed:", error);
+      res.status(502).json({ error: "Unable to save payment wallet settings." });
     }
   });
 

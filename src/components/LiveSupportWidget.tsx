@@ -3,6 +3,7 @@ import { useEffect } from "react";
 interface TawkApi {
   maximize?: () => void;
   toggle?: () => void;
+  setAttributes?: (attributes: Record<string, string>, callback?: () => void) => void;
 }
 
 declare global {
@@ -12,9 +13,15 @@ declare global {
   }
 }
 
-/** Opens the application-wide Tawk.to chat widget. */
-export function openLiveSupportChat() {
+/**
+ * Opens the application-wide Tawk.to chat widget and attaches optional topic context.
+ */
+export function openLiveSupportChat(subject?: string) {
   const api = window.Tawk_API;
+
+  if (subject && typeof api?.setAttributes === "function") {
+    api.setAttributes({ topic: subject });
+  }
 
   if (typeof api?.maximize === "function") {
     api.maximize();

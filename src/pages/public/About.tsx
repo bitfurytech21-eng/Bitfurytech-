@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { FileText, Mail, MapPin, ShieldCheck } from "lucide-react";
+import { EditorialIcon } from "../../components/EditorialArtwork";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
+import { LEADERSHIP_TEAM } from "../../data/leadershipTeam";
 
 const SECTORS = [
   {
@@ -24,22 +26,30 @@ const SECTORS = [
 
 const SOLUTIONS = [
   {
-    title: "Market Information",
+    index: "01",
+    title: "Market Analysis",
+    art: "analysis" as const,
     description:
       "Review company-published information about digital assets, listed equities, and commercial property in one place.",
   },
   {
-    title: "Investment Plans",
+    index: "02",
+    title: "Allocation & Advisory Desk",
+    art: "advisory" as const,
     description:
       "Compare available plans by asset type, payment method, terms, fees, and risk information before you decide.",
   },
   {
-    title: "Property Listings",
+    index: "03",
+    title: "Professional Research Team",
+    art: "team" as const,
     description:
       "Browse commercial property opportunities with available location, occupancy, valuation, and supporting details.",
   },
   {
-    title: "Account Services",
+    index: "04",
+    title: "Structured Portfolio",
+    art: "strategy" as const,
     description:
       "Use the client portal to review account activity and submit payment, withdrawal, or property inquiries.",
   },
@@ -116,13 +126,12 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
           {/* 2. Who We Are & What We Do */}
           <section className="grid md:grid-cols-12 gap-8 items-start border-b border-[#DCE4EC] pb-14">
-            <div className="md:col-span-4">
-              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                Reinventing Investor Access
-              </p>
-              <h2 className="text-2xl font-heading font-bold text-[#102030] mt-2">
-                Who We Are &amp; What We Do
-              </h2>
+            <div className="md:col-span-4 overflow-hidden rounded-md bg-white">
+              <img src="/images/team-meeting-fade.webp" alt="Bitfury Tech team members gathered around a meeting table" width="1200" height="1200" loading="lazy" className="aspect-[2/1] w-full object-cover object-top" />
+              <div className="relative bg-linear-to-b from-transparent via-white to-white -mt-4 px-3 pb-2 pt-4">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">Reinventing Investor Access</p>
+                <h2 className="mt-2 text-2xl font-heading font-bold text-[#102030]">Who We Are &amp; What We Do</h2>
+              </div>
             </div>
             <div className="md:col-span-8 space-y-4 text-sm sm:text-base text-[#5A6B7C] leading-relaxed">
               <p>
@@ -154,7 +163,7 @@ export default function About() {
                   Company registration certificate
                 </h2>
                 <p className="max-w-2xl text-xs leading-relaxed text-[#5A6B7C]">
-                  View the company registration certificate.
+                  This PDF was linked as the company document.
                 </p>
               </div>
             </div>
@@ -174,6 +183,7 @@ export default function About() {
           <section className="grid md:grid-cols-2 gap-6 border-b border-[#DCE4EC] pb-14">
             <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-3">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                <EditorialIcon name="mission" className="mb-4 size-12" />
                 Our Mission
               </p>
               <h2 className="text-xl font-heading font-bold text-[#102030]">
@@ -186,6 +196,7 @@ export default function About() {
             </div>
             <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-3">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                <EditorialIcon name="oversight" className="mb-4 size-12" />
                 Our Approach &amp; IPC Oversight
               </p>
               <h2 className="text-xl font-heading font-bold text-[#102030]">
@@ -215,6 +226,10 @@ export default function About() {
                   key={sol.title}
                   className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-2.5 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
                 >
+                  <div className="mb-4 flex items-start justify-between">
+                    <EditorialIcon name={sol.art} />
+                    <span className="text-xs font-mono font-semibold text-[#5A6B7C]">{sol.index}</span>
+                  </div>
                   <h3 className="text-base font-heading font-bold text-[#102030]">{sol.title}</h3>
                   <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">
                     {sol.description}
@@ -266,6 +281,38 @@ export default function About() {
                   <h3 className="text-base font-heading font-bold text-[#102030]">{val.title}</h3>
                   <p className="text-sm text-[#5A6B7C] leading-relaxed">{val.body}</p>
                 </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 6b. Executive Board & Leadership */}
+          <section className="space-y-6 border-b border-[#DCE4EC] pb-14" aria-labelledby="about-board-heading">
+            <div className="space-y-2">
+              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                Executive Board
+              </p>
+              <h2 id="about-board-heading" className="text-2xl sm:text-3xl font-heading font-bold text-[#102030]">
+                Meet the Board Members
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {LEADERSHIP_TEAM.map((member) => (
+                <article
+                  key={member.name}
+                  className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
+                >
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-[#EDF3F7]">
+                    <img
+                      src={member.image}
+                      alt={`${member.name}, ${member.role}`}
+                      className="h-full w-full object-cover object-top"
+                    />
+                  </div>
+                  <div className="p-5 space-y-1">
+                    <h3 className="text-base font-heading font-bold text-[#102030]">{member.name}</h3>
+                    <p className="text-xs font-medium text-[#5A6B7C]">{member.role}</p>
+                  </div>
+                </article>
               ))}
             </div>
           </section>

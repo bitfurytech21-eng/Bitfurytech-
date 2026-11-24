@@ -625,7 +625,7 @@ export default function MyInvestments() {
             >
               {INVESTMENT_MANDATES.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.categoryLabel} — {m.name} (<FinancialAmount value={m.minDeposit} />+)
+                  {m.categoryLabel} — {m.name} ({formatUsd(m.minDeposit)}+)
                 </option>
               ))}
             </SelectInput>

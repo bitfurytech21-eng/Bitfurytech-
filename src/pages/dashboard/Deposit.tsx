@@ -165,7 +165,7 @@ export default function Deposit() {
   return (
     <DashboardLayout
       title="Deposit Funds"
-      subtitle="Select a supported rail, review transfer instructions, and submit a deposit notice for settlement verification."
+      subtitle="Choose an administrator-configured payment method, transfer to the official receiving address, and submit your transaction reference for verification."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadData()}>
           <RefreshCw className="w-3.5 h-3.5" />
@@ -209,6 +209,14 @@ export default function Deposit() {
                 />
               )}
 
+              {methods.length === 0 && !loading && (
+                <NotificationBanner
+                  tone="error"
+                  title="No payment methods available"
+                  message="The payment team has not enabled a receiving wallet yet. Please contact support before sending funds."
+                />
+              )}
+
               <FormField id="dep-method" label="Supported Payment Method">
                 <SelectInput
                   id="dep-method"
@@ -220,7 +228,7 @@ export default function Deposit() {
                 >
                   {methods.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.label} ({m.currency}) — Min <FinancialAmount value={m.minDeposit} />
+                      {m.label} ({m.currency}) — Min {formatUsd(m.minDeposit)}
                     </option>
                   ))}
                 </SelectInput>
@@ -240,7 +248,7 @@ export default function Deposit() {
                       <strong className="text-slate-800">Network:</strong> {activeRail.network}
                     </p>
                     <p>
-                      <strong className="text-slate-800">Destination:</strong>{" "}
+                      <strong className="text-slate-800">Payment Wallet / Bank Details:</strong>{" "}
                       {activeRail.custodyDestination}
                     </p>
                   </div>

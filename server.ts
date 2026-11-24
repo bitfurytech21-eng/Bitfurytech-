@@ -10,6 +10,9 @@ import { createBetterAuthAdminRouter } from "./src/routes/betterAuthAdmin.ts";
 import { createBetterAuthFinancialRouter } from "./src/routes/betterAuthFinancial.ts";
 import { createSupportRouter } from "./src/routes/apiSupport.ts";
 import { attachSupportWebSocketServer } from "./src/services/supportWebSocketServer.ts";
+import { enqueueMailEvent } from "./src/services/mailOutbox.ts";
+import { startDailyRoiEmailScheduler } from "./src/services/dailyRoiEmailScheduler.ts";
+import { startPlanDrivenRoiEngine } from "./src/services/planDrivenRoiEngine.ts";
 import { validateUsername } from "./src/lib/username.ts";
 import { isDatabaseConfigured, queryDatabase } from "./src/db/pool.ts";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
@@ -35,6 +38,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -224,6 +228,16 @@ app.get("/api/health/database", async (_req, res) => {
  * This endpoint exposes only readiness booleans, never database data or secrets.
  */
 app.get("/api/health/migration", async (_req, res) => {
+  if (!isDatabaseConfigured) {
+    res.json({
+      ok: true,
+      database: "in-memory-mock",
+      migrationSchema: "mock-ready",
+      missingTables: [],
+      userProvisioningTrigger: true,
+    });
+    return;
+  }
   try {
     const result = await queryDatabase<{ name: string; present: boolean }>(
       `SELECT required.name,
@@ -241,7 +255,8 @@ app.get("/api/health/migration", async (_req, res) => {
          ('public.ledger_entries'),
          ('public.properties'),
          ('public.email_outbox'),
-         ('public.audit_logs')
+         ('public.audit_logs'),
+         ('public.platform_payment_wallets')
        ) AS required(name)`
     );
     const missing = result.rows.filter((row) => !row.present).map((row) => row.name);
@@ -643,26 +658,52 @@ app.post("/api/newsletter", async (req, res) => {
   const message =
     "Subscribed to BitfuryTech institutional briefings, mandate announcements, and property releases.";
 
-  if (!isDatabaseConfigured) {
-    const saved = addMockInquiry({
-      id: subscriptionId,
-      name: "Newsletter Subscriber",
-      email,
-      subject: topic,
-      message,
-    });
-    res.status(201).json({ ok: true, subscriptionId: saved.id, subscribedAt: saved.createdAt });
-    return;
-  }
   try {
-    await queryDatabase(
-      "INSERT INTO inquiries (id, name, email, topic, message) VALUES ($1, $2, $3, $4, $5)",
-      [subscriptionId, "Newsletter Subscriber", email, topic, message]
-    );
+    let isNewSubscription = true;
+    let subscribedAt = new Date().toISOString();
+
+    if (!isDatabaseConfigured) {
+      const saved = addMockInquiry({
+        id: subscriptionId,
+        name: "Newsletter Subscriber",
+        email,
+        subject: topic,
+        message,
+      });
+      subscribedAt = saved.createdAt;
+    } else {
+      const saved = await queryDatabase<{ id: string; subscribed_at: Date | string }>(
+        `INSERT INTO newsletter_subscribers (id, email)
+         VALUES ($1, $2)
+         ON CONFLICT (email) DO NOTHING
+         RETURNING id, subscribed_at`,
+        [subscriptionId, email]
+      );
+      isNewSubscription = saved.rowCount > 0;
+      if (saved.rows[0]?.subscribed_at) {
+        subscribedAt = new Date(saved.rows[0].subscribed_at).toISOString();
+      }
+    }
+
+    let emailSent = false;
+    if (isNewSubscription) {
+      try {
+        emailSent = await enqueueMailEvent({
+          eventType: "newsletter_signup",
+          userId: `newsletter:${email}`,
+          recipient: email,
+          values: { email },
+        });
+      } catch (mailError) {
+        console.error("Newsletter confirmation email failed:", mailError);
+      }
+    }
     res.status(201).json({
       ok: true,
       subscriptionId,
-      subscribedAt: new Date().toISOString(),
+      subscribedAt,
+      alreadySubscribed: !isNewSubscription,
+      emailSent,
     });
   } catch (err) {
     console.error("Newsletter subscription error:", err);
@@ -718,14 +759,83 @@ async function startServer() {
   attachSupportWebSocketServer(httpServer);
 
   if (!isProduction) {
+    const disableHmr = process.env.DISABLE_HMR === "true" || Boolean(process.env.K_SERVICE);
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        hmr: process.env.DISABLE_HMR === "true" ? false : { server: httpServer },
+        hmr: disableHmr ? false : { server: httpServer },
+        watch: disableHmr ? null : undefined,
       },
       appType: "spa",
     });
+    if (disableHmr) {
+      app.get("/@vite/client", (_req, res) => {
+        res.type("application/javascript; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache");
+        res.send(`const sheetsMap = new Map();
+const linkSheetsMap = new Map();
+const cspNonce = typeof document !== "undefined" ? document.querySelector("meta[property=csp-nonce]")?.getAttribute("nonce") : void 0;
+if (typeof document !== "undefined") {
+  document.querySelectorAll("style[data-vite-dev-id]").forEach((el) => {
+    sheetsMap.set(el.getAttribute("data-vite-dev-id"), el);
+  });
+  document.querySelectorAll('link[rel="stylesheet"][data-vite-dev-id]').forEach((el) => {
+    linkSheetsMap.set(el.getAttribute("data-vite-dev-id"), el);
+  });
+}
+export function updateStyle(id, content) {
+  if (typeof document === "undefined" || linkSheetsMap.has(id)) return;
+  let style = sheetsMap.get(id);
+  if (!style) {
+    style = document.createElement("style");
+    style.setAttribute("type", "text/css");
+    style.setAttribute("data-vite-dev-id", id);
+    style.textContent = content;
+    if (cspNonce) style.setAttribute("nonce", cspNonce);
+    document.head.appendChild(style);
+  } else if (style.textContent !== content) {
+    style.textContent = content;
+  }
+  sheetsMap.set(id, style);
+}
+export function removeStyle(id) {
+  if (typeof document === "undefined") return;
+  if (linkSheetsMap.has(id)) {
+    document.querySelectorAll(\`link[rel="stylesheet"][data-vite-dev-id="\${CSS.escape(id)}"]\`).forEach((el) => el.remove());
+    linkSheetsMap.delete(id);
+  }
+  const style = sheetsMap.get(id);
+  if (style && style.parentNode) {
+    style.parentNode.removeChild(style);
+    sheetsMap.delete(id);
+  }
+}
+export function createHotContext() {
+  return {
+    data: {},
+    accept() {},
+    acceptExports() {},
+    dispose() {},
+    prune() {},
+    decline() {},
+    invalidate() {},
+    on() {},
+    off() {},
+    send() {},
+  };
+}
+export function injectQuery(url, queryToInject) {
+  if (typeof url !== "string" || (url[0] !== "." && url[0] !== "/")) return url;
+  const pathname = url.replace(/[?#].*$/, "");
+  const parsed = new URL(url, "http://vite.dev");
+  return \`\${pathname}?\${queryToInject}\${parsed.search ? "&" + parsed.search.slice(1) : ""}\${parsed.hash || ""}\`;
+}
+const BaseEl = typeof HTMLElement !== "undefined" ? HTMLElement : class {};
+export class ErrorOverlay extends BaseEl {}
+`);
+      });
+    }
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve(__dirname, "dist");
@@ -737,6 +847,10 @@ async function startServer() {
 
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`BitfuryTech server listening on http://0.0.0.0:${PORT}`);
+    if (isDatabaseConfigured) {
+      startDailyRoiEmailScheduler();
+      startPlanDrivenRoiEngine();
+    }
   });
 }
 

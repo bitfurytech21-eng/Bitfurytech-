@@ -52,8 +52,30 @@ export default function Settings() {
       setPreferredRail(profile.preferredRail);
       setEmailAlerts(profile.emailAlerts);
       setTwoFactorEnabled(profile.twoFactorEnabled);
+      return;
     }
-  }, [profile]);
+    if (!user) return;
+    let active = true;
+    void sessionApiRequest<{
+      profile?: {
+        preferredRail?: "USDT (TRC20)" | "Bitcoin (BTC)" | "Ethereum (ETH)" | "Bank Wire";
+        emailAlerts?: boolean;
+        twoFactorEnabled?: boolean;
+      };
+    }>("/api/profile")
+      .then((res) => {
+        if (!active || !res.profile) return;
+        if (res.profile.preferredRail) setPreferredRail(res.profile.preferredRail);
+        if (typeof res.profile.emailAlerts === "boolean") setEmailAlerts(res.profile.emailAlerts);
+        if (typeof res.profile.twoFactorEnabled === "boolean") {
+          setTwoFactorEnabled(res.profile.twoFactorEnabled);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [profile, user]);
 
   const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();

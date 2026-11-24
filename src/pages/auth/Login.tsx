@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  Hexagon,
   Lock,
   ShieldCheck,
   User,
@@ -157,12 +156,13 @@ export default function Login() {
         <div className="relative z-10 flex items-center justify-between gap-4">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 font-heading font-extrabold text-xl text-white whitespace-nowrap shrink-0"
+            className="inline-flex items-center rounded-md bg-white px-2 py-1 shrink-0"
           >
-            <Hexagon className="w-6 h-6 text-[#E94D65] fill-[#E94D65]/20 shrink-0" />
-            <span>
-              Bitfury<span className="text-[#E94D65]">Tech</span>
-            </span>
+            <img
+              src="/images/brand/bitfurylogo.png"
+              alt="Bitfury Tech Investment"
+              className="h-8 w-auto"
+            />
           </Link>
           <Link
             to="/"

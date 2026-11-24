@@ -1,4 +1,6 @@
-export interface ResendEmailInput { to: string; subject: string; text: string; html?: string; }
+import { renderBrandedEmail } from "./emailLayout.ts";
+
+export interface ResendEmailInput { to: string; subject: string; text?: string; html: string; }
 
 function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -6,7 +8,7 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-/** Sends transactional email through Resend. The API key stays server-side. */
+/** Sends HTML transactional email through Resend. The API key stays server-side. */
 export async function sendResendEmail(input: ResendEmailInput): Promise<string> {
   const apiKey = requiredEnv("RESEND_API_KEY");
   const from = requiredEnv("RESEND_FROM_EMAIL");
@@ -14,8 +16,8 @@ export async function sendResendEmail(input: ResendEmailInput): Promise<string> 
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from, to: [input.to], subject: input.subject, text: input.text,
-      ...(input.html ? { html: input.html } : {}),
+      from, to: [input.to], subject: input.subject,
+      html: renderBrandedEmail(input.html),
     }),
     signal: AbortSignal.timeout(15000),
   });

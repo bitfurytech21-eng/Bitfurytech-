@@ -44,6 +44,7 @@ import AdminWithdrawals from "../pages/admin/Withdrawals";
 import AdminInvestments from "../pages/admin/Investments";
 import { AdminNotificationsPage } from "../pages/admin/AdminPages";
 import EmailTemplatesPage from "../pages/admin/EmailTemplatesPage";
+import PaymentWalletsPage from "../pages/admin/PaymentWallets";
 import {
   AdminDocumentsPage,
   AdminReferralsPage,
@@ -142,6 +143,7 @@ export default function AppRoutes() {
         <Route path="/admin/investments" element={<AdminInvestments />} />
         <Route path="/admin/deposits" element={<AdminDeposits />} />
         <Route path="/admin/financial-approvals" element={<FinancialApprovalCenter />} />
+        <Route path="/admin/payment-wallets" element={<PaymentWalletsPage />} />
         <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
         <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
         <Route path="/admin/referrals" element={<AdminReferralsPage />} />

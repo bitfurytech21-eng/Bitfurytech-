@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { bearer } from "better-auth/plugins";
 import { databasePool, isDatabaseConfigured } from "../db/pool.ts";
@@ -7,16 +8,22 @@ import { registerMockUser } from "../services/inMemoryFinancialMock.ts";
 const baseURL =
   process.env.BETTER_AUTH_URL ||
   process.env.VITE_SITE_URL ||
+  process.env.APP_URL ||
   "http://localhost:3000";
 
 const secret =
   process.env.BETTER_AUTH_SECRET?.trim() ||
-  "ai-studio-local-dev-better-auth-secret-32chars";
+  randomBytes(32).toString("hex");
 
 const configuredTrustedOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const isHttpsContext =
+  process.env.NODE_ENV === "production" ||
+  baseURL.startsWith("https://") ||
+  Boolean(process.env.K_SERVICE || process.env.RENDER);
 
 const emailSendingConfigured = Boolean(
   process.env.RESEND_API_KEY?.trim() && process.env.RESEND_FROM_EMAIL?.trim()
@@ -43,7 +50,24 @@ export const betterAuthInstance = betterAuth({
     : (request) => {
         const origins = new Set<string>([baseURL]);
         const origin = request?.headers.get("origin");
-        if (origin) origins.add(origin);
+        const hostHeader = (
+          request?.headers.get("x-forwarded-host") ||
+          request?.headers.get("host") ||
+          ""
+        )
+          .split(",")[0]
+          .trim()
+          .toLowerCase();
+        if (origin && hostHeader) {
+          try {
+            const parsed = new URL(origin);
+            if (parsed.host.toLowerCase() === hostHeader) {
+              origins.add(origin);
+            }
+          } catch {
+            // Ignore malformed Origin headers
+          }
+        }
         return Array.from(origins);
       },
   user: {
@@ -108,11 +132,18 @@ export const betterAuthInstance = betterAuth({
     },
   },
   advanced: {
-    useSecureCookies: process.env.NODE_ENV === "production",
-    defaultCookieAttributes: {
-      sameSite: "lax",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    },
+    useSecureCookies: isHttpsContext,
+    defaultCookieAttributes: isHttpsContext
+      ? {
+          sameSite: "none",
+          httpOnly: true,
+          secure: true,
+          partitioned: true,
+        }
+      : {
+          sameSite: "lax",
+          httpOnly: true,
+          secure: false,
+        },
   },
 });

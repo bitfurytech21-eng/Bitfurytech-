@@ -99,7 +99,31 @@ export function createBetterAuthFinancialRouter(): Router {
   const router = Router();
   router.use(requireBetterAuth, requireBetterVerifiedEmail);
 
-  router.get("/deposits/methods", (_req, res) => res.json({ methods: DEPOSIT_RAILS }));
+  router.get("/deposits/methods", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ methods: DEPOSIT_RAILS });
+      return;
+    }
+    try {
+      const result = await databasePool!.query(
+        "SELECT method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info FROM platform_payment_wallets WHERE enabled=true AND length(trim(wallet_address)) >= 6 ORDER BY method_id"
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res.json({
+        methods: result.rows.map((row) => ({
+          id: String(row.method_id), label: String(row.label), currency: String(row.currency),
+          network: String(row.network), minDeposit: Number(row.min_deposit),
+          instructions: String(row.instructions ?? ""),
+          custodyDestination: String(row.wallet_address),
+          confirmationInfo: String(row.confirmation_info ?? ""),
+        })),
+      });
+    } catch (error) {
+      console.error("Configured payment methods could not be loaded:", error);
+      res.status(503).json({ error: "Payment methods are temporarily unavailable." });
+    }
+  });
   router.get("/withdrawals/config", (_req, res) => res.json(WITHDRAWAL_CONFIG));
 
   router.get("/investments/catalog", async (_req, res) => {
@@ -152,8 +176,34 @@ export function createBetterAuthFinancialRouter(): Router {
     const amount = Number(body.amount);
     const referenceInput = cleanText(body.reference, 120).replace(/[^a-zA-Z0-9_-]/g, "");
     const key = cleanText(body.idempotencyKey, 128);
-    const rail = DEPOSIT_RAILS.find((item) => item.id === method || item.label === method);
-    if (!rail) { res.status(400).json({ error: "Selected payment method is not supported." }); return; }
+    let rail: (typeof DEPOSIT_RAILS)[number] | {
+      id: string; label: string; currency: string; network: string; minDeposit: number;
+      instructions: string; custodyDestination: string; confirmationInfo: string;
+    } | undefined;
+    if (!isDatabaseConfigured) {
+      rail = DEPOSIT_RAILS.find((item) => item.id === method);
+    } else {
+      try {
+        const configured = await databasePool!.query(
+          "SELECT method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info FROM platform_payment_wallets WHERE method_id=$1 AND enabled=true AND length(trim(wallet_address)) >= 6",
+          [method]
+        );
+        const row = configured.rows[0];
+        if (row) {
+          rail = {
+            id: String(row.method_id), label: String(row.label), currency: String(row.currency),
+            network: String(row.network), minDeposit: Number(row.min_deposit),
+            instructions: String(row.instructions ?? ""), custodyDestination: String(row.wallet_address),
+            confirmationInfo: String(row.confirmation_info ?? ""),
+          };
+        }
+      } catch (error) {
+        console.error("Deposit wallet lookup failed:", error);
+        res.status(503).json({ error: "Payment method settings are unavailable." });
+        return;
+      }
+    }
+    if (!rail) { res.status(400).json({ error: "This payment method is not enabled or its receiving address has not been configured." }); return; }
     if (!key || key.length < 8) { res.status(400).json({ error: "A valid idempotency key is required." }); return; }
     if (!Number.isFinite(amount) || amount < rail.minDeposit || amount > 10_000_000) { res.status(400).json({ error: `Deposit amount for ${rail.label} must be at least $${rail.minDeposit.toLocaleString()}.` }); return; }
     if (!isDatabaseConfigured) {
@@ -334,6 +384,8 @@ export function createBetterAuthFinancialRouter(): Router {
         let maxCap = Number.MAX_SAFE_INTEGER;
         let dailyRatePct = 0;
         let durationDays = 30;
+        let paymentFrequency = "At maturity";
+        let settlementRail = "USD";
         let termsSummary = "";
         let propertyId: string | null = null;
         if (targetType === "property") {
@@ -359,13 +411,15 @@ export function createBetterAuthFinancialRouter(): Router {
             planId = String(row.id); planName = String(row.name); category = String(row.category);
             unitPrice = Number(row.min_deposit); maxCap = row.max_deposit == null ? Number.MAX_SAFE_INTEGER : Number(row.max_deposit);
             dailyRatePct = Number(row.daily_rate_pct ?? 0); durationDays = Number(row.duration_days);
+            paymentFrequency = String(data.paymentFrequency ?? "At maturity");
+            settlementRail = String(data.settlementRail ?? "USD");
             termsSummary = String(data.returnTerms ?? row.description ?? "");
           } else {
             plan = INVESTMENT_MANDATES.find((item) => item.id === targetId) ?? null;
             if (!plan) throw httpError("Selected investment plan does not exist.", 404);
             planId = null; planName = plan.name; category = plan.category;
             unitPrice = plan.minDeposit; maxCap = plan.maxDeposit; dailyRatePct = plan.dailyRatePct;
-            durationDays = plan.durationDays; termsSummary = plan.returnTerms;
+            durationDays = plan.durationDays; paymentFrequency = plan.paymentFrequency || "At maturity"; settlementRail = plan.settlementRail || "USD"; termsSummary = plan.returnTerms;
           }
         }
         const principal = money(amountBased ? Number(amountInput) : units * unitPrice);
@@ -379,7 +433,7 @@ export function createBetterAuthFinancialRouter(): Router {
         const investmentId = randomUUID();
         const transactionId = randomUUID();
         const reference = makeReference("INV");
-        const snapshot = { name: planName, category, categoryLabel: category === "estate" ? "Real Estate" : category === "stock" ? "Global Equities" : "Digital Assets", dailyRatePct, durationDays, returnTerms: termsSummary, propertyId };
+        const snapshot = { name: planName, category, categoryLabel: category === "estate" ? "Real Estate" : category === "stock" ? "Global Equities" : "Digital Assets", dailyRatePct, durationDays, paymentFrequency, settlementRail, returnTerms: termsSummary, propertyId };
         await client.query("UPDATE wallets SET available_balance=available_balance-$2,updated_at=now() WHERE user_id=$1 AND currency='USD'", [user.id, totalCost]);
         await client.query(
           "INSERT INTO investments(id,user_id,plan_id,plan_snapshot,principal,currency,status,started_at,matures_at) VALUES($1,$2,$3,$4::jsonb,$5,'USD','active',now(),now()+($6::text||' days')::interval)",

@@ -74,17 +74,31 @@ export default function DashboardLayout({
   const { user, profile, isAdmin, signOutUser } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
+  const [walletBalance, setWalletBalance] = useState<number>(profile?.walletBalance ?? 0);
+  const [serverDisplayName, setServerDisplayName] = useState<string>("");
 
-  const loadNotifications = useCallback(() => {
-    if (!user) return;
+  const loadLayoutSessionData = useCallback(() => {
+    if (!user || !user.emailVerified) return;
     void sessionApiRequest<{ notifications: NotificationMessage[] }>("/api/notifications")
       .then((res) => setNotifications(res.notifications || []))
+      .catch(() => undefined);
+    void sessionApiRequest<{ account?: { displayName?: string }; metrics?: { availableBalance?: number } }>(
+      "/api/dashboard/overview"
+    )
+      .then((res) => {
+        if (typeof res.metrics?.availableBalance === "number") {
+          setWalletBalance(res.metrics.availableBalance);
+        }
+        if (res.account?.displayName) {
+          setServerDisplayName(res.account.displayName);
+        }
+      })
       .catch(() => undefined);
   }, [user]);
 
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    loadLayoutSessionData();
+  }, [loadLayoutSessionData]);
 
   const meta = resolvePageMeta(pathname);
   const resolvedTitle = title || meta.title;
@@ -98,7 +112,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-[#F6F8FA] text-[#102030] flex">
       <Sidebar
-        walletBalance={profile?.walletBalance ?? 0}
+        walletBalance={profile?.walletBalance ?? walletBalance}
         isAdmin={isAdmin}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
@@ -112,6 +126,7 @@ export default function DashboardLayout({
           userEmail={user?.email || ""}
           displayName={
             profile?.displayName ||
+            serverDisplayName ||
             user?.displayName ||
             user?.email?.split("@")[0] ||
             "Investor"

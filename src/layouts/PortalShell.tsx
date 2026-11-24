@@ -4,7 +4,6 @@ import {
   ArrowDownCircle,
   Bell,
   Building2,
-  Hexagon,
   Home,
   LogOut,
   Menu,
@@ -114,11 +113,12 @@ function AdminPortalShell({
       <aside className="hidden lg:flex w-64 shrink-0 bg-[#1B4962] text-slate-100 flex-col justify-between border-r border-[#14374B]">
         <div>
           <div className="h-16 px-6 flex items-center border-b border-white/15">
-            <Link to="/dashboard" className="inline-flex items-center gap-2.5 font-heading font-extrabold text-lg text-white">
-              <Hexagon className="w-6 h-6 text-[#E94D65] fill-[#E94D65]/20 shrink-0" />
-              <span>
-                Bitfury<span className="text-[#E94D65]">Tech</span>
-              </span>
+            <Link to="/dashboard" className="inline-flex items-center rounded-md bg-white px-2 py-1">
+              <img
+                src="/images/brand/bitfurylogo.png"
+                alt="Bitfury Tech Investment"
+                className="h-8 w-auto"
+              />
             </Link>
           </div>
 
@@ -191,9 +191,13 @@ function AdminPortalShell({
           <aside className="relative w-72 max-w-[82vw] bg-[#1B4962] text-white flex flex-col justify-between z-10 overflow-y-auto">
             <div>
               <div className="h-16 px-5 flex items-center justify-between border-b border-white/15">
-                <span className="font-heading font-extrabold text-base">
-                  Bitfury<span className="text-[#E94D65]">Tech</span>
-                </span>
+                <Link to="/dashboard" className="inline-flex items-center rounded-md bg-white px-2 py-1">
+                  <img
+                    src="/images/brand/bitfurylogo.png"
+                    alt="Bitfury Tech Investment"
+                    className="h-7 w-auto"
+                  />
+                </Link>
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(false)}

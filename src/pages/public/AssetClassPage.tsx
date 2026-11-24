@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, CircleAlert } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import PublicLayout from "../../components/PublicLayout";
 import { buttonClasses } from "../../components/ui";
@@ -55,7 +55,7 @@ export default function AssetClassPage() {
             </div>
           </section>
 
-          <section className="grid gap-6 md:grid-cols-2">
+          <section>
             <div className="rounded-xl border border-[#DCE4EC] bg-white p-5 sm:p-6">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B92841]">Potential return sources</p>
               <h2 className="mt-2 text-xl font-heading font-bold text-[#102030]">How value may be created</h2>
@@ -69,24 +69,7 @@ export default function AssetClassPage() {
               </ul>
               <p className="mt-5 border-t border-[#DCE4EC] pt-4 text-xs leading-relaxed text-[#5A6B7C]">These are general return mechanisms, not a promise that any will occur or that investors will profit.</p>
             </div>
-            <div className="rounded-xl border border-[#DCE4EC] bg-[#F6F8FA] p-5 sm:p-6">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B92841]">Before you participate</p>
-              <h2 className="mt-2 text-xl font-heading font-bold text-[#102030]">Questions worth asking</h2>
-              <ul className="mt-5 space-y-4">
-                {guide.reviewPoints.map((point) => (
-                  <li key={point} className="flex items-start gap-3 text-sm leading-relaxed text-[#46596B]">
-                    <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[#B92841]" aria-hidden="true" />
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </section>
-
-          <aside className="rounded-xl border border-[#F1C4CB] bg-[#FFF7F8] p-5 sm:p-6" aria-label="Sector-specific risks">
-            <h2 className="font-heading font-bold text-[#102030]">Risks to understand</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#46596B]">{guide.risk}</p>
-          </aside>
 
           <div className="flex flex-col gap-3 border-t border-[#DCE4EC] pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-2xl text-xs leading-relaxed text-[#667789]">This overview is educational, not personalized investment advice or a forecast. Confirm any strategy, fees, custody arrangements, and withdrawal terms in the current official documents before making a decision.</p>
