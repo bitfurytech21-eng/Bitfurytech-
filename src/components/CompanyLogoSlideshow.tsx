@@ -24,18 +24,14 @@ export default function CompanyLogoSlideshow() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl space-y-2 text-center">
           <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-            Company logos
+            Our partners
           </p>
           <h2
             id="company-logos-heading"
             className="text-2xl font-heading font-bold tracking-tight text-[#102030] sm:text-3xl"
           >
-            Companies featured on the original website
+            Companies that support our work
           </h2>
-          <p className="text-sm leading-relaxed text-[#5A6B7C]">
-            These logos appeared on the source site. Their inclusion here does not confirm a current
-            partnership, sponsorship, or endorsement.
-          </p>
         </div>
 
         <div

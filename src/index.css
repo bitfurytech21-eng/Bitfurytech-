@@ -89,6 +89,18 @@
   --bf-ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@layer components {
+  .public-hero {
+    background:
+      radial-gradient(ellipse at 12% 10%, rgba(233, 77, 101, 0.16), transparent 38%),
+      linear-gradient(115deg, #102f43 0%, #1b4962 58%, #112e3e 100%);
+  }
+
+  .public-site [class~="rounded-[5px]"] {
+    border-radius: 0.75rem;
+  }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;

@@ -55,17 +55,16 @@ export default function PropertiesPage() {
   return (
     <PublicLayout>
       {/* Header Band */}
-      <section className="bg-[#1B4962] text-white border-b border-white/15">
+      <section className="public-hero text-white border-b border-white/15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-3">
           <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-            Real Estate Holdings
+            Property listings
           </p>
           <h1 className="text-3xl sm:text-5xl font-heading font-bold tracking-tight text-white">
-            Commercial Property Catalog
+            Commercial property listings
           </h1>
           <p className="text-base text-slate-200 max-w-3xl">
-            Live commercial real estate offerings published by BitfuryTech portfolio
-            administrators with supporting prospectuses and architectural photo galleries.
+            Review current listings, available property details, and supporting documents. Listings and availability may change.
           </p>
         </div>
       </section>
@@ -75,20 +74,19 @@ export default function PropertiesPage() {
           <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1 max-w-3xl">
               <h2 className="text-sm font-heading font-bold text-[#102030]">
-                Property Evaluation &amp; Risk Considerations
+                Before you consider a property
               </h2>
               <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">
-                Before participating in any real estate offering, carefully review the property
-                location, appraised valuation, occupancy rate, minimum entry threshold, rental
-                income assumptions, and supporting prospectus. Property valuations and rental yields
-                can rise or fall with market conditions and are not guaranteed.
+                Review the location, valuation, occupancy, entry requirements, income assumptions, and
+                supporting documents. Property values and rental income can fall as well as rise, and
+                property investments may be difficult to sell.
               </p>
             </div>
             <Link
               to="/investments-catalog?category=estate"
               className={buttonClasses({ variant: "secondary", size: "sm" })}
             >
-              View Real Estate Mandates
+              View property plans
             </Link>
           </div>
 
@@ -104,14 +102,14 @@ export default function PropertiesPage() {
           ) : published.length === 0 ? (
             <Card padding="lg">
               <EmptyState
-                title="No Active Property Offerings Published"
-                description="Verified commercial real estate offerings appear here as soon as they are listed by a BitfuryTech administrator. You can still review Real Estate mandate tiers in our catalog."
+                title="No property listings available"
+                description="There are no published properties at the moment. Check the investment plan catalog for other available options."
                 action={
                   <Link
                     to="/investments-catalog"
                     className={buttonClasses({ variant: "primary", size: "md" })}
                   >
-                    View Real Estate Mandates
+              View property plans
                   </Link>
                 }
               />
@@ -142,7 +140,7 @@ export default function PropertiesPage() {
                           className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 bg-[#1B4962]/90 hover:bg-[#1B4962] text-white text-[11px] font-heading font-bold px-2.5 py-1.5 rounded-none cursor-pointer"
                         >
                           <Images className="w-3.5 h-3.5" />
-                          <span>Gallery ({gallery.length})</span>
+                          <span>Photos ({gallery.length})</span>
                         </button>
                       </div>
 
@@ -156,25 +154,25 @@ export default function PropertiesPage() {
                         <p className="text-sm text-[#5A6B7C] leading-relaxed">{p.summary}</p>
                         <dl className="grid grid-cols-2 gap-3 pt-3 border-t border-[#DCE4EC] text-xs">
                           <div>
-                            <dt className="text-[#5A6B7C]">Min Entry</dt>
+                            <dt className="text-[#5A6B7C]">Minimum investment</dt>
                             <dd className="font-mono tabular-nums font-bold text-[#102030]">
                               {formatUsd(p.minEntry)}
                             </dd>
                           </div>
                           <div>
-                            <dt className="text-[#5A6B7C]">Valuation</dt>
+                            <dt className="text-[#5A6B7C]">Reported valuation</dt>
                             <dd className="font-mono tabular-nums font-bold text-[#102030]">
                               {formatUsd(p.valuation)}
                             </dd>
                           </div>
                           <div>
-                            <dt className="text-[#5A6B7C]">Target Yield</dt>
+                            <dt className="text-[#5A6B7C]">Indicative yield</dt>
                             <dd className="font-mono tabular-nums font-semibold text-[#B92841]">
                               {p.targetYieldPct}%
                             </dd>
                           </div>
                           <div>
-                            <dt className="text-[#5A6B7C]">Occupancy</dt>
+                            <dt className="text-[#5A6B7C]">Reported occupancy</dt>
                             <dd className="font-mono tabular-nums font-semibold text-[#15803D]">
                               {p.occupancyPct}%
                             </dd>
@@ -191,14 +189,14 @@ export default function PropertiesPage() {
                           rel="noopener noreferrer"
                           className="block text-center text-xs font-semibold text-[#1B4962] hover:text-[#B92841] hover:underline"
                         >
-                          View Supporting Document ({p.supportingDocName || "Prospectus"})
+                          View document ({p.supportingDocName || "Property details"})
                         </a>
                       )}
                       <Link
                         to={`/invest?kind=property&id=${encodeURIComponent(p.id)}`}
                         className={buttonClasses({ variant: "primary", size: "md", fullWidth: true })}
                       >
-                        Participate in Portal
+                        View in account
                       </Link>
                     </div>
                   </Card>
