@@ -176,8 +176,7 @@ export default function About() {
                   Company information document
                 </h2>
                 <p className="max-w-2xl text-xs leading-relaxed text-[#5A6B7C]">
-                  This PDF was linked as the company number document on the previous website. Its
-                  contents have not been independently verified.
+                  This PDF was linked as the company document.
                 </p>
               </div>
             </div>
