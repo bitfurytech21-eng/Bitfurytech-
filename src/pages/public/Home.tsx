@@ -1,21 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeftRight,
   ArrowRight,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Coins,
-  HandCoins,
-  Handshake,
   Mail,
   ShieldCheck,
 } from "lucide-react";
 import PublicLayout from "../../components/PublicLayout";
 import CompanyLogoSlideshow from "../../components/CompanyLogoSlideshow";
 import ResilientImage from "../../components/ResilientImage";
-import TradingViewTickerTape from "../../components/TradingViewTickerTape";
 import {
   Button,
   buttonClasses,
@@ -28,18 +23,17 @@ import { useAuth } from "../../hooks/useAuth";
 import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
 import InvestorTestimonials from "../../components/InvestorTestimonials";
 import PaymentMethods from "../../components/PaymentMethods";
-import AnimatedStatValue from "../../components/AnimatedStatValue";
 import { PropertyOffering } from "../../services/dashboardApi";
-import { formatUsd, MandateCategory } from "../../trading/tradingPage";
+import { MandateCategory } from "../../trading/tradingPage";
 import { ASSET_CLASS_GUIDES } from "./assetClassData";
 
 const HERO_SLIDES = [
   {
     id: "institutional-custody",
-    kicker: "Bitfury Tech Investment · Est. 2017",
-    headline: "Algorithmic trading precision and multi-asset wealth management you can verify.",
+    kicker: "Bitfury Tech Investment",
+    headline: "Explore investment options with clear terms and reporting.",
     description:
-      "Founded in 2017 by financial analysts, fund managers, and research scientists, Bitfury Tech Investment applies mathematical and statistical discipline with direct access to over 50 financial markets through one unified account.",
+      "Review opportunities across digital assets, equities, and commercial property. Compare published terms and risks, then manage your account online.",
     image: "/images/hero-private-capital.jpg",
     imageAlt: "BitfuryTech financial district architectural skyline",
     primaryLabel: "Explore Opportunities",
@@ -49,10 +43,10 @@ const HERO_SLIDES = [
   },
   {
     id: "market-research",
-    kicker: "Investment Policy Committee & Market Research",
-    headline: "Move beyond conventional strategies across Cryptocurrency, Stocks, and Real Estate.",
+    kicker: "Investment information",
+    headline: "Compare plans across digital assets, equities, and property.",
     description:
-      "Compare 15 transparent mandate tiers governed by our Investment Policy Committee (IPC), inspect monthly benchmarks and referral tiers, and manage custody inside a segregated ledger.",
+      "Compare opportunities by asset type, then review each plan’s terms, fees, and information before proceeding.",
     image: "/images/global-equities.jpg",
     imageAlt: "Institutional multi-asset portfolio management boardroom",
     primaryLabel: "Explore Opportunities",
@@ -62,10 +56,10 @@ const HERO_SLIDES = [
   },
   {
     id: "commercial-holdings",
-    kicker: "Commercial Real Estate Participation",
-    headline: "Evaluate property offerings with clear valuations, occupancy data, and entry terms.",
+    kicker: "Commercial property",
+    headline: "Review property details before making a decision.",
     description:
-      "Inspect live commercial property offerings published directly by our portfolio desk, review rental and valuation considerations, and manage your participation inside one client account.",
+      "Explore current property listings and review their location, occupancy information, valuations, and supporting documents.",
     image: "/images/hero_commercial_skyline.jpg",
     imageAlt: "Class-A commercial office towers in global financial district",
     primaryLabel: "Inspect Properties",
@@ -81,8 +75,8 @@ const SECTOR_BLOCKS = [
     category: "crypto" as MandateCategory,
     title: "Cryptocurrency",
     description:
-      "Explore digital assets built on decentralized blockchain networks, including Bitcoin, Ethereum, and USD-pegged liquidity pools. Cryptocurrency markets operate continuously and can experience sharp price volatility, network congestion, and liquidity shifts, making disciplined position sizing and risk awareness essential.",
-    riskNote: "High market volatility & digital asset price risk",
+      "Learn about digital assets such as Bitcoin and Ethereum. Prices can change quickly, and transactions may be affected by network fees, congestion, and regulatory changes.",
+    riskNote: "Prices can be highly volatile; you could lose your capital.",
     image: "/images/digital-assets.jpg",
     to: "/sectors/crypto",
   },
@@ -91,8 +85,8 @@ const SECTOR_BLOCKS = [
     category: "stock" as MandateCategory,
     title: "Stocks",
     description:
-      "Access structured equity mandates centered on publicly traded company shares across global markets. Share ownership exposes capital to corporate earnings performance, sector demand, interest-rate expectations, and broader economic developments that can cause stock values to rise or decline.",
-    riskNote: "Equity market, earnings & macroeconomic risk",
+      "Stocks are shares in publicly listed companies. Their prices can be affected by company performance, market conditions, interest rates, and economic events.",
+    riskNote: "Share prices can fall as well as rise.",
     image: "/images/global-equities.jpg",
     to: "/sectors/stocks",
   },
@@ -101,8 +95,8 @@ const SECTOR_BLOCKS = [
     category: "estate" as MandateCategory,
     title: "Real Estate",
     description:
-      "Review commercial property offerings and asset-backed real estate mandates. Property participation considers potential rental income, tenant occupancy stability, and long-term property value changes—always review full valuation, location, and offering terms before committing capital.",
-    riskNote: "Tenancy, valuation & property liquidity risk",
+      "Review commercial property listings, including location, occupancy, and published entry terms. Rental income and property values are uncertain; read the available documents before deciding.",
+    riskNote: "Property may be difficult to sell and can lose value.",
     image: "/images/commercial-property.jpg",
     to: "/sectors/real-estate",
   },
@@ -112,144 +106,125 @@ const RESEARCH_PILLARS = [
   {
     title: "Studying Market Movements",
     description:
-      "Tracking price trends, trading volume, and sector rotation helps investors see how digital assets, equities, and property markets respond over different cycles.",
+      "Review price changes and market activity to understand how markets move over time.",
   },
   {
     title: "Understanding Asset Performance",
     description:
-      "Comparing historical behaviour, yield drivers, and cost structures clarifies how each asset category contributes differently to growth or income objectives.",
+      "Compare the features, costs, and risks listed for each asset type.",
   },
   {
     title: "Monitoring Economic Developments",
     description:
-      "Inflation data, central-bank rate policies, employment trends, and industry shifts directly influence borrowing costs, corporate profits, and asset valuations.",
+      "Economic changes can affect borrowing costs, company results, and property values.",
   },
   {
     title: "Assessing Potential Risks",
     description:
-      "Evaluating downside volatility, concentration exposure, and liquidity horizons before investing helps prevent decisions driven solely by short-term market sentiment.",
+      "Consider potential losses, how long funds may be committed, and how easily an asset can be sold.",
   },
 ];
 
 const PORTFOLIO_PRINCIPLES = [
   {
-    title: "Market Analysis & IPC Governance",
+    title: "Investment Policy & Research",
     description:
-      "Our Investment Policy Committee (over 10 years combined experience) works alongside network engineers, macroeconomists, research scientists, and quantitative analysts.",
+      "The Investment Policy Committee oversees investment policy with support from research and market analysis.",
   },
   {
-    title: "Flexible Cross-Asset Switching",
+    title: "Options Across Asset Types",
     description:
-      "Switch across Cryptocurrency (6 tiers), Stocks (4 tiers), and Real Estate (3 tiers) as your financial circumstances evolve without extra switching charges.",
+      "Compare opportunities in digital assets, equities, and commercial property using the terms published for each plan.",
   },
   {
-    title: "Long-Term Planning & 24/7 Monitoring",
+    title: "Account Records & Support",
     description:
-      "Algorithms and custody ledgers operate continuously while clear cycle timelines, risk brackets, and transparent records keep allocations auditable.",
+      "Use the client portal to review account activity and contact support about payments, withdrawals, or property inquiries.",
   },
-];
-
-const PUBLISHED_MILESTONES = [
-  { label: "Total Members", value: "1,865+", icon: Handshake },
-  { label: "Total Returns Distributed", value: "$604,585", icon: HandCoins },
-  { label: "Total Transactions", value: "4,180+", icon: ArrowLeftRight },
-  { label: "Total Deposited", value: "$695,535", icon: Coins },
 ];
 
 const WHY_CHOOSE_ITEMS = [
   {
-    index: "01",
-    title: "Research-Driven Decisions",
+    title: "Market information",
     description:
-      "Platform insights, spot market quotes, and plain-language asset explanations support informed portfolio choices rather than guesswork.",
+      "Read company-published information about digital assets, equities, and commercial property.",
   },
   {
-    index: "02",
-    title: "Flexible Opportunities",
+    title: "Investment options",
     description:
-      "Choose across Cryptocurrency, Stocks, and Real Estate mandates with clear minimum and maximum participation thresholds.",
+      "Browse available plans by asset type and compare the information provided for each option.",
   },
   {
-    index: "03",
-    title: "Clear Account Information",
+    title: "Account records",
     description:
-      "Available balances, active principal, and pending settlements are presented cleanly without placeholder or demonstration numbers.",
+      "Review balances, payment requests, withdrawals, and transaction history in the client portal.",
   },
   {
-    index: "04",
-    title: "Protected Account Access",
+    title: "Account access",
     description:
-      "Email verification, password controls, Google sign-in, and UID-isolated database rules protect client account records.",
+      "Use email verification and account controls to manage access to your profile.",
   },
   {
-    index: "05",
-    title: "Dedicated Customer Assistance",
+    title: "Customer support",
     description:
-      "Direct inquiry support through our Client Relations & Settlement Desk helps resolve funding, account, and mandate questions.",
+      "Contact the support team with questions about account access, requests, or available services.",
   },
   {
-    index: "06",
-    title: "Complete Transaction Records",
+    title: "Transaction history",
     description:
-      "Every deposit notice, allocation, and withdrawal receives a unique reference code and downloadable statement receipt.",
+      "Review transaction references and available account records from your dashboard.",
   },
   {
-    index: "07",
-    title: "Continuous Portfolio Monitoring",
+    title: "Request status",
     description:
-      "Track active cycles, elapsed days, maturity dates, and asset-class allocation breakdowns in real time from your dashboard.",
+      "Check the current status of submitted payment and withdrawal requests.",
   },
   {
-    index: "08",
-    title: "Transparent Investment Information",
+    title: "Plan information",
     description:
-      "All mandate durations, fee rates, settlement rails, and non-guaranteed benchmark disclosures are displayed clearly before confirmation.",
+      "Plan pages provide current terms, payment methods, fees, and related information.",
   },
 ];
 
 const PROCESS_STEPS = [
   {
-    step: "01",
-    title: "Create & Verify Account",
+    title: "Create an account",
     description:
-      "Register with your username, email, and password (or Google sign-in), confirm your email address, and open your $0.00 segregated dashboard.",
+      "Register with your email address, choose a password, and confirm your email to access the client portal.",
   },
   {
-    step: "02",
-    title: "Explore & Select Opportunity",
+    title: "Explore available options",
     description:
-      "Review Cryptocurrency, Stock, and Real Estate mandates or live property offerings, inspecting entry thresholds, cycle duration, and risk terms.",
+      "Browse investment plans and property listings, then review the information provided for each option.",
   },
   {
-    step: "03",
-    title: "Submit & Verify Deposit",
+    title: "Submit a payment request",
     description:
-      "Fund your account via USDT (TRC20), Bitcoin, Ethereum, or Bank Wire and submit your transfer reference for settlement desk confirmation.",
+      "Choose an available payment method, follow the instructions, and track the request in your account.",
   },
   {
-    step: "04",
-    title: "Monitor, Withdraw & Review",
+    title: "Review account activity",
     description:
-      "Track active positions in real time, request verified withdrawals from available funds, and export complete transaction statements.",
+      "Check transaction records and request status, or contact support if you need help.",
   },
 ];
 
 const HOME_FAQS = [
   {
-    q: "What is BitfuryTech?",
-    a: "BitfuryTech is an investment-focused company and portfolio administration platform offering structured access across Cryptocurrency, Stocks, and Commercial Real Estate, supported by market research, portfolio tools, and transparent ledger reporting.",
+    q: "What does Bitfury Tech Investment do?",
+    a: "Bitfury Tech Investment provides information and account services across digital assets, equities, and commercial property.",
   },
   {
-    q: "How do I create a BitfuryTech investor account?",
-    a: "Click Create an Account to register with your full name, unique username, email, and password (or Google sign-in). After confirming your email verification link, your isolated investor dashboard initializes at $0.00.",
+    q: "How do I create an account?",
+    a: "Choose Create an Account, enter the requested details, and confirm your email address using the link sent to your inbox.",
   },
   {
-    q: "Are mandate returns or yields guaranteed?",
-    a: "No. Published daily target percentages and property yield targets are indicative benchmarks only and are never guaranteed. Investment values can rise or fall depending on market conditions, asset performance, and liquidity.",
+    q: "Are investment returns guaranteed?",
+    a: "No. Investment outcomes are not guaranteed. Review the terms and risks for each option before proceeding.",
   },
   {
-    q: "How do deposits, withdrawals, and the referral programme work?",
-    a: "Deposits submitted via USDT (TRC20), Bitcoin, Ethereum, or Bank Wire enter Pending review and credit once confirmed by our settlement desk. Withdrawals follow published fee terms (1.0%, minimum $2.00 USD) and review checks. Clients can also invite others via a personal referral link, with rewards credited only upon verified qualifying activity.",
+    q: "How do payment requests work?",
+    a: "Available methods, fees, and instructions are shown in your account. Submit the requested details, then check your account for status updates.",
   },
 ];
 
@@ -306,33 +281,6 @@ export default function Home() {
     () => properties.filter((p) => p.published !== false).slice(0, 3),
     [properties]
   );
-
-  const verifiedStats = useMemo(() => {
-    const minEntry = plans.length ? Math.min(...plans.map((p) => p.minDeposit)) : null;
-    const categoryCount = new Set(plans.map((p) => p.category)).size;
-    return [
-      {
-        label: "Active Mandate Tiers",
-        value: plansLoading ? "—" : String(plans.length),
-        detail: `${categoryCount || 3} asset classes served via API`,
-      },
-      {
-        label: "Minimum Mandate Entry",
-        value: minEntry !== null ? formatUsd(minEntry) : "—",
-        detail: "Lowest published entry threshold",
-      },
-      {
-        label: "Verified Settlement Rails",
-        value: "4",
-        detail: "USDT (TRC20) · BTC · ETH · Bank Wire",
-      },
-      {
-        label: "Published Property Offerings",
-        value: propertiesLoading ? "—" : String(properties.length),
-        detail: "Live commercial real estate catalog",
-      },
-    ];
-  }, [plans, plansLoading, properties.length, propertiesLoading]);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -498,16 +446,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. Live TradingView Market Ticker */}
-      <section
-        aria-label="Live TradingView market ticker"
-        className="bg-[#112E3E] text-white border-y border-white/10"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5">
-          <TradingViewTickerTape colorTheme="dark" displayMode="adaptive" />
-        </div>
-      </section>
-
       {/* 3. Investment Categories: Cryptocurrency, Stocks, and Real Estate */}
       <section className="bg-white border-b border-[#DCE4EC]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-10">
@@ -541,9 +479,6 @@ export default function Home() {
                     />
                   </div>
                   <div className="p-6 space-y-2.5">
-                    <p className="text-xs font-mono font-semibold text-[#B92841]">
-                      {sector.index}. Asset Category
-                    </p>
                     <h3 className="text-lg font-heading font-bold text-[#102030]">
                       {sector.title}
                     </h3>
@@ -574,21 +509,19 @@ export default function Home() {
           <div className="grid lg:grid-cols-12 gap-10 items-center">
             <div className="lg:col-span-7 space-y-4">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-                About Bitfury Tech Investment · Est. 2017
+                About Bitfury Tech Investment
               </p>
               <h2 className="text-2xl sm:text-3xl font-heading font-bold tracking-tight text-[#102030] text-balance">
-                Algorithmic research, disciplined risk management, and access to 50+ global markets.
+                Information about investment options, terms, and account services.
               </h2>
               <p className="text-sm sm:text-base text-[#5A6B7C] leading-relaxed">
-                Bitfury Tech Investment is an algorithmic trading and wealth management firm founded
-                in 2017 by skilled financial analysts, fund managers, and research scientists. We
-                combine mathematical and statistical methodology with custody services across digital
-                assets, global equities, and commercial property holdings.
+                Bitfury Tech Investment provides an online platform for reviewing options across
+                digital assets, listed equities, and commercial property. The site brings together
+                plan information, property listings, payment details, and account tools.
               </p>
               <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                Our Investment Policy Committee (IPC) oversees strategic portfolio allocations with
-                the support of macroeconomists and quantitative analysts—focusing on financial
-                science rather than speculative shortcuts, while clearly disclosing all risk factors.
+                Review the details and risks for each plan. Consider your own circumstances before
+                making a decision, and seek independent advice if you need it.
               </p>
               <div className="pt-2 flex flex-wrap gap-3">
                 <Link
@@ -622,10 +555,6 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <p className="text-[11px] text-[#5A6B7C] border-t border-[#DCE4EC] pt-3 leading-relaxed">
-                Important notice: Investment values can rise or fall depending on market conditions,
-                and returns are never guaranteed.
-              </p>
             </div>
           </div>
 
@@ -662,8 +591,7 @@ export default function Home() {
                 A closer look at Bitfury Tech Investment
               </h3>
               <p className="text-sm leading-relaxed text-[#5A6B7C]">
-                Watch the company introduction from Bitfury Tech Investment&apos;s original website.
-                Investment involves risk, and outcomes are never guaranteed.
+                Learn about the company&apos;s investment areas, research approach, and client services.
               </p>
             </div>
             <div className="lg:col-span-8">
@@ -691,15 +619,16 @@ export default function Home() {
               Featured investment areas
             </p>
             <h2 id="featured-sectors-heading" className="text-3xl font-heading font-bold tracking-tight text-[#102030]">
-              Three sectors, three different value drivers
+              Investment information across digital assets, equities, and property
             </h2>
             <p className="text-sm leading-relaxed text-[#5A6B7C]">
-              Explore what the company describes in each market, how returns may be generated, and the risks to examine. Mandates are grouped by asset class below; no return is promised.
+              Explore the company&apos;s information for each market, then browse the plans and property
+              listings available in that category.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-3">
-            {ASSET_CLASS_GUIDES.map((guide, index) => {
+            {ASSET_CLASS_GUIDES.map((guide) => {
               const groupPlans = plans.filter((plan) => plan.category === guide.id);
               return (
                 <article key={guide.id} className="flex flex-col overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
@@ -711,7 +640,7 @@ export default function Home() {
                   />
                   <div className="flex flex-1 flex-col gap-5 p-5 sm:p-6">
                     <div>
-                      <p className="text-xs font-mono font-semibold text-[#B92841]">0{index + 1} · {guide.label}</p>
+                      <p className="text-xs font-mono font-semibold text-[#B92841]">{guide.label}</p>
                       <h3 className="mt-2 text-lg font-heading font-bold text-[#102030]">{guide.title}</h3>
                       <p className="mt-2 text-sm leading-relaxed text-[#5A6B7C]">{guide.approach}</p>
                     </div>
@@ -724,7 +653,7 @@ export default function Home() {
                       </ul>
                     </div>
                     <div>
-                      <h4 className="text-xs font-heading font-bold uppercase tracking-wide text-[#1B4962]">Mandates in this group</h4>
+                      <h4 className="text-xs font-heading font-bold uppercase tracking-wide text-[#1B4962]">Plans in this category</h4>
                       {plansLoading ? (
                         <p className="mt-2 text-xs text-[#5A6B7C]">Loading current mandate groups…</p>
                       ) : plansError ? (
@@ -734,7 +663,6 @@ export default function Home() {
                           {groupPlans.slice(0, 3).map((plan) => (
                             <li key={plan.id} className="text-xs text-[#46596B]">{plan.name}</li>
                           ))}
-                          {groupPlans.length > 3 && <li className="text-xs text-[#667789]">And {groupPlans.length - 3} more</li>}
                         </ul>
                       ) : (
                         <p className="mt-2 text-xs text-[#5A6B7C]">No active mandates are currently listed.</p>
@@ -745,7 +673,7 @@ export default function Home() {
                         Read sector guide <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                       </Link>
                       <Link to={`/investments-catalog?category=${guide.id}`} className="inline-flex min-h-11 items-center justify-center text-xs font-heading font-bold text-[#1B4962] hover:text-[#B92841]">
-                        View grouped mandates
+                        Browse all plans
                       </Link>
                     </div>
                   </div>
@@ -793,19 +721,17 @@ export default function Home() {
             <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div className="space-y-2 max-w-xl">
                 <h3 className="text-lg font-heading font-bold text-[#102030]">
-                  No Property Listings Currently Published
+                  Property listings are not available right now
                 </h3>
                 <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                  Verified commercial real estate offerings appear here automatically as soon as an
-                  administrator publishes them to the catalog. You can inspect our Real Estate mandate
-                  tiers in the interim.
+                  Browse the real-estate plans in the catalog while new property listings are being prepared.
                 </p>
               </div>
               <Link
                 to="/investments-catalog?category=estate"
                 className={buttonClasses({ variant: "primary", size: "md" })}
               >
-                View Real Estate Mandates
+                Browse real-estate plans
               </Link>
             </div>
           ) : (
@@ -832,20 +758,9 @@ export default function Home() {
                       </p>
                       <h3 className="text-lg font-heading font-bold text-[#102030]">{p.title}</h3>
                       <p className="text-xs text-[#5A6B7C]">{p.location}</p>
-                      <dl className="grid grid-cols-2 gap-3 pt-3 border-t border-[#DCE4EC] text-xs">
-                        <div>
-                          <dt className="text-[#5A6B7C]">Min Entry</dt>
-                          <dd className="font-mono tabular-nums font-semibold text-[#102030]">
-                            {formatUsd(p.minEntry)}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-[#5A6B7C]">Target Yield</dt>
-                          <dd className="font-mono tabular-nums font-semibold text-[#B92841]">
-                            {p.targetYieldPct}%
-                          </dd>
-                        </div>
-                      </dl>
+                      <p className="border-t border-[#DCE4EC] pt-3 text-xs leading-relaxed text-[#5A6B7C]">
+                        Open the listing for current details, terms, and supporting documents.
+                      </p>
                     </div>
                   </div>
                   <div className="px-6 pb-6">
@@ -863,70 +778,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. Verified Investment Statistics & Platform Milestones Band */}
-      <section className="bg-[#1B4962] text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-10">
-          <div className="max-w-2xl space-y-2">
-            <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-              Platform Scale &amp; Live Catalog Parameters
-            </p>
-            <h2 className="text-3xl font-heading font-bold tracking-tight text-white">
-              Published Milestones &amp; Live API Infrastructure
-            </h2>
-            <p className="text-sm text-slate-200">
-              Live catalog counters computed directly from active mandate definitions and property
-              offerings alongside Bitfury Tech Investment&apos;s published operational milestones.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {verifiedStats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-[#14374B] border border-white/15 rounded-[5px] p-6 space-y-2"
-              >
-                <p className="text-xs font-medium text-slate-200">{stat.label}</p>
-                <p className="text-3xl font-bold font-mono tabular-nums text-white">
-                  {stat.value}
-                </p>
-                <p className="text-xs text-slate-300">{stat.detail}</p>
-              </div>
-            ))}
-          </div>
-
-        </div>
-      </section>
-
-      <section aria-labelledby="our-numbers-heading" className="bg-[#F6F8FA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-          <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-            <span aria-hidden="true" className="h-1.5 w-24 rounded-full bg-[#E94D65]" />
-            <h2 id="our-numbers-heading" className="mt-6 font-heading text-4xl font-bold tracking-tight text-[#102030] sm:text-5xl">
-              Our <span className="text-[#E94D65]">Numbers</span>
-            </h2>
-            <p className="mt-4 text-sm leading-relaxed text-[#5B5B61] sm:text-base">
-              Historical figures as reported by the company; not independently audited.
-            </p>
-          </div>
-          <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-7 lg:mt-14 lg:gap-10">
-            {PUBLISHED_MILESTONES.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <article
-                  key={item.label}
-                  className={`bf-reveal flex min-h-[210px] flex-col items-center justify-center rounded-2xl border border-[#DCE4EC] bg-white px-5 py-7 text-center shadow-[0_18px_48px_rgba(27,73,98,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[#E94D65]/50 hover:shadow-[0_22px_55px_rgba(27,73,98,0.14)] sm:min-h-[250px] sm:py-9 ${index % 2 === 1 ? "lg:translate-y-8" : ""}` } style={{ animationDelay: `${index * 120}ms` }}
-                >
-                  <Icon aria-hidden="true" className="mb-5 h-14 w-14 text-[#1B4962] sm:h-16 sm:w-16" strokeWidth={1.5} />
-                  <p className="text-lg font-medium text-[#3F3F46] sm:text-xl">{item.label}</p>
-                  <p className="mt-2 text-3xl font-extrabold tabular-nums text-[#1B4962] sm:text-4xl">
-                    <AnimatedStatValue value={item.value} />
-                  </p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       <PaymentMethods />
 
@@ -938,21 +789,19 @@ export default function Home() {
               Why Choose BitfuryTech
             </p>
             <h2 className="text-3xl font-heading font-bold tracking-tight text-[#102030]">
-              Eight Pillars of Transparent Portfolio Administration
+              Principles for clear portfolio administration
             </h2>
             <p className="text-sm text-[#5A6B7C]">
-              Built around clarity, accountable record-keeping, and investor risk awareness—without
-              unrealistic promises or synthetic metrics.
+              The platform brings plan information, account records, and support tools together in one place.
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {WHY_CHOOSE_ITEMS.map((item) => (
               <div
-                key={item.index}
+                key={item.title}
                 className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-2.5 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
               >
-                <p className="text-xs font-mono font-semibold text-[#B92841]">{item.index}.</p>
                 <h3 className="text-base font-heading font-bold text-[#102030]">{item.title}</h3>
                 <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">{item.description}</p>
               </div>
@@ -977,17 +826,16 @@ export default function Home() {
               to="/how-it-works"
               className="text-xs font-heading font-bold text-[#1B4962] hover:text-[#B92841] hover:underline whitespace-nowrap"
             >
-              View Complete 9-Step Guide
+              View the full process guide
             </Link>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {PROCESS_STEPS.map((s) => (
               <div
-                key={s.step}
+                key={s.title}
                 className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-3 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
               >
-                <p className="text-xs font-mono font-semibold text-[#B92841]">Step {s.step}</p>
                 <h3 className="text-base font-heading font-bold text-[#102030]">{s.title}</h3>
                 <p className="text-sm text-[#5A6B7C] leading-relaxed">{s.description}</p>
               </div>
@@ -1026,12 +874,10 @@ export default function Home() {
                 Partner Tracking
               </p>
               <h3 className="text-base font-heading font-bold text-[#102030]">
-                Referral Programme (5% – 10%)
+                Referral programme
               </h3>
               <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">
-                Earn 5% for referrals below $100,000 and 10% above $100,000 (plus 5% Crypto, 6%
-                Stock, and 7% Real Estate category tiers) upon administrator verification of settled
-                deposits in your dashboard.
+                If referral offers are available, review the eligibility details in your account before sharing a referral link.
               </p>
             </div>
           </div>

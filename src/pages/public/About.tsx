@@ -6,76 +6,62 @@ import { buttonClasses } from "../../components/ui";
 
 const SECTORS = [
   {
-    index: "01",
     title: "Cryptocurrency & Digital Assets",
     description:
-      "Algorithmic and mathematical trading strategies across six structured Cryptocurrency mandates utilizing BTC, ETH, and USDT (TRC20) settlement channels, paired with risk awareness around blockchain volatility and liquidity.",
+      "Explore company-published information about digital assets, including Bitcoin, Ethereum, and stablecoins. Review how each option works, its payment methods, and risks such as price volatility, liquidity, network fees, and transaction delays.",
   },
   {
-    index: "02",
     title: "Stocks & Global Equities",
     description:
-      "Four quantitative equity mandates providing access across over 50 global financial markets through one unified account, evaluated against corporate earnings and macroeconomic developments.",
+      "Review equity opportunities and company information. Share prices can be affected by business performance, market conditions, interest rates, and broader economic events.",
   },
   {
-    index: "03",
     title: "Commercial Real Estate",
     description:
-      "Five real estate mandate tiers alongside live administrator-published commercial property offerings with transparent valuation figures, tenancy context, and rental yield disclosures.",
+      "Browse commercial property listings and available real-estate plans. Review location, occupancy, valuation, rental assumptions, entry terms, and supporting documents before making a decision.",
   },
 ];
 
 const SOLUTIONS = [
   {
-    index: "01",
-    title: "Market Analysis",
+    title: "Market Information",
     description:
-      "We study the attractiveness and underlying dynamics across digital assets, equities, and real estate sectors within global financial markets.",
+      "Review company-published information about digital assets, listed equities, and commercial property in one place.",
   },
   {
-    index: "02",
-    title: "Allocation & Advisory Desk",
+    title: "Investment Plans",
     description:
-      "Our specialists focus on more than simple trade execution—helping align structured mandates, liquidity horizons, and risk parameters with client objectives.",
+      "Compare available plans by asset type, payment method, terms, fees, and risk information before you decide.",
   },
   {
-    index: "03",
-    title: "Professional Research Team",
+    title: "Property Listings",
     description:
-      "Experienced financial analysts, network engineers, macroeconomists, research scientists, and quantitative analysts collaborate on systematic execution.",
+      "Browse commercial property opportunities with available location, occupancy, valuation, and supporting details.",
   },
   {
-    index: "04",
-    title: "Structured Portfolio",
+    title: "Account Services",
     description:
-      "Multi-asset allocations built to balance performance potential and controlled risk brackets across changing market regimes.",
+      "Use the client portal to review account activity and submit payment, withdrawal, or property inquiries.",
   },
 ];
 
 const VALUES = [
   {
-    title: "Transparency & Plain Reporting",
-    body: "Entry bounds, 30-day cycle horizons, monthly benchmarks, referral tiers, and non-guaranteed return disclosures are presented upfront prior to every allocation.",
+    title: "Clear Plan Information",
+    body: "Review plan terms, payment methods, fees, and risk information before deciding whether an option suits you.",
   },
   {
-    title: "Account Isolation & Ledger Integrity",
-    body: "Investor profiles, balances, and transaction histories are isolated per verified identity, initializing cleanly at $0.00 with zero synthetic data.",
+    title: "Account Records",
+    body: "Balances, requests, and transaction history are presented in the client account for review.",
   },
   {
-    title: "Academic & Quantitative Discipline",
-    body: "Guided by our Investment Policy Committee (IPC), our investment process relies on financial science, mathematics, and statistical discipline rather than speculative tips.",
+    title: "Investment Oversight",
+    body: "The company describes an Investment Policy Committee and research-led approach to reviewing investment options.",
   },
   {
-    title: "Responsible Risk Awareness",
-    body: "We communicate clearly that asset prices fluctuate, values can rise or fall, and no investment mandate offers guaranteed outcomes.",
+    title: "Risk Awareness",
+    body: "Investment values and income can rise or fall. Review the risks of each asset type and plan before proceeding.",
   },
-];
-
-const PLATFORM_MILESTONES = [
-  { label: "Total Members", value: "1,865+" },
-  { label: "Total Returns Distributed", value: "$604,585" },
-  { label: "Total Transactions", value: "4,180+" },
-  { label: "Total Deposited", value: "$695,535" },
 ];
 
 export default function About() {
@@ -86,18 +72,18 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 grid lg:grid-cols-12 gap-10 items-stretch">
           <div className="lg:col-span-7 flex flex-col justify-center space-y-5">
             <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-              About Bitfury Tech Investment · Est. 2017
+              About Bitfury Tech Investment
             </p>
             <h1
               className="font-heading font-bold tracking-tight text-white text-balance leading-[1.1]"
               style={{ fontSize: "clamp(2rem, 3.6vw, 3.25rem)" }}
             >
-              An algorithmic and multi-asset investment firm built on mathematical research and disciplined custody.
+              Investment information and account services across digital assets, equities, and commercial property.
             </h1>
             <p className="text-base text-slate-200 leading-relaxed">
-              Founded in 2017 by skilled financial analysts, fund managers, and research scientists,
-              Bitfury Tech Investment combines mathematical and statistical methods with direct access
-              to over 50 financial markets across Cryptocurrency, Stocks, and Commercial Real Estate.
+              Bitfury Tech Investment brings together company-published investment information,
+              property listings, and account tools. Customers can review opportunities across digital
+              assets, listed equities, and commercial property, then manage account activity online.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link
@@ -140,17 +126,14 @@ export default function About() {
             </div>
             <div className="md:col-span-8 space-y-4 text-sm sm:text-base text-[#5A6B7C] leading-relaxed">
               <p>
-                Bitfury Tech Investment is an algorithmic trading and wealth management firm
-                dedicated to expanding access to wealth-creation opportunities traditionally reserved
-                for institutional desks. Our spectrum spans portfolio administration, liquidity
-                provision, corporate finance guidance, and structured multi-asset mandates across 15
-                tiered plans.
+                Bitfury Tech Investment provides an online platform for reviewing investment options
+                across digital assets, listed equities, and commercial property. The site brings
+                together market information, published plans, property listings, and account services.
               </p>
               <p>
-                Every account operates inside an isolated custody ledger initialized at $0.00.
-                Deposits, mandate allocations, property inquiries, and withdrawals are tracked
-                sequentially with traceable reference codes so clients maintain complete clarity
-                over account activity.
+                Customers can review account balances and transaction records, submit payment or
+                withdrawal requests, and enquire about property listings. Request status is shown in
+                the client portal while the support team reviews submissions.
               </p>
             </div>
           </section>
@@ -168,11 +151,10 @@ export default function About() {
                   Company document
                 </p>
                 <h2 id="company-document-heading" className="text-lg font-heading font-bold text-[#102030]">
-                  Company information document
+                  Company registration certificate
                 </h2>
                 <p className="max-w-2xl text-xs leading-relaxed text-[#5A6B7C]">
-                  This PDF was linked as the company number document on the previous website. Its
-                  contents have not been independently verified.
+                  View the company registration certificate.
                 </p>
               </div>
             </div>
@@ -186,36 +168,7 @@ export default function About() {
             </a>
           </section>
 
-          {/* Published Company Numbers */}
-          <section className="bg-[#1B4962] text-white rounded-[5px] p-7 sm:p-8 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/15 pb-5">
-              <div>
-                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-                  Published Platform Milestones
-                </p>
-                <h2 className="text-2xl font-heading font-bold text-white mt-1">
-                  Company Track Record &amp; Scale
-                </h2>
-              </div>
-              <p className="text-xs text-slate-300 max-w-md">
-                Cumulative operational figures reported across Bitfury Tech Investment platform
-                operations. Individual client accounts begin strictly at $0.00 until funded.
-              </p>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {PLATFORM_MILESTONES.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="bg-[#14374B] border border-white/15 rounded-[5px] p-5 space-y-1.5"
-                >
-                  <p className="text-xs text-slate-200">{stat.label}</p>
-                  <p className="text-2xl sm:text-3xl font-mono tabular-nums font-bold text-white">
-                    {stat.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
+
 
           {/* 3. Mission, Vision & Forward-Thinking Solutions */}
           <section className="grid md:grid-cols-2 gap-6 border-b border-[#DCE4EC] pb-14">
@@ -224,12 +177,11 @@ export default function About() {
                 Our Mission
               </p>
               <h2 className="text-xl font-heading font-bold text-[#102030]">
-                Financial Security &amp; Mobility Through Disciplined Technology
+                Clear information for informed decisions
               </h2>
               <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                Our mission is to create and promote research-led investment allocations that
-                broaden access to financial security and mobility—combining quantitative discipline
-                with plain, verifiable portfolio reporting.
+                We aim to make investment information easier to review by presenting each option’s
+                purpose, terms, and associated risks clearly.
               </p>
             </div>
             <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-3">
@@ -240,10 +192,9 @@ export default function About() {
                 Investment Policy Committee (IPC)
               </h2>
               <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                Our Investment Policy Committee—bringing over 10 years of combined investing
-                experience alongside network engineers, macroeconomists, research scientists, and
-                quantitative analysts—guides strategic allocation models rooted in financial
-                science rather than speculative stock tips.
+                The Investment Policy Committee oversees the company’s investment policy with
+                research support. Published plan information explains how each option is structured
+                and identifies its terms and associated risks.
               </p>
             </div>
           </section>
@@ -261,10 +212,9 @@ export default function About() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {SOLUTIONS.map((sol) => (
                 <div
-                  key={sol.index}
+                  key={sol.title}
                   className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-2.5 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
                 >
-                  <p className="text-xs font-mono font-semibold text-[#B92841]">{sol.index}.</p>
                   <h3 className="text-base font-heading font-bold text-[#102030]">{sol.title}</h3>
                   <p className="text-xs sm:text-sm text-[#5A6B7C] leading-relaxed">
                     {sol.description}
@@ -287,10 +237,9 @@ export default function About() {
             <div className="grid md:grid-cols-3 gap-6">
               {SECTORS.map((sector) => (
                 <div
-                  key={sector.index}
+                  key={sector.title}
                   className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-3 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
                 >
-                  <p className="text-xs font-mono font-semibold text-[#B92841]">{sector.index}.</p>
                   <h3 className="text-lg font-heading font-bold text-[#102030]">{sector.title}</h3>
                   <p className="text-sm text-[#5A6B7C] leading-relaxed">{sector.description}</p>
                 </div>
@@ -326,7 +275,7 @@ export default function About() {
             <div className="flex items-center gap-2.5">
               <ShieldCheck className="w-5 h-5 text-[#E94D65] shrink-0" />
               <h2 className="text-xl font-heading font-bold text-[#102030]">
-                Global Offices &amp; Governance
+                Office information
               </h2>
             </div>
             <div className="grid md:grid-cols-2 gap-5 text-sm text-[#5A6B7C]">
@@ -338,12 +287,6 @@ export default function About() {
                 <p className="text-xs">171 Crescent Road, Oxford, England, OX4 2NX</p>
               </div>
             </div>
-            <p className="text-xs text-[#5A6B7C] leading-relaxed">
-              Risk Notice: Investing in financial markets, digital assets, equities, and real estate
-              involves capital risk. Past performance or indicative daily targets do not guarantee
-              future outcomes, and asset values can rise or fall. Platform tools support client
-              analysis and administration rather than replacing independent financial judgment.
-            </p>
           </section>
 
           {/* 8. Contact Information */}
@@ -358,15 +301,15 @@ export default function About() {
               <div className="text-xs sm:text-sm text-slate-200 flex flex-wrap gap-x-5 gap-y-1.5">
                 <span className="inline-flex items-center gap-1.5">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                  <span>support@bitfurytech.cloud</span>
+                  <a href="mailto:support@bitfurytechinvestment.com" className="hover:text-white">support@bitfurytechinvestment.com</a>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                  <span>compliance.notice@bitfurytech.cloud</span>
+                  <a href="mailto:admin@bitfurytechinvestment.com" className="hover:text-white">admin@bitfurytechinvestment.com</a>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                  <span>bitfurytech21@gmail.com</span>
+                  <a href="mailto:bitfurytech21@gmail.com" className="hover:text-white">bitfurytech21@gmail.com</a>
                 </span>
               </div>
             </div>

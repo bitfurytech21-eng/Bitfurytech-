@@ -48,114 +48,114 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     id: "gen-1",
     category: "general",
-    question: "What is Bitfury Tech Investment and algorithmic trading?",
+    question: "What does Bitfury Tech Investment do?",
     answer:
-      "Founded in 2017, Bitfury Tech Investment combines mathematical and statistical algorithmic trading strategies with multi-asset portfolio administration across Cryptocurrency, Stocks, and Commercial Real Estate. Algorithmic execution follows predefined quantitative rules and monitors global markets 24/7.",
+      "Bitfury Tech Investment provides information and account services across digital assets, equities, and commercial property. Customers can review plans, property listings, account activity, and support resources online.",
   },
   {
     id: "gen-2",
     category: "general",
-    question: "Who makes strategic investment policy decisions at the firm?",
+    question: "What is the Investment Policy Committee?",
     answer:
-      "Strategic investment policy decisions are overseen by our Investment Policy Committee (IPC), whose members bring over 10 years of combined investing experience alongside a research department of network engineers, macroeconomists, research scientists, and quantitative analysts.",
+      "The company describes an Investment Policy Committee that oversees investment policy with research support. Plan pages contain the current information and terms for each option.",
   },
   {
     id: "gen-3",
     category: "general",
-    question: "Does BitfuryTech display demo or placeholder account balances?",
+    question: "What can I review in my account?",
     answer:
-      "No. Every newly created investor account initializes strictly at $0.00. All balances, transactions, and active allocations displayed in the dashboard reflect verified ledger records only.",
+      "The client portal shows the account activity, balances, transaction records, and request status associated with your profile.",
   },
   {
     id: "reg-1",
     category: "registration",
-    question: "How do I create a BitfuryTech investor account?",
+    question: "How do I create an account?",
     answer:
-      "Open the Register page and complete onboarding with a unique username, email address, password, and the numeric verification challenge (or sign in with Google). Confirm your email address via the verification link to activate your isolated $0.00 custody profile.",
+      "Choose Create account, enter the requested details, and confirm your email address using the link sent to your inbox.",
   },
   {
     id: "reg-2",
     category: "registration",
-    question: "Can I have several concurrent deposits or mandates active at once?",
+    question: "Where can I see the plans available to me?",
     answer:
-      "Yes. You can hold multiple active allocations simultaneously across Crypto, Stock, and Real Estate tiers. Each allocation is tracked and settled independently according to its own mandate principal, start date, and 30-day cycle maturity.",
+      "Browse the investment catalog to see current options by asset type. Each plan page provides the latest terms and information.",
   },
   {
     id: "ver-1",
     category: "verification",
-    question: "How does identity and email verification work?",
+    question: "How do I verify my email address?",
     answer:
-      "Account authentication verifies your email identity through Better Auth session credentials alongside profile completeness checks in your investor record. Deposit notices, withdrawals, and optional Enhanced Payout Verification flags undergo settlement administrator verification before execution.",
+      "Follow the verification link sent to your email address. Payment and withdrawal requests may also require a review before they are completed.",
   },
   {
     id: "ver-2",
     category: "verification",
-    question: "Why might a deposit or payout remain in Pending status?",
+    question: "Why is a payment request still pending?",
     answer:
-      "All deposit notices and withdrawal requests enter the Settlement Queue as Pending so an authorized BitfuryTech administrator can confirm transfer references and block confirmations before adjusting wallet balances.",
+      "Requests can remain pending while the submitted details are reviewed. Check your account for the latest status or contact support if you need help.",
   },
   {
     id: "dep-1",
     category: "deposits",
-    question: "How do I fund my account and why are cryptocurrencies emphasized?",
+    question: "How do I make a deposit?",
     answer:
-      "Bitfury Tech Investment embraces digital-first global settlement via USDT (TRC20) ($100 minimum), Bitcoin (BTC) ($250 minimum), Ethereum (ETH) ($250 minimum), alongside Bank Wire ($1,000 minimum, 1–3 business days). Open Deposit inside your dashboard, select your preferred rail, and submit your transfer reference for review.",
+      "Open the deposit area in your account, choose an available payment method, and follow the instructions shown. Submit the requested transfer details to track the request.",
   },
   {
     id: "dep-2",
     category: "deposits",
-    question: "What are the deposit minimums and when does funding credit my wallet?",
+    question: "Where can I find deposit minimums and processing details?",
     answer:
-      "While Cryptocurrency mandate tiers begin at $200.00 ($1,000.00 for Stocks and $3,000.00 for Real Estate), custody wallet deposit notices start at $100 USD for USDT (TRC20). Every deposit appears immediately in Pending status and credits your available balance once verified by our settlement desk.",
+      "Current payment methods, limits, and instructions are shown in your account before you submit a request.",
   },
   {
     id: "wdr-1",
     category: "withdrawals",
-    question: "How do I withdraw funds and how fast are withdrawals handled?",
+    question: "How do I request a withdrawal?",
     answer:
-      "Open the Withdrawal page in your dashboard, choose your payout rail, enter an amount between $50.00 USD and $250,000.00 USD (up to your available wallet balance), provide your destination address or bank beneficiary details, review the upfront 1.0% fee (minimum $2.00 USD), and confirm. Requests are reviewed promptly by the settlement queue before outbound release.",
+      "Open the withdrawal area in your account and follow the instructions shown. Review any applicable fees and limits before confirming, then check your account for status updates.",
   },
   {
     id: "wdr-2",
     category: "withdrawals",
-    question: "What happens to reserved funds if a withdrawal request is declined?",
+    question: "What happens if a withdrawal request is declined?",
     answer:
-      "Withdrawal amounts are held in reserve when submitted so funds cannot be double-spent. If an administrator marks a pending withdrawal as Rejected, the full reserved amount is restored atomically to your available wallet balance.",
+      "Your account will show the request status and any balance adjustment. Contact support if you have questions about a specific request.",
   },
   {
     id: "pln-1",
     category: "plans",
-    question: "What investment plans are available across Crypto, Stocks, and Real Estate?",
+    question: "What investment plans are available?",
     answer:
-      "Bitfury Tech Investment offers 15 mandate tiers across 30-day cycles: 6 Cryptocurrency plans (Crypto Beginner $200 through Crypto Master Pro $1,000,000), 4 Stock plans (Stock Beginner $1,000 through Stock Premium $1,000,000), and 5 Real Estate plans (Real Estate Beginner $3,000 through Real Estate Master Pro $25,000,000). Clients may also switch categories without switching fees.",
+      "The catalog lists current plans across digital assets, equities, and commercial property. Review each listing for its current terms and fees.",
   },
   {
     id: "pln-2",
     category: "plans",
-    question: "When are cycle profits distributed and how do I track my investments?",
+    question: "Where can I review my investment activity?",
     answer:
-      "Trading session accruals are recorded on the active cycle schedule inside your investor portal. Track active mandates, elapsed days, maturity dates, portfolio diversification, and downloadable receipts in real time from Overview, My Investments, and Transactions.",
+      "Use the client portal to review account activity, current request status, and available transaction records.",
   },
   {
     id: "prp-1",
     category: "properties",
-    question: "Where do commercial property listings come from?",
+    question: "Where can I find commercial property listings?",
     answer:
-      "Commercial property offerings shown on the Properties page and Homepage are synced live from our PostgreSQL catalog and published exclusively by authorized BitfuryTech administrators.",
+      "Available listings appear on the Properties page. Each listing includes the information and documents currently provided by the company.",
   },
   {
     id: "prp-2",
     category: "properties",
-    question: "What details should I review before investing in real estate?",
+    question: "What should I review in a property listing?",
     answer:
-      "Always inspect each offering's asset class, location, minimum entry threshold, independent valuation figure, target yield benchmark, occupancy percentage, and current subscription status (Open or Fully Subscribed) alongside supporting disclosures.",
+      "Review the location, occupancy information, valuation, rental assumptions, entry terms, and supporting documents available for each listing.",
   },
   {
     id: "ret-1",
     category: "returns",
-    question: "What is the risk for my investment, and are returns guaranteed?",
+    question: "Are investment returns guaranteed?",
     answer:
-      "Every financial market—including algorithmic trading, digital assets, equities, and real estate—carries inherent risk. Our experienced risk management and IPC controls work to mitigate downside exposure, but returns are never guaranteed and capital values can go down as well as up.",
+      "No. Investment outcomes are not guaranteed. Values and income can fall as well as rise, and you could lose some or all of the amount invested.",
   },
   {
     id: "ret-2",
@@ -167,30 +167,30 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     id: "ref-1",
     category: "referrals",
-    question: "How does the 5%–10% referral programme work?",
+    question: "How does the referral programme work?",
     answer:
-      "Inside the Referrals page of your dashboard, you receive a unique code (BF-XXXXXXXX) and partner registration link. Referrals under $100,000 qualify for a 5% partner bonus and referrals above $100,000 qualify for 10% (alongside plan-category tiers of 5% Crypto, 6% Stock, and 7% Real Estate). Rewards credit strictly upon administrator verification of settled qualifying deposits.",
+      "If referral offers are available, eligibility and current terms are shown in your account. Review those details before sharing a referral link.",
   },
   {
     id: "sec-1",
     category: "security",
-    question: "How is my account data protected from unauthorized access?",
+    question: "How can I help keep my account secure?",
     answer:
-      "All communication runs over HTTPS/SSL protocols, while strict server-side access controls and session validation isolate user profiles, transactions, investments, and notifications to the owning authenticated user ID. You can also update your password or enable the Enhanced Payout Verification Flag in Settings.",
+      "Use a unique password, keep your sign-in details private, and contact support if you notice activity you do not recognize.",
   },
   {
     id: "sec-2",
     category: "security",
-    question: "Are session tokens stored in browser localStorage?",
+    question: "What should I do if I cannot access my account?",
     answer:
-      "No. Session tokens are managed securely in runtime memory during your active session and are verified server-side for protected endpoints.",
+      "Use the password recovery option on the sign-in page. If you still need help, contact the support team.",
   },
   {
     id: "sup-1",
     category: "support",
-    question: "How do I contact customer support or visit your offices?",
+    question: "How do I contact support?",
     answer:
-      "Submit an inquiry on the Contact page, launch the Live Support Chat widget, or email support@bitfurytechinvestment.com or admin@bitfurytechinvestment.com. Our office is at 171 Crescent Road, Oxford, England, OX4 2NX.",
+      "Submit the contact form, use the live support chat, or email support@bitfurytechinvestment.com.",
   },
 ];
 
@@ -232,7 +232,7 @@ export default function FAQ() {
       <section className="bg-[#1B4962] text-white border-b border-white/15">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-3">
           <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-            Investor Knowledge Base
+            Help centre
           </p>
           <h1
             className="font-heading font-bold tracking-tight text-white text-balance"
@@ -241,8 +241,7 @@ export default function FAQ() {
             Frequently Asked Questions
           </h1>
           <p className="text-base text-slate-200 max-w-2xl leading-relaxed">
-            Explore answers across onboarding, account verification, funding rails, investment
-            mandates, property offerings, and ledger security.
+            Find answers about account access, payments, investment plans, property listings, and customer support.
           </p>
         </div>
       </section>
@@ -257,7 +256,7 @@ export default function FAQ() {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter questions by keyword (e.g. deposit, withdrawal, mandate, security)..."
+                placeholder="Search questions about accounts, payments, plans, or property…"
                 aria-label="Search frequently asked questions"
                 className="w-full rounded-[5px] border border-[#CBD6E2] bg-white pl-10 pr-4 py-2.5 text-sm text-[#102030] placeholder:text-[#7A8B9C] focus:ring-2 focus:ring-[#1B4962] focus:border-[#1B4962] focus:outline-none"
               />
@@ -307,7 +306,7 @@ export default function FAQ() {
                 No Matching Questions Found
               </p>
               <p className="text-sm text-[#5A6B7C]">
-                Clear your search filter or contact the BitfuryTech desk directly for assistance.
+                Try a different search or contact the support team for help.
               </p>
               <Button
                 variant="primary"
@@ -378,14 +377,14 @@ export default function FAQ() {
                 Need Account-Specific Assistance?
               </h2>
               <p className="text-sm text-slate-200 mt-1">
-                Submit a direct inquiry to the BitfuryTech client relations desk.
+                Send the support team a message about your account or an available service.
               </p>
             </div>
             <Link
               to="/contact"
               className={buttonClasses({ variant: "primary", size: "md" })}
             >
-              Contact BitfuryTech
+              Contact support
             </Link>
           </div>
         </div>

@@ -80,10 +80,13 @@ export default function ServicesPage() {
 
       <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-14">
-          <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 text-sm text-[#5A6B7C] leading-relaxed">
-            <strong className="text-[#102030]">About this platform:</strong> The website provides
-            general investment information and account tools. It does not provide personalized
-            financial advice. Consider your circumstances and the risks before investing.
+          <div className="max-w-3xl space-y-2">
+            <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+              What you can do here
+            </p>
+            <p className="text-sm leading-relaxed text-[#5A6B7C]">
+              Review the company’s investment areas, compare published plan information, browse property listings, and manage account requests through the client portal.
+            </p>
           </div>
 
           <section className="space-y-6">
@@ -118,7 +121,7 @@ export default function ServicesPage() {
                 Review information before you decide
               </h2>
               <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                Market information can help you compare options, but it cannot predict results or remove risk. Values and income may fall as well as rise.
+                The research section brings together market topics that can help you review available opportunities.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">

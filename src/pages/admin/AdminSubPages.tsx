@@ -26,9 +26,9 @@ import {
   TextInput,
 } from "../../components/ui";
 import type {
-  SupportMessageDTO,
-  SupportThreadDTO,
-} from "../../components/LiveSupportWidget";
+  SupportMessage as SupportMessageDTO,
+  SupportThread as SupportThreadDTO,
+} from "../../services/supportChatStore";
 import { useAuth } from "../../hooks/useAuth";
 import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";

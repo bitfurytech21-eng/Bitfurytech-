@@ -165,8 +165,8 @@ export function TermsPage() {
               as well as up and are never guaranteed. Applicable unit structuring fees (0.5%) and
               withdrawal settlement fees (1.0%, minimum $2.00 USD) are disclosed transparently
               before confirmation. Questions or formal complaints may be sent to{" "}
-              <span className="font-mono text-[#102030]">support@bitfurytech.cloud</span> or{" "}
-              <span className="font-mono text-[#102030]">compliance.notice@bitfurytech.cloud</span>.
+              <span className="font-mono text-[#102030]">support@bitfurytechinvestment.com</span> or{" "}
+              <span className="font-mono text-[#102030]">admin@bitfurytechinvestment.com</span>.
             </p>
           </section>
         </div>
@@ -238,8 +238,8 @@ export function PrivacyPage() {
             </h2>
             <p>
               Inquiries submitted via our Contact page, Live Support Chat, or{" "}
-              <span className="font-mono text-[#102030]">support@bitfurytech.cloud</span>{" "}
-              (or <span className="font-mono text-[#102030]">compliance.notice@bitfurytech.cloud</span>) are
+              <span className="font-mono text-[#102030]">support@bitfurytechinvestment.com</span>{" "}
+              (or <span className="font-mono text-[#102030]">admin@bitfurytechinvestment.com</span>) are
               used strictly to verify and resolve client requests. Never transmit account passwords
               or private recovery links inside support messages.
             </p>

@@ -12,12 +12,8 @@ declare global {
   }
 }
 
-/**
- * Opens the application-wide Tawk.to chat widget.
- * The optional subject is retained for callers that pass the Contact form
- * subject; Tawk's standard widget API does not provide a subject parameter.
- */
-export function openLiveSupportChat(_subject?: string) {
+/** Opens the application-wide Tawk.to chat widget. */
+export function openLiveSupportChat() {
   const api = window.Tawk_API;
 
   if (typeof api?.maximize === "function") {

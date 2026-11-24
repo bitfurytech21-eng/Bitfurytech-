@@ -21,16 +21,14 @@ import { buttonClasses } from "../../components/ui";
 
 const JOURNEY_STEPS = [
   {
-    step: "01",
     phase: "Onboarding",
     title: "Create an Account",
     icon: UserPlus,
     description:
-      "Register with a unique username, email, and password (with numeric verification challenge) or Google sign-in. Your segregated BitfuryTech investor profile initializes with a $0.00 verified balance and isolated ledger.",
-    outcome: "Investor UID & isolated profile provisioned at $0.00",
+      "Create an account with your email address, choose a password, and confirm your email to continue.",
+    outcome: "Account profile created and ready for verification",
   },
   {
-    step: "02",
     phase: "Verification",
     title: "Complete Identity & Email Verification",
     icon: ShieldCheck,
@@ -39,7 +37,6 @@ const JOURNEY_STEPS = [
     outcome: "Verified email claim & investor contact details saved",
   },
   {
-    step: "03",
     phase: "Portal Access",
     title: "Access the Investor Dashboard",
     icon: LayoutDashboard,
@@ -48,16 +45,14 @@ const JOURNEY_STEPS = [
     outcome: "Authenticated workspace & live ledger visibility",
   },
   {
-    step: "04",
     phase: "Discovery",
     title: "Review Available Investment Opportunities",
     icon: Layers,
     description:
       "Compare structured mandates across Cryptocurrency, Stocks, and Real Estate in the Investment Plans catalog, or examine administrator-published commercial properties on the Properties page.",
-    outcome: "Categories, asset types, and entry ranges compared",
+    outcome: "Available options reviewed by category",
   },
   {
-    step: "05",
     phase: "Selection & Terms",
     title: "Select an Investment & Review Terms",
     icon: ClipboardCheck,
@@ -66,7 +61,6 @@ const JOURNEY_STEPS = [
     outcome: "Full mandate terms & risk disclosures reviewed",
   },
   {
-    step: "06",
     phase: "Funding",
     title: "Submit a Deposit Notice",
     icon: Wallet,
@@ -75,7 +69,6 @@ const JOURNEY_STEPS = [
     outcome: "Pending deposit verified -> Wallet balance credited",
   },
   {
-    step: "07",
     phase: "Monitoring",
     title: "Monitor Active Investment Activity",
     icon: LineChart,
@@ -84,7 +77,6 @@ const JOURNEY_STEPS = [
     outcome: "Continuous cycle progress & portfolio monitoring",
   },
   {
-    step: "08",
     phase: "Disbursement",
     title: "Submit a Withdrawal Request",
     icon: ArrowUpRight,
@@ -93,7 +85,6 @@ const JOURNEY_STEPS = [
     outcome: "Reserved payout verified -> Settled to destination",
   },
   {
-    step: "09",
     phase: "Reporting",
     title: "Review Statements & Transaction Records",
     icon: FileText,
@@ -105,24 +96,24 @@ const JOURNEY_STEPS = [
 
 const LIFECYCLE_STAGES = [
   {
-    stage: "Stage 1 · Identity",
-    label: "Account & Verification",
-    detail: "Verified authentication + $0.00 baseline account",
+    stage: "Account setup",
+    label: "Account & verification",
+    detail: "Create your profile and confirm your email.",
   },
   {
-    stage: "Stage 2 · Custody",
-    label: "Pending Deposit Review",
-    detail: "Transfer reference checked by settlement desk",
+    stage: "Payment request",
+    label: "Deposit review",
+    detail: "Submitted payment details are reviewed.",
   },
   {
-    stage: "Stage 3 · Allocation",
-    label: "Atomic Mandate Entry",
-    detail: "Wallet balance validated & logged as Active holding",
+    stage: "Plan selection",
+    label: "Review available options",
+    detail: "Compare the plans and information available for each category.",
   },
   {
-    stage: "Stage 4 · Settlement",
-    label: "Statements & Payouts",
-    detail: "Cycle tracking + verified withdrawal disbursement",
+    stage: "Account activity",
+    label: "Statements & requests",
+    detail: "Review recorded transactions and request status.",
   },
 ];
 
@@ -130,22 +121,22 @@ const SECURITY_CONTROLS = [
   {
     title: "Authenticated Access & Verification",
     description:
-      "Sign in with email or username and password—or Google authentication—paired with email verification status checks and a numeric registration verification challenge.",
+      "Sign in with your account credentials and confirm your email address to access the client portal.",
   },
   {
     title: "Password & Payout Controls",
     description:
-      "Update your account password or trigger password recovery anytime from Settings, and toggle the optional Enhanced Payout Verification Flag for manual sign-off before outbound transfers.",
+      "Use the account settings to update your password or start password recovery if needed.",
   },
   {
     title: "Account Isolation & Server-Verified Sessions",
     description:
-      "Strict server-side access controls and session validation isolate profiles, balances, investments, and receipts to your authenticated user ID. Session credentials are never stored in browser localStorage.",
+      "Account information and transaction history are available through your signed-in profile.",
   },
   {
     title: "Immutable Ledger & Desk Support",
     description:
-      "Every deposit, allocation, and withdrawal receives an immutable reference code and status notification. If you suspect unauthorized activity, contact support@bitfurytechinvestment.com or bitfurytech21@gmail.com immediately.",
+      "Review payment request status in your account and contact support if you need help with an unfamiliar transaction.",
   },
 ];
 
@@ -188,9 +179,7 @@ export default function HowItWorks() {
             How Investing with BitfuryTech Works
           </h1>
           <p className="text-base text-slate-200 max-w-3xl leading-relaxed">
-            Follow the complete nine-step investor lifecycle from account creation and verification
-            through dashboard access, opportunity review, custody funding, active monitoring, and
-            verified withdrawals.
+            Learn how to create an account, explore available options, submit payment requests, and review account activity.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
@@ -260,15 +249,15 @@ export default function HowItWorks() {
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="px-3 py-1.5 rounded-[5px] bg-[#F6F8FA] border border-[#DCE4EC] text-[#102030] font-medium">
-                    1. Notice Submitted
+                    Notice submitted
                   </span>
                   <ArrowRight className="w-3.5 h-3.5 text-[#5A6B7C] shrink-0" />
                   <span className="px-3 py-1.5 rounded-[5px] bg-amber-50 border border-amber-200 text-amber-800 font-medium">
-                    2. Pending Review
+                    Pending review
                   </span>
                   <ArrowRight className="w-3.5 h-3.5 text-[#5A6B7C] shrink-0" />
                   <span className="px-3 py-1.5 rounded-[5px] bg-emerald-50 border border-emerald-200 text-emerald-800 font-medium">
-                    3. Completed / Settled
+                    Completed or settled
                   </span>
                 </div>
                 <p className="text-xs text-[#5A6B7C] leading-relaxed">
@@ -302,14 +291,14 @@ export default function HowItWorks() {
             </div>
           </section>
 
-          {/* Complete 9-Step Customer Investment Journey */}
+              {/* Customer investment journey */}
           <section className="space-y-8">
             <div className="max-w-2xl space-y-2">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
                 Step-by-Step Guide
               </p>
               <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#102030]">
-                The 9-Step Investor Journey
+                From account setup to account activity
               </h2>
             </div>
 
@@ -318,13 +307,13 @@ export default function HowItWorks() {
                 const Icon = item.icon;
                 return (
                   <article
-                    key={item.step}
+                    key={item.phase}
                     className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 flex flex-col justify-between space-y-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-mono font-semibold text-[#B92841]">
-                          Step {item.step} · {item.phase}
+                        <span className="text-xs font-heading font-semibold text-[#B92841]">
+                          {item.phase}
                         </span>
                         <Icon className="w-4 h-4 text-[#1B4962] shrink-0" />
                       </div>
