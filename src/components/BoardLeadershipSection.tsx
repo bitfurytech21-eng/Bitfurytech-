@@ -29,7 +29,7 @@ export default function BoardLeadershipSection() {
               key={member.name}
               className="overflow-hidden rounded-xl border border-[#DCE4EC] bg-white shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
             >
-              <div className="aspect-[4/3] w-full overflow-hidden bg-[#EDF3F7]">
+              <div className="aspect-[4/5] w-full overflow-hidden bg-[#EDF3F7]">
                 <img
                   src={member.image}
                   alt={`${member.name}, ${member.role}`}

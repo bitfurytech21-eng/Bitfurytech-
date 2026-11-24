@@ -190,7 +190,7 @@ const FAQ_ITEMS: FaqItem[] = [
     category: "support",
     question: "How do I contact support?",
     answer:
-      "Submit the contact form, use the live support chat, or email support@bitfurytechinvestment.com.",
+      "Submit the contact form, use the live support chat, or email support@bitfurytech.cloud or info@bitfurytech.cloud.",
   },
 ];
 

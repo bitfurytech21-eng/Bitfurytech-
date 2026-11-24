@@ -1,8 +1,8 @@
 import { Landmark } from "lucide-react";
 
 const PAYMENT_METHODS = [
-  { name: "Bitcoin (BTC)", image: "/images/payment-methods/card5.svg" },
-  { name: "Ethereum (ETH)", image: "/images/payment-methods/card6.svg" },
+  { name: "Bitcoin (BTC)", image: "/images/payment-methods/btc.svg" },
+  { name: "Ethereum (ETH)", image: "/images/payment-methods/eth.svg" },
   { name: "USDT (TRC20)", image: "/images/payment-methods/card15.svg" },
   { name: "Bank Wire", image: null },
 ];

@@ -21,8 +21,11 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
+import { motion, useReducedMotion } from "motion/react";
+import { EditorialIcon } from "../../components/EditorialArtwork";
 import InvestorTestimonials from "../../components/InvestorTestimonials";
 import BoardLeadershipSection from "../../components/BoardLeadershipSection";
+import HighlightMetricsSection from "../../components/HighlightMetricsSection";
 import PaymentMethods from "../../components/PaymentMethods";
 import { PropertyOffering } from "../../services/dashboardApi";
 import { MandateCategory } from "../../trading/tradingPage";
@@ -128,19 +131,43 @@ const RESEARCH_PILLARS = [
 
 const PORTFOLIO_PRINCIPLES = [
   {
+    art: "oversight" as const,
     title: "Investment Policy & Research",
     description:
       "The Investment Policy Committee oversees investment policy with support from research and market analysis.",
   },
   {
+    art: "analysis" as const,
     title: "Options Across Asset Types",
     description:
       "Compare opportunities in digital assets, equities, and commercial property using the terms published for each plan.",
   },
   {
+    art: "advisory" as const,
     title: "Account Records & Support",
     description:
       "Use the client portal to review account activity and contact support about payments, withdrawals, or property inquiries.",
+  },
+];
+
+const CORPORATE_PILLARS = [
+  {
+    art: "team" as const,
+    title: "Dedicated Research Team",
+    description:
+      "Financial analysts, fund managers, and research scientists overseeing market intelligence and ongoing client reporting.",
+  },
+  {
+    art: "strategy" as const,
+    title: "Disciplined Strategy",
+    description:
+      "Mathematical and statistical evaluation applied across cryptocurrency, global equities, and commercial real estate.",
+  },
+  {
+    art: "mission" as const,
+    title: "Clear Investor Mission",
+    description:
+      "Structured mandate terms, clear fee disclosures, and transparent milestone visibility through every market cycle.",
   },
 ];
 
@@ -231,6 +258,7 @@ const HOME_FAQS = [
 
 export default function Home() {
   const { user } = useAuth();
+  const prefersReducedMotion = useReducedMotion();
   const { plans, loading: plansLoading, error: plansError } = useInvestmentPlans();
 
   const [slideIdx, setSlideIdx] = useState(0);
@@ -447,15 +475,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Additional TradingView Ticker Tape */}
-      <section
-        aria-label="Live TradingView market ticker"
-        className="bg-[#112E3E] text-white border-b border-white/10"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1">
-          <TradingViewTickerTape colorTheme="dark" displayMode="adaptive" />
-        </div>
-      </section>
+      {/* 2. Platform Scale & Animated Metric Rings */}
+      <HighlightMetricsSection />
 
       {/* 3. Investment Categories: Cryptocurrency, Stocks, and Real Estate */}
       <section className="bg-white border-b border-[#DCE4EC]">
@@ -515,8 +536,36 @@ export default function Home() {
       </section>
 
       {/* 4. About BitfuryTech & Structured Portfolio Philosophy */}
-      <section className="bg-[#F6F8FA] border-b border-[#DCE4EC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
+      <section className="relative isolate overflow-hidden bg-white border-b border-[#DCE4EC]">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[560px] overflow-hidden select-none"
+        >
+          <img
+            src="/assets/aistudio/IMG_8223_ec3d07bb.jpeg"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover object-top opacity-75"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/80 to-white" />
+          <img
+            src="/assets/aistudio/IMG_8225_3a0fd053.png"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="absolute left-0 top-0 h-[440px] w-auto opacity-90 brightness-[0.92]"
+          />
+          <img
+            src="/assets/aistudio/IMG_8225_3a0fd053.png"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="hidden sm:block absolute right-0 top-6 h-[400px] w-auto -scale-x-100 opacity-85 brightness-[0.92]"
+          />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
           <div className="grid lg:grid-cols-12 gap-10 items-center">
             <div className="lg:col-span-7 space-y-4">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
@@ -558,15 +607,44 @@ export default function Home() {
                   Structured Portfolio Principles
                 </h3>
               </div>
-              <div className="space-y-3 border-t border-[#DCE4EC] pt-4">
+              <div className="space-y-4 border-t border-[#DCE4EC] pt-4">
                 {PORTFOLIO_PRINCIPLES.map((item) => (
-                  <div key={item.title} className="space-y-1">
-                    <p className="text-xs font-heading font-bold text-[#102030]">{item.title}</p>
-                    <p className="text-xs text-[#5A6B7C] leading-relaxed">{item.description}</p>
+                  <div key={item.title} className="flex items-start gap-3.5">
+                    <div className="shrink-0 rounded-lg bg-[#F6F8FA] p-1.5 border border-[#DCE4EC]">
+                      <EditorialIcon name={item.art} className="size-10" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-heading font-bold text-[#102030]">{item.title}</p>
+                      <p className="text-xs text-[#5A6B7C] leading-relaxed">{item.description}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Dedicated Research Team, Strategy & Mission Pillars */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {CORPORATE_PILLARS.map((pillar, idx) => (
+              <motion.article
+                key={pillar.title}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.45, delay: idx * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-white border border-[#DCE4EC] rounded-[5px] p-6 sm:p-7 flex flex-col items-start gap-4 shadow-[0_2px_8px_rgba(27,73,98,0.06)]"
+              >
+                <EditorialIcon name={pillar.art} className="size-16" />
+                <div className="space-y-1.5">
+                  <h3 className="text-lg font-heading font-bold text-[#102030]">
+                    {pillar.title}
+                  </h3>
+                  <p className="text-sm text-[#5A6B7C] leading-relaxed">
+                    {pillar.description}
+                  </p>
+                </div>
+              </motion.article>
+            ))}
           </div>
 
           {/* Market Analysis & Research Sub-Band */}
@@ -976,11 +1054,15 @@ export default function Home() {
               <div className="pt-2 space-y-2 text-sm text-[#102030]">
                 <p className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                  <span>support@bitfurytechinvestment.com</span>
+                  <span>info@bitfurytech.cloud</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                  <span>admin@bitfurytechinvestment.com · bitfurytech21@gmail.com</span>
+                  <span>support@bitfurytech.cloud</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
+                  <span>Compliance.notice@bitfurytech.cloud</span>
                 </p>
                 <p className="text-xs text-[#5A6B7C] pt-1">
                   Office: 171 Crescent Road, Oxford, England, OX4 2NX

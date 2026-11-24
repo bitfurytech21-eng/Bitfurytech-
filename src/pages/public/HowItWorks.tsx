@@ -316,9 +316,14 @@ export default function HowItWorks() {
                         <span className="text-xs font-heading font-semibold text-[#B92841]">
                           {item.phase}
                         </span>
-                        {item.step === '05' || item.step === '07' ? (
-                          <EditorialIcon name={item.step === '05' ? 'horizon' : 'growth'} className="size-9 rounded-full border-2 border-[#D45770]" />
-                        ) : <Icon className="w-4 h-4 text-[#1B4962] shrink-0" />}
+                        {item.phase === "Selection & Terms" || item.phase === "Monitoring" ? (
+                          <EditorialIcon
+                            name={item.phase === "Selection & Terms" ? "horizon" : "growth"}
+                            className="size-9 rounded-full border-2 border-[#D45770]"
+                          />
+                        ) : (
+                          <Icon className="w-4 h-4 text-[#1B4962] shrink-0" />
+                        )}
                       </div>
                       <h3 className="text-lg font-heading font-bold text-[#102030]">{item.title}</h3>
                       <p className="text-sm text-[#5A6B7C] leading-relaxed">{item.description}</p>

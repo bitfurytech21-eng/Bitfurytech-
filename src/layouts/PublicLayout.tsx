@@ -222,9 +222,9 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             </p>
             <div className="pt-1 text-xs text-slate-300 space-y-1.5">
               <p>171 Crescent Road, Oxford, England, OX4 2NX</p>
-              <a href="mailto:support@bitfurytechinvestment.com" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Support: support@bitfurytechinvestment.com</span></a>
-              <a href="mailto:admin@bitfurytechinvestment.com" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Administration: admin@bitfurytechinvestment.com</span></a>
-              <a href="mailto:bitfurytech21@gmail.com" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>General enquiries: bitfurytech21@gmail.com</span></a>
+              <a href="mailto:info@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Information: info@bitfurytech.cloud</span></a>
+              <a href="mailto:support@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Support: support@bitfurytech.cloud</span></a>
+              <a href="mailto:Compliance.notice@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Compliance: Compliance.notice@bitfurytech.cloud</span></a>
             </div>
           </div>
 
@@ -322,6 +322,71 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             </div>
           </div>
         </div>
+
+        {/* Footer Location Background Design */}
+        <section
+          aria-label="Our Locations"
+          className="relative isolate overflow-hidden border-t border-white/10 bg-gradient-to-b from-[#20435B] to-[#18364A]"
+        >
+          {/* Seamless Background Artwork Layer (Desktop) */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none select-none hidden lg:block absolute inset-0"
+          >
+            <div className="relative mx-auto h-full max-w-7xl px-6">
+              <img
+                src="/assets/aistudio/IMG_8314_d4a66b8e.jpeg"
+                alt=""
+                width={1284}
+                height={631}
+                loading="lazy"
+                className="h-full w-auto max-w-none object-contain object-left opacity-95"
+                style={{
+                  WebkitMaskImage:
+                    "linear-gradient(to right, transparent 0%, black 5%, black 76%, transparent 98%)",
+                  maskImage:
+                    "linear-gradient(to right, transparent 0%, black 5%, black 76%, transparent 98%)",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Mobile / Tablet Edge-less Background Design Header */}
+          <div aria-hidden="true" className="pointer-events-none select-none lg:hidden">
+            <img
+              src="/assets/aistudio/IMG_8314_d4a66b8e.jpeg"
+              alt=""
+              width={1284}
+              height={631}
+              loading="lazy"
+              className="w-full h-auto block"
+              style={{
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, black 82%, transparent 100%)",
+                maskImage:
+                  "linear-gradient(to bottom, black 82%, transparent 100%)",
+              }}
+            />
+          </div>
+
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-2 pb-10 lg:py-16 grid grid-cols-1 lg:grid-cols-12 items-center">
+            <div className="lg:col-start-8 lg:col-span-5 space-y-2.5 lg:pl-4">
+              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
+                Registered Office
+              </p>
+              <p className="text-lg font-heading font-bold text-white">
+                Oxford, United Kingdom
+              </p>
+              <p className="text-sm text-slate-200 leading-relaxed">
+                171 Crescent Road, Oxford, England, OX4 2NX
+              </p>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-md">
+                Regional client relations desks coordinate account onboarding, settlement
+                verification, and investor support across North America, Europe, and Asia-Pacific.
+              </p>
+            </div>
+          </div>
+        </section>
 
         <div className="bg-[#112E3E] border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-3 text-xs text-slate-300">

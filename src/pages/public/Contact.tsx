@@ -154,8 +154,9 @@ export default function Contact() {
                   <div>
                     <dt className="text-xs text-[#5A6B7C]">Department Contacts</dt>
                     <dd className="mt-1 space-y-2 text-xs sm:text-sm">
-                      <p><span className="font-semibold text-[#102030]">Support:</span> <a className="text-[#1B4962] hover:underline" href="mailto:support@bitfurytechinvestment.com">support@bitfurytechinvestment.com</a></p>
-                      <p><span className="font-semibold text-[#102030]">Administration:</span> <a className="text-[#1B4962] hover:underline" href="mailto:admin@bitfurytechinvestment.com">admin@bitfurytechinvestment.com</a></p>
+                      <p><span className="font-semibold text-[#102030]">Information:</span> <a className="text-[#1B4962] hover:underline" href="mailto:info@bitfurytech.cloud">info@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Support:</span> <a className="text-[#1B4962] hover:underline" href="mailto:support@bitfurytech.cloud">support@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Compliance:</span> <a className="text-[#1B4962] hover:underline" href="mailto:Compliance.notice@bitfurytech.cloud">Compliance.notice@bitfurytech.cloud</a></p>
                     </dd>
                   </div>
                   <div>
