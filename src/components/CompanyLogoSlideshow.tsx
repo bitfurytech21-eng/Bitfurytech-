@@ -24,18 +24,14 @@ export default function CompanyLogoSlideshow() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl space-y-2 text-center">
           <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
-            Company logos
+            Company directory
           </p>
           <h2
             id="company-logos-heading"
             className="text-2xl font-heading font-bold tracking-tight text-[#102030] sm:text-3xl"
           >
-            Companies featured on the original website
+            Companies and services
           </h2>
-          <p className="text-sm leading-relaxed text-[#5A6B7C]">
-            These logos appeared on the source site. Their inclusion here does not confirm a current
-            partnership, sponsorship, or endorsement.
-          </p>
         </div>
 
         <div
@@ -58,7 +54,7 @@ export default function CompanyLogoSlideshow() {
             className="flex min-h-36 min-w-0 flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-[#DCE4EC] bg-white px-5 py-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:min-h-40"
             role="group"
             aria-roledescription="slide"
-            aria-label={`${activeIndex + 1} of ${COMPANIES.length}: ${activeCompany.name}`}
+            aria-label={`Company logo: ${activeCompany.name}`}
           >
             <img
               key={activeCompany.image}
@@ -103,7 +99,7 @@ export default function CompanyLogoSlideshow() {
           ))}
         </div>
         <p className="sr-only" aria-live="polite" aria-atomic="true">
-          Showing {activeCompany.name}, slide {activeIndex + 1} of {COMPANIES.length}.
+          Showing {activeCompany.name}.
         </p>
       </div>
     </section>

@@ -14,13 +14,11 @@ import {
 } from "../../components/ui";
 
 const INQUIRY_SUBJECTS = [
-  "Institutional Custody Inquiry",
-  "Account Registration & Verification",
-  "Deposit & Settlement Verification",
-  "Withdrawal & Payout Support",
-  "Investment Mandate Specifications",
-  "Real Estate Syndicate Participation",
-  "Compliance & Security Review",
+  "Account access",
+  "Investment plan information",
+  "Deposit or withdrawal",
+  "Property listing",
+  "General question",
 ] as const;
 
 interface ContactApiResponse {
@@ -53,7 +51,7 @@ export default function Contact() {
     if (trimmedName.length < 1 || trimmedName.length > 120) {
       setStatus({
         ok: false,
-        text: "Please enter your full name (between 1 and 120 characters).",
+        text: "Please enter your name."
       });
       return;
     }
@@ -71,7 +69,7 @@ export default function Contact() {
     if (trimmedMessage.length < 1 || trimmedMessage.length > 1500) {
       setStatus({
         ok: false,
-        text: "Please enter your inquiry message (maximum 1,500 characters).",
+        text: "Please enter a message about your inquiry."
       });
       return;
     }
@@ -93,14 +91,14 @@ export default function Contact() {
       if (!response.ok || !data.ok || !data.inquiryId) {
         throw new Error(
           data.error ||
-            "The server did not confirm receipt of your inquiry. Please try again."
+            "We couldn’t submit your inquiry. Please try again."
         );
       }
 
       setStatus({
         ok: true,
         referenceId: data.inquiryId,
-        text: "Your inquiry has been confirmed and recorded by the BitfuryTech server.",
+        text: "Thanks — your message has been received. Our team will review your inquiry."
       });
       setName("");
       setEmail("");
@@ -123,17 +121,16 @@ export default function Contact() {
       <section className="bg-[#1B4962] text-white border-b border-white/15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-3">
           <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-            Client Relations
+            Contact
           </p>
           <h1
             className="font-heading font-bold tracking-tight text-white text-balance"
             style={{ fontSize: "clamp(2rem, 3.8vw, 3.25rem)" }}
           >
-            Contact BitfuryTech
+            Contact our team
           </h1>
           <p className="text-base text-slate-200 max-w-3xl leading-relaxed">
-            Reach our client support and settlement administration desk regarding custody
-            onboarding, deposit verification, or investment mandate terms.
+            Get in touch about your account, payment request, investment plan, or property listing. We’ll reply using the email address you provide.
           </p>
         </div>
       </section>
@@ -147,23 +144,18 @@ export default function Contact() {
                 <div className="flex items-center gap-2.5">
                   <Mail className="w-5 h-5 text-[#E94D65] shrink-0" />
                   <h2 className="text-base font-heading font-bold text-[#102030]">
-                    Business Contact Details
+                    Contact details
                   </h2>
                 </div>
                 <p className="text-sm text-[#5A6B7C] leading-relaxed">
-                  We maintain a culture of treating people with respect, listening closely, and
-                  working in our clients&apos; best interests. Inquiries submitted here are validated
-                  by the BitfuryTech server and persisted directly to our administration review
-                  queue.
+                  Use the form to send our team a message about account access, payments, plans, or property listings.
                 </p>
                 <dl className="pt-3 border-t border-[#DCE4EC] space-y-3 text-sm">
                   <div>
                     <dt className="text-xs text-[#5A6B7C]">Department Contacts</dt>
                     <dd className="mt-1 space-y-2 text-xs sm:text-sm">
-                      <p><span className="font-semibold text-[#102030]">Client Support:</span> <a className="text-[#1B4962] hover:underline" href="mailto:support@bitfurytech.cloud">support@bitfurytech.cloud</a></p>
-                      <p><span className="font-semibold text-[#102030]">Compliance Notices:</span> <a className="text-[#1B4962] hover:underline" href="mailto:compliance.notice@bitfurytech.cloud">compliance.notice@bitfurytech.cloud</a></p>
-                      <p><span className="font-semibold text-[#102030]">Newsletter &amp; News:</span> <a className="text-[#1B4962] hover:underline" href="mailto:news@bitfurytech.cloud">news@bitfurytech.cloud</a></p>
-                      <p><span className="font-semibold text-[#102030]">Trust Wallet:</span> <a className="text-[#1B4962] hover:underline" href="mailto:info@bitfurytech.cloud">info@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Support:</span> <a className="text-[#1B4962] hover:underline" href="mailto:support@bitfurytechinvestment.com">support@bitfurytechinvestment.com</a></p>
+                      <p><span className="font-semibold text-[#102030]">Administration:</span> <a className="text-[#1B4962] hover:underline" href="mailto:admin@bitfurytechinvestment.com">admin@bitfurytechinvestment.com</a></p>
                     </dd>
                   </div>
                   <div>
@@ -174,22 +166,22 @@ export default function Contact() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-[#5A6B7C]">Support Desk Hours</dt>
+                    <dt className="text-xs text-[#5A6B7C]">Live support</dt>
                     <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
-                      Monday – Friday · 08:00 – 18:00 UTC (24/7 Live Chat Triage)
+                      Use the live chat widget for account and payment questions.
                     </dd>
                   </div>
                 </dl>
                 <div className="pt-3 border-t border-[#DCE4EC] space-y-2">
                   <p className="text-xs text-[#5A6B7C]">
-                    Need immediate assistance with verification, deposits, or mandate allocation?
+                    Need help with account access or a payment request?
                   </p>
                   <Button
                     type="button"
                     variant="secondary"
                     size="md"
                     fullWidth
-                    onClick={() => openLiveSupportChat(subject)}
+                    onClick={() => openLiveSupportChat()}
                   >
                     <MessageSquare className="w-4 h-4" />
                     <span>Launch Live Support Chat</span>
@@ -201,23 +193,20 @@ export default function Contact() {
                 <div className="flex items-center gap-2.5">
                   <ShieldCheck className="w-5 h-5 text-[#1B4962] shrink-0" />
                   <h2 className="text-base font-heading font-bold text-[#102030]">
-                    Support Information &amp; Expectations
+                    Before you contact us
                   </h2>
                 </div>
                 <ul className="space-y-2.5 text-sm text-[#5A6B7C]">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />
                     <span>
-                      Include your transaction reference code (e.g. DEP-, WDR-, or INV-) and
-                      registered email address for faster settlement or allocation lookup.
+                      If you’re writing about a transaction, include the reference shown in your account.
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />
                     <span>
-                      Support covers account access, verification, deposit/withdrawal tracking,
-                      mandate terms, and referral ledger questions—without providing personalized
-                      investment advice.
+                      Support can help with account access, request status, plan information, and site navigation.
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -228,7 +217,7 @@ export default function Contact() {
                         to="/how-it-works"
                         className="text-[#1B4962] font-semibold hover:text-[#B92841] hover:underline"
                       >
-                        9-step investment lifecycle
+                        How the platform works
                       </Link>{" "}
                       or{" "}
                       <Link
@@ -257,7 +246,7 @@ export default function Contact() {
                 <div className="space-y-1">
                   <h2 className="text-lg font-heading font-bold text-[#102030]">Send an Inquiry</h2>
                   <p className="text-xs text-[#5A6B7C]">
-                    Confirmation appears only after server persistence is verified.
+                    We’ll let you know when your inquiry has been received.
                   </p>
                 </div>
 
@@ -318,18 +307,14 @@ export default function Contact() {
                   </SelectInput>
                 </FormField>
 
-                <FormField
-                  id="inq-msg"
-                  label="Message"
-                  hint={`${message.length}/1500 characters`}
-                >
+                <FormField id="inq-msg" label="Message">
                   <TextAreaInput
                     id="inq-msg"
                     rows={5}
                     maxLength={1500}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Describe your question, reference ID, or mandate inquiry..."
+                    placeholder="Describe your question or the service you need help with…"
                     required
                   />
                 </FormField>

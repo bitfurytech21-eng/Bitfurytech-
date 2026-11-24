@@ -52,7 +52,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
       }
       setNewsletterFeedback({
         ok: true,
-        text: `Subscribed (${data.subscriptionId}). Briefings confirmed.`,
+        text: "You’re subscribed. Watch your inbox for updates.",
       });
       setNewsletterEmail("");
     } catch (err) {
@@ -216,16 +216,15 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
               />
             </Link>
             <p className="text-sm text-slate-200 leading-relaxed max-w-sm">
-              Bitfury Tech Investment is an algorithmic and multi-asset trading firm founded in 2017,
-              providing mathematical and statistical allocations across over 50 financial markets
-              through one unified custody account.
+              Bitfury Tech Investment provides information and account services across digital assets,
+              equities, and commercial property. Customers can review plans, listings, account activity,
+              and support resources online.
             </p>
             <div className="pt-1 text-xs text-slate-300 space-y-1.5">
               <p>171 Crescent Road, Oxford, England, OX4 2NX</p>
-              <a href="mailto:support@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Client Support: support@bitfurytech.cloud</span></a>
-              <a href="mailto:compliance.notice@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Compliance: compliance.notice@bitfurytech.cloud</span></a>
-              <a href="mailto:news@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Newsletter: news@bitfurytech.cloud</span></a>
-              <a href="mailto:info@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Trust Wallet: info@bitfurytech.cloud</span></a>
+              <a href="mailto:support@bitfurytechinvestment.com" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Support: support@bitfurytechinvestment.com</span></a>
+              <a href="mailto:admin@bitfurytechinvestment.com" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Administration: admin@bitfurytechinvestment.com</span></a>
+              <a href="mailto:bitfurytech21@gmail.com" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>General enquiries: bitfurytech21@gmail.com</span></a>
             </div>
           </div>
 
@@ -234,21 +233,10 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
               Investment Sectors
             </h3>
             <ul className="space-y-2 text-slate-200">
-              <li>
-                <Link to="/investments-catalog" className="hover:text-[#E94D65] transition-colors">
-                  Investment Plans
-                </Link>
-              </li>
-              <li>
-                <Link to="/properties" className="hover:text-[#E94D65] transition-colors">
-                  Real Estate Holdings
-                </Link>
-              </li>
-              <li>
-                <Link to="/services" className="hover:text-[#E94D65] transition-colors">
-                  Custody Services
-                </Link>
-              </li>
+              <li><Link to="/sectors/crypto" className="hover:text-[#E94D65] transition-colors">Digital assets</Link></li>
+              <li><Link to="/sectors/stocks" className="hover:text-[#E94D65] transition-colors">Equities</Link></li>
+              <li><Link to="/sectors/real-estate" className="hover:text-[#E94D65] transition-colors">Commercial property</Link></li>
+              <li><Link to="/investments-catalog" className="hover:text-[#E94D65] transition-colors">Investment plans</Link></li>
             </ul>
           </div>
 
@@ -287,11 +275,10 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
 
           <div className="lg:col-span-4 space-y-3">
             <h3 className="font-heading font-bold text-white uppercase tracking-wider text-xs">
-              Institutional Briefings &amp; Newsletter
+              Company updates
             </h3>
             <p className="text-xs text-slate-200 leading-relaxed">
-              Receive verified mandate release notices and commercial property updates directly to
-              your inbox.
+              Get occasional updates about investment plans and property listings.
             </p>
             <form onSubmit={handleNewsletterSubmit} noValidate className="flex flex-col sm:flex-row gap-2">
               <label htmlFor="footer-newsletter-email" className="sr-only">
@@ -327,7 +314,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             )}
             <div className="pt-2 flex flex-wrap gap-4 text-xs text-slate-300">
               <Link to="/terms" className="hover:text-white underline-offset-4 hover:underline">
-                Terms &amp; Risk Disclosure
+                Terms and fees
               </Link>
               <Link to="/privacy" className="hover:text-white underline-offset-4 hover:underline">
                 Privacy Policy
@@ -339,7 +326,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         <div className="bg-[#112E3E] border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-3 text-xs text-slate-300">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <p>© 2020 Bitfury Tech Investment. All rights reserved.</p>
+              <p>© {new Date().getFullYear()} Bitfury Tech Investment. All rights reserved.</p>
             </div>
           </div>
         </div>
