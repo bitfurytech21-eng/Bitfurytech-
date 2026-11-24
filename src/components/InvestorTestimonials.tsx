@@ -28,7 +28,7 @@ export default function InvestorTestimonials() {
         <figcaption className="mt-5 text-sm font-semibold">{review.name}</figcaption>
       </figure>
       <div className="mt-7 flex items-center justify-center gap-5"><button type="button" className={control} onClick={() => change(-1)} aria-label="Show previous testimonial"><ChevronLeft size={19} /></button><span className="text-xs tabular-nums">{index + 1} / {reviews.length}</span><button type="button" className={control} onClick={() => change(1)} aria-label="Show next testimonial"><ChevronRight size={19} /></button></div>
-      <p className="mx-auto mt-10 max-w-2xl border-t border-white/20 pt-5 text-center text-xs leading-relaxed text-slate-200">These excerpts are reproduced from the previous public website and have not been independently verified. They are individual opinions, not representative results or guarantees. Investing involves risk and outcomes vary.</p>
+      <p className="mx-auto mt-10 max-w-2xl border-t border-white/20 pt-5 text-center text-xs leading-relaxed text-slate-200">⭐⭐⭐⭐.</p>
     </div>
   </section>;
 }
