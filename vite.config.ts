@@ -6,6 +6,8 @@ import { defineConfig } from "vite";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
+const disableHmr = process.env.DISABLE_HMR === "true" || Boolean(process.env.K_SERVICE);
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -17,7 +19,8 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 3000,
     allowedHosts: true,
-    hmr: process.env.DISABLE_HMR !== "true" && !process.env.K_SERVICE,
-    watch: process.env.DISABLE_HMR === "true" || Boolean(process.env.K_SERVICE) ? null : {},
+    ws: disableHmr ? false : undefined,
+    hmr: !disableHmr,
+    watch: disableHmr ? null : {},
   },
 });

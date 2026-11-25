@@ -39,11 +39,32 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function resolveListenPort(isProd: boolean): number {
+  const portFlagIdx = process.argv.findIndex((arg) => arg === "--port" || arg === "-p");
+  if (portFlagIdx !== -1 && process.argv[portFlagIdx + 1]) {
+    const cliPort = Number(process.argv[portFlagIdx + 1]);
+    if (Number.isInteger(cliPort) && cliPort > 0 && cliPort < 65536) {
+      return cliPort;
+    }
+  }
+  const portEqArg = process.argv.find((arg) => arg.startsWith("--port="));
+  if (portEqArg) {
+    const cliPort = Number(portEqArg.split("=", 2)[1]);
+    if (Number.isInteger(cliPort) && cliPort > 0 && cliPort < 65536) {
+      return cliPort;
+    }
+  }
+  if (!isProd && process.env.PORT === "8080" && Boolean(process.env.K_SERVICE)) {
+    return 3000;
+  }
+  return Number(process.env.PORT) || 3000;
+}
+
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
-const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === "production";
+const PORT = resolveListenPort(isProduction);
 
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -915,6 +936,7 @@ async function startServer() {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
+        ws: disableHmr ? false : undefined,
         hmr: disableHmr ? false : { server: httpServer },
         watch: disableHmr ? null : undefined,
       },
