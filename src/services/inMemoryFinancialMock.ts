@@ -413,6 +413,136 @@ export function getMockCatalog(feeRatePct: number) {
   return { plans: Array.from(plansById.values()), properties, feeRatePct };
 }
 
+export interface MockCryptoWallet {
+  id: string;
+  cryptocurrency: string;
+  blockchainNetwork: string;
+  walletAddress: string;
+  walletLabel: string;
+  status: "Active" | "Inactive" | "Maintenance";
+  minDeposit: number;
+  maxDeposit: number;
+  instructions: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+}
+
+const customCryptoWallets = new Map<string, MockCryptoWallet>([
+  [
+    "wal_btc_1",
+    {
+      id: "wal_btc_1",
+      cryptocurrency: "Bitcoin",
+      blockchainNetwork: "Bitcoin Mainnet",
+      walletAddress: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+      walletLabel: "Primary BTC Cold Treasury",
+      status: "Active",
+      minDeposit: 250,
+      maxDeposit: 1000000,
+      instructions: "Transfer BTC via Bitcoin Mainnet and enter your transaction ID (TXID). Requires 3 block confirmations.",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "system",
+      updatedBy: "system",
+    },
+  ],
+  [
+    "wal_eth_1",
+    {
+      id: "wal_eth_1",
+      cryptocurrency: "Ethereum",
+      blockchainNetwork: "Ethereum (ERC-20)",
+      walletAddress: "0x71C3d2948b816281028372610293847192837465",
+      walletLabel: "ETH Multi-Sig Vault",
+      status: "Active",
+      minDeposit: 250,
+      maxDeposit: 2000000,
+      instructions: "Send ETH or ERC-20 assets on Ethereum Mainnet. Do not use layer-2 bridges without prior settlement desk notification.",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "system",
+      updatedBy: "system",
+    },
+  ],
+  [
+    "wal_usdt_1",
+    {
+      id: "wal_usdt_1",
+      cryptocurrency: "USDT",
+      blockchainNetwork: "TRON (TRC-20)",
+      walletAddress: "TXv79qL2k83j2019384756102938475610293847",
+      walletLabel: "TRC20 Settlement Gateway",
+      status: "Active",
+      minDeposit: 100,
+      maxDeposit: 10000000,
+      instructions: "Transmit USDT strictly on the TRON (TRC20) network to the BitfuryTech custody treasury address.",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "system",
+      updatedBy: "system",
+    },
+  ],
+  [
+    "wal_usdc_1",
+    {
+      id: "wal_usdc_1",
+      cryptocurrency: "USDC",
+      blockchainNetwork: "Ethereum (ERC-20)",
+      walletAddress: "0x92B8a10293847561029384756102938475610293",
+      walletLabel: "USDC Treasury Reserve",
+      status: "Active",
+      minDeposit: 100,
+      maxDeposit: 5000000,
+      instructions: "Transfer USDC on Ethereum Mainnet. Ensure sufficient ETH gas is provided for settlement transfer processing.",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "system",
+      updatedBy: "system",
+    },
+  ],
+]);
+
+export function upsertMockCryptoWallet(data: {
+  id?: string;
+  cryptocurrency: string;
+  blockchainNetwork: string;
+  walletAddress: string;
+  walletLabel?: string;
+  status?: "Active" | "Inactive" | "Maintenance";
+  minDeposit?: number;
+  maxDeposit?: number;
+  instructions?: string;
+  adminEmail?: string;
+}): MockCryptoWallet {
+  const id = data.id || `wal_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const existing = customCryptoWallets.get(id);
+  const now = new Date().toISOString();
+  const record: MockCryptoWallet = {
+    id,
+    cryptocurrency: data.cryptocurrency.trim() || "USDT",
+    blockchainNetwork: data.blockchainNetwork.trim() || "TRON (TRC-20)",
+    walletAddress: data.walletAddress.trim(),
+    walletLabel: data.walletLabel?.trim() || `${data.cryptocurrency} Wallet`,
+    status: data.status || "Active",
+    minDeposit: Number(data.minDeposit) || 100,
+    maxDeposit: Number(data.maxDeposit) || 10000000,
+    instructions: data.instructions?.trim() || "",
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    createdBy: existing?.createdBy ?? data.adminEmail ?? "admin",
+    updatedBy: data.adminEmail ?? "admin",
+  };
+  customCryptoWallets.set(id, record);
+  return record;
+}
+
+export function deleteMockCryptoWallet(id: string): boolean {
+  return customCryptoWallets.delete(id);
+}
+
+
 export function createMockDeposit(params: {
   userId: string;
   userEmail: string;
@@ -721,10 +851,12 @@ export function getMockAdminData() {
     transactions,
     plans: getMockCatalog(0.5).plans.map((p) => ({ ...p, source: customPlans.has(p.id) ? "database" : "default" })),
     properties: Array.from(customProperties.values()),
+    cryptoWallets: Array.from(customCryptoWallets.values()),
     inquiries: inquiriesList,
     auditLogs,
     customPlans,
     customProperties,
+    customCryptoWallets,
     usersById,
     walletsByUser,
   };

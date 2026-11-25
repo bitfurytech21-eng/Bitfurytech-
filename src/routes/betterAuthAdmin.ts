@@ -23,6 +23,8 @@ import {
   updateMockProperty,
   upsertMockPlan,
   upsertMockProperty,
+  upsertMockCryptoWallet,
+  deleteMockCryptoWallet,
 } from "../services/inMemoryFinancialMock.ts";
 import { DEFAULT_MAIL_TEMPLATES } from "../services/mailTemplates.ts";
 import { enqueueMailEvent } from "../services/mailOutbox.ts";
@@ -236,6 +238,100 @@ export function createBetterAuthAdminRouter(): Router {
     } catch (error) {
       console.error("Neon admin audit query failed:", error);
       res.status(502).json({ error: "Unable to load audit history from Neon." });
+    }
+  });
+
+  router.get("/crypto-wallets", async (_req, res) => {
+    if (!isDatabaseConfigured) {
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ wallets: getMockAdminData().cryptoWallets });
+      return;
+    }
+    try {
+      const result = await queryDatabase<Row>(
+        "SELECT id, cryptocurrency, blockchain_network AS \"blockchainNetwork\", wallet_address AS \"walletAddress\", wallet_label AS \"walletLabel\", status, min_deposit AS \"minDeposit\", max_deposit AS \"maxDeposit\", instructions, created_at AS \"createdAt\", updated_at AS \"updatedAt\", created_by AS \"createdBy\", updated_by AS \"updatedBy\" FROM crypto_wallets ORDER BY created_at DESC"
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ wallets: result.rows });
+    } catch (error) {
+      console.error("Neon admin crypto wallets query failed:", error);
+      res.status(502).json({ error: "Unable to load crypto wallets from Neon." });
+    }
+  });
+
+  router.post("/crypto-wallets", async (req: BetterAuthRequest, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const id = textValue(body.id) || `wal_${Date.now()}_${randomUUID().slice(0, 6)}`;
+    const cryptocurrency = textValue(body.cryptocurrency, "USDT");
+    const blockchainNetwork = textValue(body.blockchainNetwork, "TRON (TRC-20)");
+    const walletAddress = textValue(body.walletAddress);
+    const walletLabel = textValue(body.walletLabel, `${cryptocurrency} Wallet`);
+    const status = ["Active", "Inactive", "Maintenance"].includes(textValue(body.status)) ? textValue(body.status) : "Active";
+    const minDeposit = number(body.minDeposit, 100);
+    const maxDeposit = number(body.maxDeposit, 10000000);
+    const instructions = textValue(body.instructions);
+    const adminEmail = req.betterAuthSession?.user.email ?? "admin";
+    const adminId = req.betterAuthSession?.user.id ?? null;
+
+    if (!walletAddress) {
+      res.status(400).json({ error: "Wallet address is required." });
+      return;
+    }
+
+    if (!isDatabaseConfigured) {
+      const saved = upsertMockCryptoWallet({
+        id,
+        cryptocurrency,
+        blockchainNetwork,
+        walletAddress,
+        walletLabel,
+        status: status as "Active" | "Inactive" | "Maintenance",
+        minDeposit,
+        maxDeposit,
+        instructions,
+        adminEmail,
+      });
+      await recordAudit(req, "Upsert Crypto Wallet", "crypto_wallet", id, { cryptocurrency, blockchainNetwork, walletAddress, status });
+      res.json({ ok: true, wallet: saved });
+      return;
+    }
+
+    try {
+      await queryDatabase(
+        "INSERT INTO crypto_wallets (id, cryptocurrency, blockchain_network, wallet_address, wallet_label, status, min_deposit, max_deposit, instructions, created_by, updated_by, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,now()) ON CONFLICT (id) DO UPDATE SET cryptocurrency=EXCLUDED.cryptocurrency, blockchain_network=EXCLUDED.blockchain_network, wallet_address=EXCLUDED.wallet_address, wallet_label=EXCLUDED.wallet_label, status=EXCLUDED.status, min_deposit=EXCLUDED.min_deposit, max_deposit=EXCLUDED.max_deposit, instructions=EXCLUDED.instructions, updated_by=EXCLUDED.updated_by, updated_at=now()",
+        [id, cryptocurrency, blockchainNetwork, walletAddress, walletLabel, status, minDeposit, maxDeposit, instructions, adminId, adminId]
+      );
+      await recordAudit(req, "Upsert Crypto Wallet", "crypto_wallet", id, { cryptocurrency, blockchainNetwork, walletAddress, status });
+      res.json({ ok: true, id });
+    } catch (error) {
+      console.error("Neon admin upsert crypto wallet failed:", error);
+      res.status(502).json({ error: "Unable to save crypto wallet to Neon." });
+    }
+  });
+
+  router.delete("/crypto-wallets/:id", async (req: BetterAuthRequest, res) => {
+    const id = String(req.params.id ?? "");
+    if (!isDatabaseConfigured) {
+      const deleted = deleteMockCryptoWallet(id);
+      if (!deleted) {
+        res.status(404).json({ error: "Crypto wallet not found." });
+        return;
+      }
+      await recordAudit(req, "Delete Crypto Wallet", "crypto_wallet", id, {});
+      res.json({ ok: true });
+      return;
+    }
+    try {
+      const result = await queryDatabase("DELETE FROM crypto_wallets WHERE id=$1 RETURNING id", [id]);
+      if (result.rowCount === 0) {
+        res.status(404).json({ error: "Crypto wallet not found." });
+        return;
+      }
+      await recordAudit(req, "Delete Crypto Wallet", "crypto_wallet", id, {});
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Neon admin delete crypto wallet failed:", error);
+      res.status(502).json({ error: "Unable to delete crypto wallet from Neon." });
     }
   });
 
