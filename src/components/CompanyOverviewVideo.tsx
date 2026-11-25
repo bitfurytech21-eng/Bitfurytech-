@@ -15,6 +15,7 @@ export default function CompanyOverviewVideo({
   const handlePlay = async () => {
     const el = videoRef.current;
     if (!el) return;
+    setHasError(false);
     setHasStarted(true);
     try {
       await el.play();
@@ -34,10 +35,12 @@ export default function CompanyOverviewVideo({
         playsInline
         preload="metadata"
         aria-label="Bitfury Tech Investment company overview video"
-        onPlay={() => setHasStarted(true)}
+        onPlay={() => {
+          setHasError(false);
+          setHasStarted(true);
+        }}
         onError={() => setHasError(true)}
       >
-        <source src={videoSrc} type="video/mp4" />
         Your browser does not support HTML5 video playback.
       </video>
 

@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { getMandateById, INVESTMENT_MANDATES } from "./src/trading/tradingPage.ts";
 import { createCustomerRouter } from "./src/routes/apiCustomer.ts";
+import { createAdminAccessRouter } from "./src/routes/apiAdminAccess.ts";
 import { createBetterAuthAdminRouter } from "./src/routes/betterAuthAdmin.ts";
 import { createBetterAuthFinancialRouter } from "./src/routes/betterAuthFinancial.ts";
 import { createSupportRouter } from "./src/routes/apiSupport.ts";
@@ -331,6 +332,26 @@ app.use(
     setHeaders: (res) => {
       res.setHeader("X-Content-Type-Options", "nosniff");
     },
+  })
+);
+
+// Serve company media videos with full byte-range support in both dev and production
+const publicVideosDir = path.resolve(__dirname, "public", "videos");
+const distVideosDir = path.resolve(__dirname, "dist", "videos");
+if (isProduction && fsSync.existsSync(distVideosDir)) {
+  app.use(
+    "/videos",
+    express.static(distVideosDir, {
+      acceptRanges: true,
+      maxAge: "7d",
+    })
+  );
+}
+app.use(
+  "/videos",
+  express.static(publicVideosDir, {
+    acceptRanges: true,
+    maxAge: isProduction ? "7d" : 0,
   })
 );
 
@@ -1027,7 +1048,8 @@ app.get("/api/admin/overview", requireBetterAuth, requireBetterAdmin, async (_re
   }
 });
 
-// Modular Support, Customer & Admin API routers
+// Modular Support, Customer, Admin Access & Admin API routers
+app.use("/api/auth", createAdminAccessRouter());
 app.use("/api", createSupportRouter());
 app.use("/api", createBetterAuthFinancialRouter());
 app.use("/api", createCustomerRouter());

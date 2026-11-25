@@ -9,12 +9,12 @@ export interface BetterAuthRequest extends Request {
   betterAuthRole?: "admin" | "support" | "investor";
 }
 
-function noStore(res: Response): void {
+export function noStore(res: Response): void {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   res.setHeader("Pragma", "no-cache");
 }
 
-function isSafeSameOriginMutation(req: Request): boolean {
+export function isSafeSameOriginMutation(req: Request): boolean {
   const method = req.method.toUpperCase();
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return true;
   if (req.header("x-requested-with") === "XMLHttpRequest") return true;

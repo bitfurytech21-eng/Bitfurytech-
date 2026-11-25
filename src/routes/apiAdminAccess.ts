@@ -257,7 +257,7 @@ export function createAdminAccessRouter(): Router {
         username: usernameCheck?.valid ? usernameCheck.normalized : defaultAdminUsername(email),
       });
 
-      if (!authResult.ok) {
+      if (authResult.ok === false) {
         await clearClaimedPasscodeRollback(null).catch(() => undefined);
         recordFailedAttempt(req);
         res.status(authResult.status).json({ error: authResult.error });
@@ -340,7 +340,7 @@ export function createAdminAccessRouter(): Router {
         username: usernameCheck?.valid ? usernameCheck.normalized : defaultAdminUsername(email),
       });
 
-      if (!authResult.ok) {
+      if (authResult.ok === false) {
         recordFailedAttempt(req);
         res.status(authResult.status).json({ error: authResult.error });
         return;

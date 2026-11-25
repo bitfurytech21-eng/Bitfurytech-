@@ -10,6 +10,7 @@ import AssetClassPage from "../pages/public/AssetClassPage";
 import PropertiesPage from "../pages/public/PropertiesPage";
 import HowItWorks from "../pages/public/HowItWorks";
 import FAQ from "../pages/public/FAQ";
+import ResearchPage from "../pages/public/ResearchPage";
 import Contact from "../pages/public/Contact";
 import { PrivacyPage, TermsPage } from "../pages/public/LegalPages";
 import Login from "../pages/auth/Login";
@@ -101,6 +102,7 @@ export default function AppRoutes() {
       <Route path="/plans/:planId" element={<InvestmentPlanDetail />} />
       <Route path="/properties" element={<PropertiesPage />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/research" element={<ResearchPage />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/terms" element={<TermsPage />} />

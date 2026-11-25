@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Mail, MessageSquare, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Mail, MapPin, MessageSquare, ShieldCheck } from "lucide-react";
 import { OfficeMap } from "../../components/EditorialArtwork";
 import PublicLayout from "../../components/PublicLayout";
 import { openLiveSupportChat } from "../../components/LiveSupportWidget";
+import { GLOBAL_OFFICES, REGISTERED_OFFICE } from "../../data/locations";
 import {
   Button,
   Card,
@@ -160,10 +161,10 @@ export default function Contact() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-[#5A6B7C]">Office</dt>
+                    <dt className="text-xs text-[#5A6B7C]">Registered Office</dt>
                     <dd className="text-[#102030] mt-0.5 text-xs sm:text-sm">
                       <OfficeMap />
-                      171 Crescent Road, Oxford, England, OX4 2NX
+                      {REGISTERED_OFFICE.address}
                     </dd>
                   </div>
                   <div>
@@ -327,6 +328,52 @@ export default function Contact() {
             </Card>
           </div>
         </div>
+
+        <section
+          aria-labelledby="contact-global-offices-heading"
+          className="bg-[#F6F8FA] border-t border-[#DCE4EC]"
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-6">
+            <div className="max-w-2xl space-y-1.5">
+              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                Our Locations
+              </p>
+              <h2
+                id="contact-global-offices-heading"
+                className="text-2xl font-heading font-bold text-[#102030]"
+              >
+                Global Office Directory
+              </h2>
+              <p className="text-sm text-[#5A6B7C] leading-relaxed">
+                Bitfury Tech Investment maintains regional desks across Europe, North America, Asia-Pacific, and the Middle East.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1.5">
+                <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
+                  <span>{REGISTERED_OFFICE.label}</span>
+                </p>
+                <p className="text-xs text-[#5A6B7C] leading-relaxed">
+                  {REGISTERED_OFFICE.address}
+                </p>
+              </div>
+              {GLOBAL_OFFICES.map((office) => (
+                <div
+                  key={`${office.country}-${office.address}`}
+                  className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1.5"
+                >
+                  <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
+                    <span>{office.country}</span>
+                  </p>
+                  <p className="text-xs text-[#5A6B7C] leading-relaxed">{office.address}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
     </PublicLayout>
   );

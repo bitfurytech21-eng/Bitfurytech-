@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Mail, Menu, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, Mail, MapPin, Menu, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import LanguageTranslateWidget from "../components/LanguageTranslateWidget";
+import { GLOBAL_OFFICES, REGISTERED_OFFICE } from "../data/locations";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -277,6 +278,11 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
                 </Link>
               </li>
               <li>
+                <Link to="/research" className="hover:text-[#E94D65] transition-colors">
+                  Research &amp; Governance
+                </Link>
+              </li>
+              <li>
                 <Link to="/how-it-works" className="hover:text-[#E94D65] transition-colors">
                   How It Works
                 </Link>
@@ -390,21 +396,37 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             />
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-2 pb-10 lg:py-16 grid grid-cols-1 lg:grid-cols-12 items-center">
-            <div className="lg:col-start-8 lg:col-span-5 space-y-2.5 lg:pl-4">
-              <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-                Registered Office
-              </p>
-              <p className="text-lg font-heading font-bold text-white">
-                Oxford, United Kingdom
-              </p>
-              <p className="text-sm text-slate-200 leading-relaxed">
-                171 Crescent Road, Oxford, England, OX4 2NX
-              </p>
-              <p className="text-xs text-slate-300 leading-relaxed max-w-md">
-                Regional client relations desks coordinate account onboarding, settlement
-                verification, and investor support across North America, Europe, and Asia-Pacific.
-              </p>
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-2 pb-10 lg:py-14 grid grid-cols-1 lg:grid-cols-12 items-center">
+            <div className="lg:col-start-7 lg:col-span-6 space-y-5 lg:pl-6">
+              <div className="space-y-1.5">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
+                  Registered Office
+                </p>
+                <p className="text-lg font-heading font-bold text-white">
+                  Oxford, {REGISTERED_OFFICE.country}
+                </p>
+                <p className="text-sm text-slate-200 leading-relaxed flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />
+                  <span>{REGISTERED_OFFICE.address}</span>
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-white/15 space-y-3">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
+                  Global Offices
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-xs">
+                  {GLOBAL_OFFICES.map((office) => (
+                    <div key={`${office.country}-${office.address}`} className="flex items-start gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0 mt-0.5" />
+                      <p className="text-slate-200 leading-snug">
+                        <span className="font-heading font-bold text-white">{office.country}.</span>{" "}
+                        {office.address}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>

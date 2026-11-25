@@ -15,6 +15,12 @@ export default defineConfig({
       "@": path.resolve(currentDir, "."),
     },
   },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+  },
   server: {
     host: "0.0.0.0",
     port: 3000,

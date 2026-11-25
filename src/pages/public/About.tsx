@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
-import { FileText, Mail, MapPin, ShieldCheck } from "lucide-react";
+import { ExternalLink, FileText, Mail, MapPin, ShieldCheck } from "lucide-react";
 import { EditorialIcon } from "../../components/EditorialArtwork";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
 import CompanyOverviewVideo from "../../components/CompanyOverviewVideo";
 import { LEADERSHIP_TEAM } from "../../data/leadershipTeam";
+import { GLOBAL_OFFICES, REGISTERED_OFFICE } from "../../data/locations";
 
 const SECTORS = [
   {
@@ -201,6 +202,51 @@ export default function About() {
                 className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md bg-[#1B4962] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#14374B]"
               >
                 View certificate (PDF)
+              </a>
+            </section>
+
+            <section
+              aria-labelledby="sec-filing-heading"
+              className="flex flex-col gap-5 rounded-xl border border-[#DCE4EC] bg-[#F6F8FA] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7"
+            >
+              <div className="space-y-3">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                  Regulatory Filing
+                </p>
+                <img
+                  src="/assets/aistudio/IMG_8358_6306abb6.png"
+                  alt="US Securities And Exchange Commission"
+                  width={250}
+                  height={80}
+                  loading="lazy"
+                  className="h-12 w-auto object-contain object-left"
+                />
+                <div className="space-y-1">
+                  <h2 id="sec-filing-heading" className="text-lg font-heading font-bold text-[#102030]">
+                    US Securities and Exchange Commission (SEC) EDGAR Filing
+                  </h2>
+                  <p className="text-xs text-[#5A6B7C]">
+                    Access the official SEC filing record directly:{" "}
+                    <a
+                      href="https://www.sec.gov/Archives/edgar/data/1887845/000106299325015161/0001062993-25-015161-index-headers.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-[#1B4962] underline underline-offset-2 hover:text-[#B92841] break-all"
+                    >
+                      <span>sec.gov/Archives/edgar/data/1887845/000106299325015161/0001062993-25-015161-index-headers.html</span>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                    </a>
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://www.sec.gov/Archives/edgar/data/1887845/000106299325015161/0001062993-25-015161-index-headers.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-[#1B4962] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#14374B]"
+              >
+                <span>Open SEC Filing</span>
+                <ExternalLink className="w-4 h-4 shrink-0" />
               </a>
             </section>
           </div>
@@ -417,20 +463,37 @@ export default function About() {
         {/* 7 & 8. Office & Contact Information */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-10">
           <section className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-7 space-y-5">
-            <div className="flex items-center gap-2.5">
-              <ShieldCheck className="w-5 h-5 text-[#E94D65] shrink-0" />
-              <h2 className="text-xl font-heading font-bold text-[#102030]">
-                Office information
-              </h2>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-[#E94D65] shrink-0" />
+                <h2 className="text-xl font-heading font-bold text-[#102030]">
+                  Office information &amp; global locations
+                </h2>
+              </div>
+              <p className="text-xs sm:text-sm text-[#5A6B7C]">
+                Registered corporate headquarters alongside our international regional offices.
+              </p>
             </div>
-            <div className="grid md:grid-cols-2 gap-5 text-sm text-[#5A6B7C]">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-[#5A6B7C]">
               <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
                 <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#E94D65]" />
-                  <span>Office</span>
+                  <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
+                  <span>{REGISTERED_OFFICE.label}</span>
                 </p>
-                <p className="text-xs">171 Crescent Road, Oxford, England, OX4 2NX</p>
+                <p className="text-xs leading-relaxed">{REGISTERED_OFFICE.address}</p>
               </div>
+              {GLOBAL_OFFICES.map((office) => (
+                <div
+                  key={`${office.country}-${office.address}`}
+                  className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1"
+                >
+                  <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
+                    <span>{office.country}</span>
+                  </p>
+                  <p className="text-xs leading-relaxed">{office.address}</p>
+                </div>
+              ))}
             </div>
           </section>
 
