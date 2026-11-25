@@ -72,14 +72,14 @@ export default function AdminLayout({
   const resolvedBreadcrumbs = breadcrumbs || meta.breadcrumbs;
 
   return (
-    <div className="min-h-screen bg-[#F6F8FA] text-[#102030] flex">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-[#F6F8FA] text-[#102030] flex">
       <AdminSidebar
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
         onSignOut={() => void handleSignOut()}
       />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 w-full flex flex-col">
         <Topbar
           title={resolvedTitle}
           breadcrumbs={resolvedBreadcrumbs}
@@ -103,16 +103,16 @@ export default function AdminLayout({
           onSignOut={() => void handleSignOut()}
         />
 
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#DCE4EC] pb-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-[#102030]">
+        <main className="flex-1 min-w-0 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#DCE4EC] pb-4 min-w-0">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-[#102030] break-words">
                 {resolvedTitle}
               </h1>
               {subtitle && <p className="text-sm text-[#4A5B6C] mt-1">{subtitle}</p>}
             </div>
             {actions && (
-              <div className="flex flex-wrap items-center gap-2.5 shrink-0">{actions}</div>
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0 max-w-full">{actions}</div>
             )}
           </div>
 

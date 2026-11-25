@@ -816,11 +816,11 @@ export function AdminSupportPage() {
 
       {/* Segmented Workspace Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE4EC] pb-3">
-        <div className="inline-flex border border-[#DCE4EC] bg-white rounded-[5px] p-1">
+        <div className="flex flex-wrap sm:inline-flex w-full sm:w-auto border border-[#DCE4EC] bg-white rounded-[5px] p-1 gap-1">
           <button
             type="button"
             onClick={() => setActiveTab("desk")}
-            className={`min-h-[38px] px-4 py-1.5 text-xs font-heading font-bold rounded-[3px] transition-colors cursor-pointer ${
+            className={`min-h-[38px] px-3 sm:px-4 py-1.5 text-xs font-heading font-bold rounded-[3px] transition-colors cursor-pointer ${
               activeTab === "desk"
                 ? "bg-[#1B4962] text-white"
                 : "text-[#3B4C5E] hover:text-[#102030]"
@@ -831,7 +831,7 @@ export function AdminSupportPage() {
           <button
             type="button"
             onClick={() => setActiveTab("inquiries")}
-            className={`min-h-[38px] px-4 py-1.5 text-xs font-heading font-bold rounded-[3px] transition-colors cursor-pointer ${
+            className={`min-h-[38px] px-3 sm:px-4 py-1.5 text-xs font-heading font-bold rounded-[3px] transition-colors cursor-pointer ${
               activeTab === "inquiries"
                 ? "bg-[#1B4962] text-white"
                 : "text-[#3B4C5E] hover:text-[#102030]"
@@ -855,8 +855,8 @@ export function AdminSupportPage() {
               action={<DashboardSymbol icon={ShieldCheck} tone="green" size="md" />}
             />
             <CardBody>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <div className="min-w-0">
                   <p className="text-[#5A6B7C]">Channel Mode</p>
                   <p className="font-semibold text-[#102030] mt-1">
                     {twilioStatus?.configured
@@ -864,13 +864,13 @@ export function AdminSupportPage() {
                       : "Built-In Live WebSocket Relay"}
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[#5A6B7C]">Webhook Endpoint</p>
-                  <p className="font-mono text-[#102030] mt-1">
+                  <p className="font-mono text-[#102030] mt-1 break-all">
                     {twilioStatus?.webhookPath || "/api/webhooks/twilio/conversations"}
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[#5A6B7C]">Signature Verification &amp; SMS</p>
                   <p className="font-semibold text-[#102030] mt-1">
                     {twilioStatus?.webhookValidationEnabled
@@ -880,7 +880,7 @@ export function AdminSupportPage() {
                     {twilioStatus?.smsAlertsEnabled ? "SMS Alerts Active" : "SMS Optional"}
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[#5A6B7C]">Missing Twilio Keys</p>
                   <p className="font-mono text-[#102030] mt-1 break-words">
                     {twilioStatus?.missingKeys?.length
@@ -899,7 +899,7 @@ export function AdminSupportPage() {
                 title={`Conversation Threads (${filteredThreads.length})`}
                 action={<DashboardSymbol icon={MessageSquare} tone="navy" size="md" />}
               />
-              <div className="px-4 py-2.5 border-b border-[#DCE4EC] bg-[#F6F8FA] flex items-center gap-2">
+              <div className="px-4 py-2.5 border-b border-[#DCE4EC] bg-[#F6F8FA] flex flex-wrap items-center gap-2">
                 {(["All", "Open", "Resolved"] as const).map((status) => (
                   <button
                     key={status}
@@ -1054,7 +1054,7 @@ export function AdminSupportPage() {
 
                   <form
                     onSubmit={handleSendReply}
-                    className="p-4 border-t border-[#DCE4EC] bg-[#F6F8FA] flex items-center gap-3"
+                    className="p-4 border-t border-[#DCE4EC] bg-[#F6F8FA] flex flex-col sm:flex-row sm:items-center gap-3"
                   >
                     <label htmlFor="admin-support-reply" className="sr-only">
                       Reply to {selectedThread.visitorName}

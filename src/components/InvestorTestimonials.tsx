@@ -45,10 +45,10 @@ export default function InvestorTestimonials() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="mx-auto max-w-6xl px-6 py-14 sm:px-12 sm:py-20">
+      <div className="mx-auto max-w-6xl px-5 py-14 sm:px-12 sm:py-20 overflow-hidden">
         <header>
           <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[.15em]"><span aria-hidden="true" className="h-0.5 w-12 bg-[#ec8094]" />Investor testimonials</p>
-          <h2 id="investor-testimonials-heading" className="mt-5 text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">In our investors’<br /><span className="text-[#ec8094]">own words</span></h2>
+          <h2 id="investor-testimonials-heading" className="mt-5 text-3xl font-bold leading-[1.08] tracking-tight sm:text-6xl">In our investors’<br /><span className="text-[#ec8094]">own words</span></h2>
         </header>
         <AnimatePresence mode="wait">
           <motion.figure

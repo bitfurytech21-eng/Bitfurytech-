@@ -109,7 +109,7 @@ function AdminPortalShell({
   ];
 
   return (
-    <div className="min-h-screen bg-[#F6F8FA] text-[#102030] flex">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-[#F6F8FA] text-[#102030] flex">
       <aside className="hidden lg:flex w-64 shrink-0 bg-[#1B4962] text-slate-100 flex-col justify-between border-r border-[#14374B]">
         <div>
           <div className="h-16 px-6 flex items-center border-b border-white/15">
@@ -188,7 +188,7 @@ function AdminPortalShell({
             onClick={() => setSidebarOpen(false)}
             aria-hidden="true"
           />
-          <aside className="relative w-72 max-w-[82vw] bg-[#1B4962] text-white flex flex-col justify-between z-10 overflow-y-auto">
+          <aside className="relative w-[82%] max-w-[18rem] bg-[#1B4962] text-white flex flex-col justify-between z-10 overflow-y-auto">
             <div>
               <div className="h-16 px-5 flex items-center justify-between border-b border-white/15">
                 <Link to="/dashboard" className="inline-flex items-center rounded-md bg-white px-2 py-1">
@@ -300,7 +300,7 @@ function AdminPortalShell({
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 min-w-0 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
           {subtitle && <p className="text-sm text-[#4A5B6C]">{subtitle}</p>}
           {children ?? <Outlet />}
         </main>

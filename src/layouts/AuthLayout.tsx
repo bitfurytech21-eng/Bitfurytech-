@@ -15,9 +15,9 @@ export default function AuthLayout({
   children,
 }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen grid lg:grid-cols-12 bg-[#F6F8FA] text-[#102030]">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip grid lg:grid-cols-12 bg-[#F6F8FA] text-[#102030]">
       {/* Left Institutional Brand Column */}
-      <aside className="lg:col-span-5 bg-[#1B4962] text-white relative overflow-hidden flex flex-col justify-between p-8 sm:p-12 border-b lg:border-b-0 lg:border-r border-[#14374B]">
+      <aside className="min-w-0 lg:col-span-5 bg-[#1B4962] text-white relative overflow-hidden flex flex-col justify-between p-6 sm:p-12 border-b lg:border-b-0 lg:border-r border-[#14374B]">
         <img
           src="/images/hero-private-capital.jpg"
           alt="BitfuryTech institutional wealth office"
@@ -72,7 +72,7 @@ export default function AuthLayout({
       </aside>
 
       {/* Right Authentication Form Column */}
-      <main className="lg:col-span-7 flex items-center justify-center p-6 sm:p-12">
+      <main className="min-w-0 lg:col-span-7 flex items-center justify-center p-4 sm:p-12">
         {children ?? <Outlet />}
       </main>
     </div>

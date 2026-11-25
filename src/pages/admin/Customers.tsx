@@ -308,7 +308,7 @@ export default function AdminCustomers() {
       >
         {selected && (
           <div className="space-y-5 text-xs">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-md p-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-md p-3">
               <div>
                 <p className="text-slate-500">Wallet Balance</p>
                 <p className="font-mono font-bold text-slate-900 mt-0.5">
@@ -338,7 +338,7 @@ export default function AdminCustomers() {
             <div className="border border-slate-200 rounded-md p-4 space-y-3">
               <p className="font-bold text-slate-900">Account Compliance Status</p>
               <div className="flex flex-wrap items-end gap-3">
-                <div className="flex-1 min-w-[180px]">
+                <div className="w-full sm:flex-1 sm:min-w-[180px]">
                   <FormField id="cust-status" label="Account Status">
                     <SelectInput
                       id="cust-status"
@@ -366,7 +366,7 @@ export default function AdminCustomers() {
               <p className="font-bold text-slate-900">Identity Verification (KYC)</p>
               <p className="text-slate-500">Current status: {String(selected.kycStatus || "not_submitted").replace(/_/g, " ")}</p>
               <div className="flex flex-wrap items-end gap-3">
-                <div className="flex-1 min-w-[180px]">
+                <div className="w-full sm:flex-1 sm:min-w-[180px]">
                   <FormField id="cust-kyc-status" label="KYC Review Status">
                     <SelectInput
                       id="cust-kyc-status"

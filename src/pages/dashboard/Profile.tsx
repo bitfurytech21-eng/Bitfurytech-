@@ -357,13 +357,13 @@ export default function Profile() {
                 </div>
               </div>
               <dl className="space-y-3">
-                <div className="flex justify-between">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <dt className="text-slate-500">Username Handle</dt>
-                  <dd className="font-mono font-semibold text-slate-900">
+                  <dd className="font-mono font-semibold text-slate-900 break-all">
                     {profileData.username ? `@${profileData.username}` : "Not set"}
                   </dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <dt className="text-slate-500">Email Verification Status</dt>
                   <dd>
                     <StatusText
@@ -371,33 +371,33 @@ export default function Profile() {
                     />
                   </dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <dt className="text-slate-500">Account Standing</dt>
                   <dd>
                     <StatusText status={profileData.accountStatus || "Active"} />
                   </dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <dt className="text-slate-500">Account Role</dt>
                   <dd className="font-semibold text-slate-900 capitalize">
                     {profileData.role}
                   </dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <dt className="text-slate-500">Account Creation Date</dt>
                   <dd className="font-mono text-slate-800">
                     {formatIsoDate(profileData.createdAt)}
                   </dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <dt className="text-slate-500">Last Updated</dt>
                   <dd className="font-mono text-slate-800">
                     {formatIsoDate(profileData.updatedAt)}
                   </dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <dt className="text-slate-500">Account UID</dt>
-                  <dd className="font-mono text-slate-600 truncate max-w-[180px]">
+                  <dd className="font-mono text-slate-600 truncate max-w-full sm:max-w-[180px]">
                     {profileData.uid}
                   </dd>
                 </div>

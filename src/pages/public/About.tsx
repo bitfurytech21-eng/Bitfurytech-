@@ -6,7 +6,7 @@ import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
 import CompanyOverviewVideo from "../../components/CompanyOverviewVideo";
 import { LEADERSHIP_TEAM } from "../../data/leadershipTeam";
-import { GLOBAL_OFFICES, REGISTERED_OFFICE } from "../../data/locations";
+import { REGISTERED_OFFICE } from "../../data/locations";
 
 const SECTORS = [
   {
@@ -82,13 +82,13 @@ export default function About() {
       {/* Header Hero Band */}
       <section className="bg-[#1B4962] text-white border-b border-white/15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 grid lg:grid-cols-12 gap-10 items-stretch">
-          <div className="lg:col-span-7 flex flex-col justify-center space-y-5">
+          <div className="lg:col-span-7 min-w-0 flex flex-col justify-center space-y-5">
             <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
               About Bitfury Tech Investment
             </p>
             <h1
               className="font-heading font-bold tracking-tight text-white text-balance leading-[1.1]"
-              style={{ fontSize: "clamp(2rem, 3.6vw, 3.25rem)" }}
+              style={{ fontSize: "clamp(1.75rem, 3.6vw, 3.25rem)" }}
             >
               Investment information and account services across digital assets, equities, and commercial property.
             </h1>
@@ -113,7 +113,7 @@ export default function About() {
             </div>
           </div>
 
-          <div className="lg:col-span-5 min-h-[260px] rounded-[5px] overflow-hidden border border-white/20 bg-[#14374B]">
+          <div className="lg:col-span-5 min-w-0 min-h-[260px] rounded-[5px] overflow-hidden border border-white/20 bg-[#14374B]">
             <ResilientImage
               src="/images/hero-private-capital.jpg"
               alt="BitfuryTech institutional wealth workspace"
@@ -152,9 +152,9 @@ export default function About() {
 
             <section
               aria-labelledby="about-company-video-heading"
-              className="grid items-center gap-8 rounded-xl border border-[#DCE4EC] bg-white p-6 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:p-7 lg:grid-cols-12"
+              className="grid items-center gap-8 rounded-xl border border-[#DCE4EC] bg-white p-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:p-7 lg:grid-cols-12"
             >
-              <div className="space-y-3 lg:col-span-5">
+              <div className="space-y-3 min-w-0 lg:col-span-5">
                 <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
                   Company Video
                 </p>
@@ -170,7 +170,7 @@ export default function About() {
                   client ledger reporting.
                 </p>
               </div>
-              <div className="lg:col-span-7">
+              <div className="min-w-0 lg:col-span-7">
                 <CompanyOverviewVideo />
               </div>
             </section>
@@ -322,7 +322,7 @@ export default function About() {
                   Forward-Thinking Investment Solutions
                 </h2>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {SOLUTIONS.map((sol) => (
                   <div
                     key={sol.title}
@@ -377,7 +377,7 @@ export default function About() {
                   What We Stand For
                 </h2>
               </div>
-              <div className="grid sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {VALUES.map((val) => (
                   <div
                     key={val.title}
@@ -437,7 +437,7 @@ export default function About() {
                 Senior leadership alongside our dedicated research, operations, and client relations personnel.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {LEADERSHIP_TEAM.map((member) => (
                 <article
                   key={member.name}
@@ -467,14 +467,18 @@ export default function About() {
               <div className="flex items-center gap-2.5">
                 <ShieldCheck className="w-5 h-5 text-[#E94D65] shrink-0" />
                 <h2 className="text-xl font-heading font-bold text-[#102030]">
-                  Office information &amp; global locations
+                  Registered office
                 </h2>
               </div>
               <p className="text-xs sm:text-sm text-[#5A6B7C]">
-                Registered corporate headquarters alongside our international regional offices.
+                Corporate headquarters address. For our full regional office directory, visit the{" "}
+                <Link to="/contact" className="font-semibold text-[#1B4962] hover:text-[#B92841] hover:underline">
+                  Contact page
+                </Link>
+                .
               </p>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-[#5A6B7C]">
+            <div className="grid sm:grid-cols-2 gap-4 text-sm text-[#5A6B7C]">
               <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1">
                 <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
@@ -482,18 +486,6 @@ export default function About() {
                 </p>
                 <p className="text-xs leading-relaxed">{REGISTERED_OFFICE.address}</p>
               </div>
-              {GLOBAL_OFFICES.map((office) => (
-                <div
-                  key={`${office.country}-${office.address}`}
-                  className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1"
-                >
-                  <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
-                    <span>{office.country}</span>
-                  </p>
-                  <p className="text-xs leading-relaxed">{office.address}</p>
-                </div>
-              ))}
             </div>
           </section>
 
@@ -514,9 +506,9 @@ export default function About() {
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
                   <a href="mailto:support@bitfurytech.cloud" className="hover:text-white">support@bitfurytech.cloud</a>
                 </span>
-                <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
                   <Mail className="w-4 h-4 text-[#E94D65] shrink-0" />
-                  <a href="mailto:Compliance.notice@bitfurytech.cloud" className="hover:text-white">Compliance.notice@bitfurytech.cloud</a>
+                  <a href="mailto:Compliance.notice@bitfurytech.cloud" className="hover:text-white break-all sm:break-normal">Compliance.notice@bitfurytech.cloud</a>
                 </span>
               </div>
             </div>

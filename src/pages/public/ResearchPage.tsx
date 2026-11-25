@@ -153,7 +153,7 @@ export default function ResearchPage() {
 
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-12">
             <div className="grid lg:grid-cols-12 gap-8 items-start">
-              <div className="lg:col-span-5 space-y-4">
+              <div className="lg:col-span-5 min-w-0 space-y-4">
                 <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
                   Portfolio Philosophy
                 </p>
@@ -181,7 +181,7 @@ export default function ResearchPage() {
                 </div>
               </div>
 
-              <div className="lg:col-span-7 bg-white border border-[#DCE4EC] rounded-[5px] p-6 sm:p-7 space-y-4 shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
+              <div className="lg:col-span-7 min-w-0 bg-white border border-[#DCE4EC] rounded-[5px] p-5 sm:p-7 space-y-4 shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
                 <div className="flex items-center gap-2.5 text-[#1B4962]">
                   <ShieldCheck className="w-5 h-5 text-[#E94D65] shrink-0" />
                   <h3 className="text-base font-heading font-bold text-[#102030]">
@@ -238,7 +238,7 @@ export default function ResearchPage() {
                 research helps replace impulse with clarity across changing economic conditions.
               </p>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {RESEARCH_PILLARS.map((pillar) => (
                 <div
                   key={pillar.title}
@@ -267,7 +267,7 @@ export default function ResearchPage() {
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {WHY_CHOOSE_ITEMS.map((item) => (
                 <div
                   key={item.title}

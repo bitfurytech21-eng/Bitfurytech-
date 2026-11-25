@@ -336,19 +336,19 @@ export default function Withdraw() {
               </p>
             </div>
             <dl className="space-y-2.5 pt-3 border-t border-slate-200">
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <dt className="text-slate-500">Minimum Withdrawal</dt>
                 <dd className="font-mono tabular-nums font-semibold text-slate-900">
                   {<FinancialAmount value={config.minWithdrawal} size="md" />}
                 </dd>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <dt className="text-slate-500">Applicable Fee</dt>
                 <dd className="font-mono tabular-nums text-slate-800">
                   {<FinancialAmount value={estimatedFee} size="md" />} ({config.feeRatePct}%)
                 </dd>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <dt className="text-slate-500">Estimated Net Payout</dt>
                 <dd className="font-mono tabular-nums font-bold text-emerald-700">
                   {<FinancialAmount value={netPayout} size="md" />}

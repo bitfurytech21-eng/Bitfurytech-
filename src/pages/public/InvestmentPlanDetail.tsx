@@ -58,7 +58,7 @@ export default function InvestmentPlanDetail() {
             <div className="space-y-10">
               {/* Hero Plan Overview */}
               <section className="grid lg:grid-cols-12 gap-8 items-stretch">
-                <div className="lg:col-span-7 flex flex-col justify-center space-y-4">
+                <div className="lg:col-span-7 min-w-0 flex flex-col justify-center space-y-4">
                   <p className="text-xs text-[#5A6B7C]">
                     <span className="text-[#B92841] font-semibold">{plan.categoryLabel}</span>
                     <span aria-hidden="true"> · </span>
@@ -91,7 +91,7 @@ export default function InvestmentPlanDetail() {
                   </div>
                 </div>
 
-                <div className="lg:col-span-5 min-h-[240px] rounded-[5px] overflow-hidden border border-[#DCE4EC] bg-[#F6F8FA]">
+                <div className="lg:col-span-5 min-w-0 min-h-[240px] rounded-[5px] overflow-hidden border border-[#DCE4EC] bg-[#F6F8FA]">
                   <ResilientImage
                     src={plan.image}
                     alt={`${plan.name} — ${plan.categoryLabel}`}
@@ -103,7 +103,7 @@ export default function InvestmentPlanDetail() {
 
               {/* Full Specification Grid */}
               <section className="grid lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-7 bg-white border border-[#DCE4EC] rounded-[5px] p-6 sm:p-7 space-y-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
+                <div className="lg:col-span-7 min-w-0 bg-white border border-[#DCE4EC] rounded-[5px] p-5 sm:p-7 space-y-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
                   <h2 className="text-lg font-heading font-bold text-[#102030]">
                     Mandate Specifications
                   </h2>
@@ -181,7 +181,7 @@ export default function InvestmentPlanDetail() {
                 </div>
 
                 {/* Illustrative Benchmark Preview & Non-Guaranteed Terms */}
-                <div className="lg:col-span-5 space-y-6">
+                <div className="lg:col-span-5 min-w-0 space-y-6">
                   <div className="bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px] p-6 space-y-4">
                     <h2 className="text-base font-heading font-bold text-[#102030]">
                       Illustrative Benchmark Estimator

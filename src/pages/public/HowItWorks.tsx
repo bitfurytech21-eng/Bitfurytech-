@@ -384,7 +384,7 @@ export default function HowItWorks() {
             </div>
 
             <div className="grid lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-7 bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-4 shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
+              <div className="lg:col-span-7 min-w-0 bg-white border border-[#DCE4EC] rounded-[5px] p-5 sm:p-6 space-y-4 shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
                 <div className="flex items-center gap-2">
                   <ArrowDownCircle className="w-5 h-5 text-[#1B4962]" />
                   <h3 className="text-lg font-heading font-bold text-[#102030]">
@@ -398,7 +398,7 @@ export default function HowItWorks() {
                 <dl className="divide-y divide-[#DCE4EC] text-xs sm:text-sm">
                   {DEPOSIT_RAILS.map((r) => (
                     <div key={r.rail} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
+                      <div className="min-w-0">
                         <dt className="font-semibold text-[#102030]">{r.rail}</dt>
                         <dd className="text-xs text-[#5A6B7C]">{r.timing}</dd>
                       </div>
@@ -410,7 +410,7 @@ export default function HowItWorks() {
                 </dl>
               </div>
 
-              <div className="lg:col-span-5 bg-white border border-[#DCE4EC] rounded-[5px] p-6 space-y-4 shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
+              <div className="lg:col-span-5 min-w-0 bg-white border border-[#DCE4EC] rounded-[5px] p-5 sm:p-6 space-y-4 shadow-[0_2px_8px_rgba(27,73,98,0.06)]">
                 <div className="flex items-center gap-2">
                   <ArrowUpRight className="w-5 h-5 text-[#E94D65]" />
                   <h3 className="text-lg font-heading font-bold text-[#102030]">
@@ -418,15 +418,15 @@ export default function HowItWorks() {
                   </h3>
                 </div>
                 <dl className="divide-y divide-[#DCE4EC] text-xs sm:text-sm">
-                  <div className="py-2.5 flex justify-between gap-4">
+                  <div className="py-2.5 flex flex-wrap justify-between gap-2 sm:gap-4">
                     <dt className="text-[#5A6B7C]">Minimum Withdrawal</dt>
                     <dd className="font-mono font-semibold text-[#102030]">$50.00 USD</dd>
                   </div>
-                  <div className="py-2.5 flex justify-between gap-4">
+                  <div className="py-2.5 flex flex-wrap justify-between gap-2 sm:gap-4">
                     <dt className="text-[#5A6B7C]">Maximum Single Request</dt>
                     <dd className="font-mono font-semibold text-[#102030]">$250,000.00 USD</dd>
                   </div>
-                  <div className="py-2.5 flex justify-between gap-4">
+                  <div className="py-2.5 flex flex-wrap justify-between gap-2 sm:gap-4">
                     <dt className="text-[#5A6B7C]">Applicable Fee</dt>
                     <dd className="font-mono font-semibold text-[#B92841]">1.0% (min $2.00 USD)</dd>
                   </div>

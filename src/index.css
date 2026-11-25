@@ -102,6 +102,18 @@
 }
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -115,7 +127,28 @@
     background-color: var(--bf-bg);
     color: var(--bf-text);
     text-rendering: optimizeLegibility;
-    overflow-x: hidden;
+  }
+
+  #root {
+    max-width: 100%;
+  }
+
+  img,
+  video,
+  canvas,
+  iframe,
+  svg,
+  table {
+    max-width: 100%;
+  }
+
+  pre,
+  code {
+    max-width: 100%;
+  }
+
+  pre {
+    overflow-x: auto;
   }
 
   h1,
@@ -181,6 +214,7 @@
   font-family: var(--bf-font-heading);
   font-weight: 700;
   transition: background-color 150ms var(--bf-ease-standard), transform 150ms var(--bf-ease-standard);
+  max-width: 100%;
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
@@ -202,6 +236,7 @@
   font-family: var(--bf-font-heading);
   font-weight: 700;
   transition: background-color 150ms var(--bf-ease-standard);
+  max-width: 100%;
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
@@ -219,7 +254,8 @@
 
 .language-translate-widget .goog-te-combo {
   display: block;
-  width: min(14rem, calc(100vw - 5.5rem));
+  width: 100%;
+  max-width: 14rem;
   min-height: 44px;
   margin: 0 !important;
   padding: 0.5rem 2rem 0.5rem 0.75rem;

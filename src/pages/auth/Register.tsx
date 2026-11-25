@@ -230,7 +230,7 @@ export default function Register() {
       headline="Initialize your segregated BitfuryTech investor account."
       description="Register with verified identity credentials to provision an account-isolated custody ledger initialized cleanly at $0.00."
     >
-      <div className="w-full max-w-lg bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.06)] p-8 sm:p-10 space-y-6">
+      <div className="w-full max-w-lg bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.06)] p-5 sm:p-10 space-y-6">
         {registeredEmail ? (
           <div className="space-y-5">
             <div className="flex items-center gap-3">

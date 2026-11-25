@@ -143,7 +143,7 @@ export function AdminOverviewPage() {
         </Card>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
           to="/admin/deposits"
           className="bg-white border border-slate-200 hover:border-[#294158] rounded-md p-5 space-y-1 transition-colors"
@@ -474,7 +474,7 @@ export function AdminPropertiesPage() {
               />
             </FormField>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField id="prop-loc" label="Location">
                 <TextInput
                   id="prop-loc"
@@ -496,7 +496,7 @@ export function AdminPropertiesPage() {
               </FormField>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField id="prop-min" label="Min Entry (USD)">
                 <TextInput
                   id="prop-min"
@@ -521,7 +521,7 @@ export function AdminPropertiesPage() {
               </FormField>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <FormField id="prop-yield" label="Yield %">
                 <TextInput
                   id="prop-yield"

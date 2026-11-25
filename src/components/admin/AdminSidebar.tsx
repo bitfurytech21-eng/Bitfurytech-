@@ -206,7 +206,7 @@ export default function AdminSidebar({
             onClick={onCloseMobile}
             aria-hidden="true"
           />
-          <aside className="relative w-72 max-w-[85vw] h-full overflow-y-auto z-10 shadow-xl">
+          <aside className="relative w-[85%] max-w-[18rem] h-full overflow-y-auto z-10 shadow-xl">
             <AdminSidebarContent
               onNavigate={onCloseMobile}
               onSignOut={() => {

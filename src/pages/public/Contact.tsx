@@ -140,7 +140,7 @@ export default function Contact() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
           <div className="grid lg:grid-cols-12 gap-8 items-start">
             {/* Support Information & Business Contact Details */}
-            <div className="lg:col-span-5 space-y-6">
+            <div className="lg:col-span-5 min-w-0 space-y-6">
               <Card padding="lg" className="space-y-4">
                 <div className="flex items-center gap-2.5">
                   <Mail className="w-5 h-5 text-[#E94D65] shrink-0" />
@@ -155,9 +155,9 @@ export default function Contact() {
                   <div>
                     <dt className="text-xs text-[#5A6B7C]">Department Contacts</dt>
                     <dd className="mt-1 space-y-2 text-xs sm:text-sm">
-                      <p><span className="font-semibold text-[#102030]">Information:</span> <a className="text-[#1B4962] hover:underline" href="mailto:info@bitfurytech.cloud">info@bitfurytech.cloud</a></p>
-                      <p><span className="font-semibold text-[#102030]">Support:</span> <a className="text-[#1B4962] hover:underline" href="mailto:support@bitfurytech.cloud">support@bitfurytech.cloud</a></p>
-                      <p><span className="font-semibold text-[#102030]">Compliance:</span> <a className="text-[#1B4962] hover:underline" href="mailto:Compliance.notice@bitfurytech.cloud">Compliance.notice@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Information:</span> <a className="text-[#1B4962] hover:underline break-all" href="mailto:info@bitfurytech.cloud">info@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Support:</span> <a className="text-[#1B4962] hover:underline break-all" href="mailto:support@bitfurytech.cloud">support@bitfurytech.cloud</a></p>
+                      <p><span className="font-semibold text-[#102030]">Compliance:</span> <a className="text-[#1B4962] hover:underline break-all" href="mailto:Compliance.notice@bitfurytech.cloud">Compliance.notice@bitfurytech.cloud</a></p>
                     </dd>
                   </div>
                   <div>
@@ -349,7 +349,7 @@ export default function Contact() {
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-white border border-[#DCE4EC] rounded-[5px] p-4 space-y-1.5">
                 <p className="text-xs font-heading font-bold text-[#102030] flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />

@@ -245,10 +245,10 @@ export default function Deposit() {
                   </div>
                   <p className="text-slate-700 leading-relaxed">{activeRail.instructions}</p>
                   <div className="grid sm:grid-cols-2 gap-2 pt-1 text-slate-600">
-                    <p>
+                    <p className="min-w-0">
                       <strong className="text-slate-800">Network:</strong> {activeRail.network}
                     </p>
-                    <p>
+                    <p className="min-w-0 break-all">
                       <strong className="text-slate-800">Payment Wallet / Bank Details:</strong>{" "}
                       {activeRail.custodyDestination}
                     </p>

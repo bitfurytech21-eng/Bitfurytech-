@@ -136,7 +136,7 @@ export default function Referrals() {
         />
       ) : (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <Card padding="md" className="flex items-center gap-4">
               <DashboardSymbol icon={Share2} tone="navy" size="lg" />
               <div className="min-w-0">
@@ -194,7 +194,7 @@ export default function Referrals() {
                 readOnly
                 value={referralLink}
                 aria-label="Unique referral link"
-                className="flex-1 bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2 text-xs font-mono text-slate-800"
+                className="w-full min-w-0 flex-1 bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2 text-xs font-mono text-slate-800"
               />
               <Button variant="primary" size="md" onClick={() => void handleCopy()}>
                 {copied ? (

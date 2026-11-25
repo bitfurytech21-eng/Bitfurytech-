@@ -182,7 +182,7 @@ export default function Home() {
       >
         <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_12%_12%,rgba(233,77,101,0.2),transparent_36%),linear-gradient(115deg,#102f43_0%,#1B4962_58%,#112e3e_100%)]" />
         <div className="relative mx-auto grid max-w-7xl items-stretch gap-10 px-4 py-14 sm:px-6 lg:grid-cols-12 lg:px-8 lg:py-24">
-          <div className="flex flex-col justify-center space-y-6 lg:col-span-7">
+          <div className="flex flex-col justify-center space-y-6 min-w-0 lg:col-span-7">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSlide.id}
@@ -197,7 +197,7 @@ export default function Home() {
                 </p>
                 <h1
                   className="max-w-3xl font-heading font-bold tracking-[-0.035em] text-white text-balance leading-[1.04]"
-                  style={{ fontSize: "clamp(2.5rem, 5vw, 4.35rem)" }}
+                  style={{ fontSize: "clamp(1.875rem, 5vw, 4.35rem)" }}
                 >
                   {activeSlide.headline}
                 </h1>
@@ -235,7 +235,7 @@ export default function Home() {
             </AnimatePresence>
           </div>
 
-          <div className="relative min-h-[300px] overflow-hidden rounded-2xl border border-white/15 bg-[#14374B] shadow-[0_28px_80px_rgba(4,18,29,0.35)] lg:col-span-5 lg:min-h-[460px]">
+          <div className="relative min-h-[280px] min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-[#14374B] shadow-[0_28px_80px_rgba(4,18,29,0.35)] lg:col-span-5 lg:min-h-[460px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSlide.id}
@@ -287,8 +287,8 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid items-center gap-8 rounded-2xl border border-[#DCE4EC] bg-white p-6 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:p-8 lg:grid-cols-12">
-            <div className="space-y-4 lg:col-span-5">
+          <div className="grid items-center gap-8 rounded-2xl border border-[#DCE4EC] bg-white p-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:p-8 lg:grid-cols-12">
+            <div className="space-y-4 min-w-0 lg:col-span-5">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
                 Company Introduction
               </p>
@@ -316,7 +316,7 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            <div className="lg:col-span-7">
+            <div className="min-w-0 lg:col-span-7">
               <CompanyOverviewVideo />
             </div>
           </div>
@@ -521,7 +521,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {PROCESS_STEPS.map((s) => (
               <div
                 key={s.title}

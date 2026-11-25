@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Mail, MapPin, Menu, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import LanguageTranslateWidget from "../components/LanguageTranslateWidget";
-import { GLOBAL_OFFICES, REGISTERED_OFFICE } from "../data/locations";
+import { REGISTERED_OFFICE } from "../data/locations";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -67,10 +67,10 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#102030] flex flex-col">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-white text-[#102030] flex flex-col">
       {/* Main Navigation Header */}
-      <header className="sticky top-0 z-40 bg-white/98 backdrop-blur border-b border-[#DCE4EC] shadow-[0_1px_6px_rgba(16,32,48,0.04)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-6">
+      <header className="sticky top-0 z-40 w-full bg-white/98 backdrop-blur border-b border-[#DCE4EC] shadow-[0_1px_6px_rgba(16,32,48,0.04)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-4 sm:gap-6">
           <Link
             to="/"
             className="inline-flex items-center gap-2.5 font-heading font-extrabold tracking-tight text-xl text-[#1B4962] whitespace-nowrap shrink-0"
@@ -221,12 +221,12 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         )}
       </header>
 
-      <main className="flex-1 bg-white">{children ?? <Outlet />}</main>
+      <main className="flex-1 min-w-0 w-full bg-white">{children ?? <Outlet />}</main>
 
       {/* Multi-Column Corporate Footer */}
-      <footer className="bg-[#1B4962] text-slate-200 border-t border-[#14374B]">
+      <footer className="w-full bg-[#1B4962] text-slate-200 border-t border-[#14374B]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-4 space-y-4">
+          <div className="lg:col-span-4 min-w-0 space-y-4">
             <Link
               to="/"
               className="inline-flex items-center gap-2 rounded-md bg-white px-2 py-1 font-heading font-extrabold text-xl text-white"
@@ -244,13 +244,13 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             </p>
             <div className="pt-1 text-xs text-slate-300 space-y-1.5">
               <p>171 Crescent Road, Oxford, England, OX4 2NX</p>
-              <a href="mailto:info@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Information: info@bitfurytech.cloud</span></a>
-              <a href="mailto:support@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Support: support@bitfurytech.cloud</span></a>
-              <a href="mailto:Compliance.notice@bitfurytech.cloud" className="flex items-center gap-2 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span>Compliance: Compliance.notice@bitfurytech.cloud</span></a>
+              <a href="mailto:info@bitfurytech.cloud" className="flex items-center gap-2 min-w-0 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span className="min-w-0 break-all sm:break-normal">Information: info@bitfurytech.cloud</span></a>
+              <a href="mailto:support@bitfurytech.cloud" className="flex items-center gap-2 min-w-0 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span className="min-w-0 break-all sm:break-normal">Support: support@bitfurytech.cloud</span></a>
+              <a href="mailto:Compliance.notice@bitfurytech.cloud" className="flex items-center gap-2 min-w-0 hover:text-white"><Mail className="w-3.5 h-3.5 text-[#E94D65] shrink-0" /><span className="min-w-0 break-all sm:break-normal">Compliance: Compliance.notice@bitfurytech.cloud</span></a>
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-3 text-sm">
+          <div className="lg:col-span-2 min-w-0 space-y-3 text-sm">
             <h3 className="font-heading font-bold text-white uppercase tracking-wider text-xs">
               Investment Sectors
             </h3>
@@ -262,7 +262,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             </ul>
           </div>
 
-          <div className="lg:col-span-2 space-y-3 text-sm">
+          <div className="lg:col-span-2 min-w-0 space-y-3 text-sm">
             <h3 className="font-heading font-bold text-white uppercase tracking-wider text-xs">
               Corporate &amp; Guide
             </h3>
@@ -300,7 +300,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             </ul>
           </div>
 
-          <div className="lg:col-span-4 space-y-3">
+          <div className="lg:col-span-4 min-w-0 space-y-3">
             <h3 className="font-heading font-bold text-white uppercase tracking-wider text-xs">
               Company updates
             </h3>
@@ -358,7 +358,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
           {/* Seamless Background Artwork Layer (Desktop) */}
           <div
             aria-hidden="true"
-            className="pointer-events-none select-none hidden lg:block absolute inset-0"
+            className="pointer-events-none select-none hidden lg:block absolute inset-0 overflow-hidden"
           >
             <div className="relative mx-auto h-full max-w-7xl px-6">
               <img
@@ -409,23 +409,6 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
                   <MapPin className="w-4 h-4 text-[#E94D65] shrink-0 mt-0.5" />
                   <span>{REGISTERED_OFFICE.address}</span>
                 </p>
-              </div>
-
-              <div className="pt-3 border-t border-white/15 space-y-3">
-                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#F4BAC4]">
-                  Global Offices
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-xs">
-                  {GLOBAL_OFFICES.map((office) => (
-                    <div key={`${office.country}-${office.address}`} className="flex items-start gap-2">
-                      <MapPin className="w-3.5 h-3.5 text-[#E94D65] shrink-0 mt-0.5" />
-                      <p className="text-slate-200 leading-snug">
-                        <span className="font-heading font-bold text-white">{office.country}.</span>{" "}
-                        {office.address}
-                      </p>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </div>

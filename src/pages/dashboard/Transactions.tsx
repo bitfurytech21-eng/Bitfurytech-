@@ -199,8 +199,8 @@ export default function Transactions() {
             subtitle={`${filtered.length} matching record(s) · Inspect details or download individual receipts`}
           />
           <CardBody className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              <div className="relative lg:col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+              <div className="relative sm:col-span-2 lg:col-span-2 min-w-0">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <TextInput
                   value={searchQuery}
@@ -232,18 +232,20 @@ export default function Transactions() {
                 <option value="Completed">Completed</option>
                 <option value="Rejected">Rejected</option>
               </SelectInput>
-              <div className="flex items-center gap-2">
+              <div className="sm:col-span-2 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0">
                 <TextInput
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
                   aria-label="From date"
+                  className="min-w-0"
                 />
                 <TextInput
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
                   aria-label="To date"
+                  className="min-w-0"
                 />
               </div>
             </div>

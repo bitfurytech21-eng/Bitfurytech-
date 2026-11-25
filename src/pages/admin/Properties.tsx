@@ -468,7 +468,7 @@ export default function AdminProperties() {
           </FormField>
 
           <div className="grid sm:grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-md p-3.5 text-xs">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label
                 htmlFor="prop-img-upload"
                 className="font-semibold text-slate-800 flex items-center gap-1.5"
@@ -492,7 +492,7 @@ export default function AdminProperties() {
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label
                 htmlFor="prop-doc-upload"
                 className="font-semibold text-slate-800 flex items-center gap-1.5"

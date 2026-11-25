@@ -85,9 +85,9 @@ export function InstitutionalDocumentModal({
       footer={
         documentItem && (
           <div className="flex flex-wrap items-center justify-between gap-2 w-full">
-            <div className="flex items-center gap-2 text-[11px] text-[#5A6B7C]">
+            <div className="flex items-center gap-2 min-w-0 max-w-full text-[11px] text-[#5A6B7C]">
               <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-              <span className="font-mono truncate max-w-[320px]">
+              <span className="font-mono truncate max-w-full sm:max-w-[320px]">
                 {full?.authenticityHash || `REF-${documentItem.reference}`}
               </span>
             </div>
@@ -129,17 +129,17 @@ export function InstitutionalDocumentModal({
           {full ? (
             <article className="border border-[#CBD6E2] rounded-[5px] overflow-hidden bg-white shadow-sm">
               {/* Institutional Crest Letterhead */}
-              <div className="bg-[#1B4962] text-white px-6 py-5 border-b-4 border-[#E94D65] flex flex-wrap items-start justify-between gap-4">
-                <div className="space-y-1">
+              <div className="bg-[#1B4962] text-white px-4 sm:px-6 py-5 border-b-4 border-[#E94D65] flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-1 min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
                     BitfuryTech Capital Management LLC · Institutional Custody
                   </p>
-                  <h3 className="text-lg font-serif font-bold text-white leading-snug">
+                  <h3 className="text-lg font-serif font-bold text-white leading-snug break-words">
                     {documentItem.title}
                   </h3>
                   <p className="text-xs text-slate-200">{full.jurisdiction}</p>
                 </div>
-                <div className="bg-white/10 border border-white/20 rounded-[4px] px-3 py-2 text-[11px] text-right space-y-0.5 shrink-0">
+                <div className="w-full sm:w-auto bg-white/10 border border-white/20 rounded-[4px] px-3 py-2 text-[11px] sm:text-right space-y-0.5 sm:shrink-0">
                   <p>
                     <span className="text-slate-300">Code:</span>{" "}
                     <span className="font-semibold text-white">{full.documentCode}</span>
@@ -155,7 +155,7 @@ export function InstitutionalDocumentModal({
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-4 sm:p-6 space-y-6">
                 {/* Classification & Preamble */}
                 <div className="space-y-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#E94D65]">
@@ -239,7 +239,7 @@ export function InstitutionalDocumentModal({
           )}
 
           {documentItem.fileUrl && (
-            <div className="pt-1 flex items-center justify-between bg-[#F6F8FA] border border-[#DCE4EC] rounded-[4px] px-4 py-2.5 text-xs">
+            <div className="pt-1 flex flex-wrap items-center justify-between gap-2 bg-[#F6F8FA] border border-[#DCE4EC] rounded-[4px] px-4 py-2.5 text-xs">
               <span className="text-[#5A6B7C]">Supporting Corporate Certificate Attached</span>
               <a
                 href={documentItem.fileUrl}

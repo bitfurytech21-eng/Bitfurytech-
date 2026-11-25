@@ -139,9 +139,9 @@ export default function Login() {
   const displayedError = localError || authError;
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-12 bg-[#F6F8FA] text-[#102030]">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip grid lg:grid-cols-12 bg-[#F6F8FA] text-[#102030]">
       {/* Left Branded Column */}
-      <aside className="lg:col-span-5 bg-[#1B4962] text-white relative overflow-hidden flex flex-col justify-between p-8 sm:p-12 border-b lg:border-b-0 lg:border-r border-[#14374B]">
+      <aside className="lg:col-span-5 min-w-0 bg-[#1B4962] text-white relative overflow-hidden flex flex-col justify-between p-6 sm:p-12 border-b lg:border-b-0 lg:border-r border-[#14374B]">
         <img
           src="/images/hero-private-capital.jpg"
           alt="BitfuryTech institutional wealth workspace"
@@ -150,7 +150,7 @@ export default function Login() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#1B4962]/92 via-[#1B4962]/86 to-[#112E3E]/96" />
 
-        <div className="relative z-10 flex items-center justify-between gap-4">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <Link
             to="/"
             className="inline-flex items-center rounded-md bg-white px-2 py-1 shrink-0"
@@ -205,8 +205,8 @@ export default function Login() {
       </aside>
 
       {/* Right Authentication Form Column */}
-      <main className="lg:col-span-7 flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.06)] p-8 sm:p-10 space-y-6">
+      <main className="lg:col-span-7 min-w-0 flex items-center justify-center p-4 sm:p-12">
+        <div className="w-full max-w-md bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.06)] p-5 sm:p-10 space-y-6">
           <div className="space-y-1.5">
             <p className="text-xs font-bold uppercase tracking-wider text-[#E94D65]">
               {fromPath?.startsWith("/admin") ? "Administrator Access" : "Investor Sign In"}

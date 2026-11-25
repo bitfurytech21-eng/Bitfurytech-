@@ -152,7 +152,7 @@ export default function PropertiesPage() {
                         <h2 className="text-xl font-heading font-bold text-[#102030]">{p.title}</h2>
                         <p className="text-xs text-[#5A6B7C]">{p.location}</p>
                         <p className="text-sm text-[#5A6B7C] leading-relaxed">{p.summary}</p>
-                        <dl className="grid grid-cols-2 gap-3 pt-3 border-t border-[#DCE4EC] text-xs">
+                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[#DCE4EC] text-xs">
                           <div>
                             <dt className="text-[#5A6B7C]">Minimum investment</dt>
                             <dd className="font-mono tabular-nums font-bold text-[#102030]">
@@ -217,11 +217,11 @@ export default function PropertiesPage() {
         >
           <div className="bg-white border border-[#DCE4EC] rounded-[5px] max-w-3xl w-full overflow-hidden shadow-xl">
             <div className="px-5 py-4 border-b border-[#DCE4EC] flex items-center justify-between gap-4">
-              <div>
-                <h3 id="property-gallery-title" className="text-base font-heading font-bold text-[#102030]">
+              <div className="min-w-0">
+                <h3 id="property-gallery-title" className="text-base font-heading font-bold text-[#102030] truncate">
                   {galleryTarget.title}
                 </h3>
-                <p className="text-xs text-[#5A6B7C]">{galleryTarget.location}</p>
+                <p className="text-xs text-[#5A6B7C] truncate">{galleryTarget.location}</p>
               </div>
               <button
                 type="button"

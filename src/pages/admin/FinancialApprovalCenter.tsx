@@ -201,7 +201,7 @@ export default function FinancialApprovalCenter() {
               </p>
             </div>
             <div
-              className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2"
               role="tablist"
               aria-label="Payment method"
             >

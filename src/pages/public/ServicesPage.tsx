@@ -124,7 +124,7 @@ export default function ServicesPage() {
                 The research section brings together market topics that can help you review available opportunities.
               </p>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {RESEARCH_TOPICS.map((topic) => (
                 <div key={topic.title} className="bg-white border border-[#DCE4EC] rounded-[5px] p-5 space-y-2">
                   <h3 className="text-sm font-heading font-bold text-[#102030]">{topic.title}</h3>

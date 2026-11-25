@@ -562,7 +562,7 @@ export default function ManageUsers() {
       )}
 
       {/* Manager Summary Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card padding="sm">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -623,8 +623,8 @@ export default function ManageUsers() {
           title={`Platform Users (${filteredUsers.length})`}
           subtitle="Users registered on BitfuryTech with current status, balance, and administrative actions."
           action={
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="search"
@@ -632,7 +632,7 @@ export default function ManageUsers() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search name, email, username..."
                   aria-label="Search platform users"
-                  className="rounded-md border border-[#DCE4EC] bg-white pl-8 pr-3 py-1.5 text-xs text-[#102030] placeholder:text-[#5A6B7C] focus:border-[#1B4962] focus:outline-none"
+                  className="w-full sm:w-auto rounded-md border border-[#DCE4EC] bg-white pl-8 pr-3 py-1.5 text-xs text-[#102030] placeholder:text-[#5A6B7C] focus:border-[#1B4962] focus:outline-none"
                 />
               </div>
               <SelectInput
@@ -666,7 +666,7 @@ export default function ManageUsers() {
 
       {/* Private Notice Email Messaging Space + Blocked Defaulters */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div ref={noticeCardRef} className="lg:col-span-7">
+        <div ref={noticeCardRef} className="min-w-0 lg:col-span-7">
           <Card>
             <CardHeader
               title="Private Notice Email Messaging"
@@ -758,7 +758,7 @@ export default function ManageUsers() {
           </Card>
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="min-w-0 lg:col-span-5">
           <Card>
             <CardHeader
               title={`Blocked Defaulters (${blockedUsers.length})`}
@@ -780,7 +780,7 @@ export default function ManageUsers() {
                   {blockedUsers.map((item) => (
                     <div
                       key={item.id}
-                      className="py-3 first:pt-0 last:pb-0 flex items-start justify-between gap-3"
+                      className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-start justify-between gap-3"
                     >
                       <div className="min-w-0 space-y-0.5">
                         <p className="text-xs font-semibold text-[#102030] truncate">

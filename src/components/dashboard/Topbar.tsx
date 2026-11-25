@@ -181,7 +181,7 @@ export default function Topbar({
             <div
               role="dialog"
               aria-label="Recent notifications"
-              className="absolute right-0 mt-1.5 w-80 sm:w-96 rounded-[5px] border border-[#DCE4EC] bg-white shadow-[0_10px_28px_rgba(16,32,48,0.14)] z-40 overflow-hidden"
+              className="fixed inset-x-3 top-16 sm:inset-x-auto sm:absolute sm:right-0 sm:top-auto sm:mt-1.5 sm:w-96 rounded-[5px] border border-[#DCE4EC] bg-white shadow-[0_10px_28px_rgba(16,32,48,0.14)] z-40 overflow-hidden"
             >
               <div className="px-4 py-3 border-b border-[#DCE4EC] flex items-center justify-between bg-[#F6F8FA]">
                 <span className="text-xs font-bold font-heading text-[#102030]">Notifications</span>

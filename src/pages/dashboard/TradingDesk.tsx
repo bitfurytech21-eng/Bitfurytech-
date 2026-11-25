@@ -280,7 +280,7 @@ export default function TradingDesk() {
               </CardBody>
             </Card>
 
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 min-w-0 space-y-6">
               <Card>
                 <CardHeader
                   title={`Live TradingView Chart — ${symbol}`}
@@ -331,7 +331,7 @@ export default function TradingDesk() {
                     }
                   />
                   <CardBody className="space-y-4">
-                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                       <div>
                         <dt className="text-slate-500">Minimum Entry</dt>
                         <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">

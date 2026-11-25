@@ -319,7 +319,7 @@ export default function Settings() {
           </CardBody>
         </Card>
 
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 min-w-0 space-y-6">
           <Card>
             <CardHeader
               title="Password & Authentication Security"
@@ -395,7 +395,7 @@ export default function Settings() {
               <div className={hasPasswordProvider ? "pt-3 border-t border-slate-100 space-y-2.5" : "space-y-2.5"}>
                 <p className="text-slate-600 leading-relaxed">
                   {hasPasswordProvider ? "Or send a password recovery link to" : "Send a secure password setup link to"}{" "}
-                  <strong className="text-slate-900">{user?.email}</strong>.
+                  <strong className="text-slate-900 break-all">{user?.email}</strong>.
                 </p>
                 <Button
                   variant={hasPasswordProvider ? "outline" : "primary"}
@@ -423,11 +423,11 @@ export default function Settings() {
                   onDismiss={() => setSessionNotice(null)}
                 />
               )}
-              <div className="flex justify-between">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="text-slate-500">Authenticated Identity</span>
-                <span className="font-mono text-slate-800">{user?.email}</span>
+                <span className="font-mono text-slate-800 break-all">{user?.email}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="text-slate-500">Session Expiration</span>
                 <span className="font-mono text-slate-800">
                   {backendSession?.expiresAt

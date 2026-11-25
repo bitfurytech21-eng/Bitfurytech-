@@ -56,7 +56,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full max-w-full min-w-0 overflow-x-auto">
       <table className="w-full text-left text-xs border-collapse">
         <thead>
           <tr className="border-b border-[#DCE4EC] text-[#5A6B7C] bg-[#F6F8FA]">

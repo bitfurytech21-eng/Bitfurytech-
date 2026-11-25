@@ -190,7 +190,7 @@ export default function AdminOverview() {
         />
       ) : loading || !data ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Card key={i} padding="md">
                 <SkeletonBlock className="h-16 w-full" />
@@ -232,7 +232,7 @@ export default function AdminOverview() {
           {/* Primary Operations KPIs */}
           <section
             aria-label="Platform key metrics"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             <Card padding="md" className="flex min-w-0 items-center gap-4 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
               <DashboardSymbol icon={Users} tone="navy" size="lg" />
@@ -313,7 +313,7 @@ export default function AdminOverview() {
 
           {/* Operational Queues Quick Links */}
           <Card padding="md" className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <h2 className="text-sm font-bold text-slate-900">Priority Administration Queues</h2>
               <p className="text-xs text-slate-500">
                 Navigate directly to settlement verification, portfolio oversight, or catalog controls.

@@ -56,29 +56,29 @@ export function Modal({
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className={`relative z-10 w-full ${maxWidthClass} bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_14px_34px_rgba(16,32,48,0.18)] overflow-hidden text-[#102030]`}
           >
-            <div className="px-6 py-4 border-b border-[#DCE4EC] flex items-start justify-between gap-4">
-              <div>
-                <h2 id="bf-modal-title" className="text-sm font-bold font-heading text-[#102030]">
+            <div className="px-4 sm:px-6 py-4 border-b border-[#DCE4EC] flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 id="bf-modal-title" className="text-sm font-bold font-heading text-[#102030] break-words">
                   {title}
                 </h2>
                 {description && (
-                  <p className="text-xs text-[#5A6B7C] mt-0.5">{description}</p>
+                  <p className="text-xs text-[#5A6B7C] mt-0.5 break-words">{description}</p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Close modal"
-                className="p-1 text-[#5A6B7C] hover:text-[#102030] hover:bg-[#EDF3F7] cursor-pointer"
+                className="p-1 shrink-0 text-[#5A6B7C] hover:text-[#102030] hover:bg-[#EDF3F7] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="px-6 py-5 text-sm text-[#3B4C5E]">{children}</div>
+            <div className="px-4 sm:px-6 py-5 text-sm text-[#3B4C5E] min-w-0">{children}</div>
 
             {footer && (
-              <div className="px-6 py-3.5 bg-[#F6F8FA] border-t border-[#DCE4EC] flex items-center justify-end gap-2.5">
+              <div className="px-4 sm:px-6 py-3.5 bg-[#F6F8FA] border-t border-[#DCE4EC] flex flex-wrap items-center justify-end gap-2.5">
                 {footer}
               </div>
             )}

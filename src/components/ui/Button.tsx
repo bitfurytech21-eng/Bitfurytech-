@@ -54,7 +54,7 @@ export function buttonClasses({
   className?: string;
 }) {
   return [
-    "inline-flex items-center justify-center rounded-none font-heading font-bold tracking-wide transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed",
+    "inline-flex items-center justify-center rounded-none font-heading font-bold tracking-wide transition-colors duration-150 max-w-full text-center sm:whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed",
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     fullWidth ? "w-full" : "",

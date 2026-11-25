@@ -378,7 +378,7 @@ export default function MyInvestments() {
       ) : (
         <div className="space-y-6">
           {/* Summary KPI Strip */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card padding="md" className="flex items-center gap-4">
               <DashboardSymbol icon={BarChart3} tone="amber" size="lg" />
               <div className="min-w-0">
@@ -423,8 +423,8 @@ export default function MyInvestments() {
               title="Active &amp; Completed Positions"
               subtitle="Inspect cycle duration, elapsed days, expected payment terms, and attached receipts"
               action={
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-auto">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="search"
@@ -432,7 +432,7 @@ export default function MyInvestments() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search ref or plan..."
                       aria-label="Search investments"
-                      className="rounded-[5px] border border-[#CBD6E2] bg-white pl-8 pr-3 py-1.5 text-xs text-[#102030] placeholder:text-[#7A8B9C] focus:border-[#1B4962] focus:outline-none"
+                      className="w-full sm:w-auto rounded-[5px] border border-[#CBD6E2] bg-white pl-8 pr-3 py-1.5 text-xs text-[#102030] placeholder:text-[#7A8B9C] focus:border-[#1B4962] focus:outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-1 p-1 bg-[#F6F8FA] border border-[#DCE4EC] rounded-[5px]">
@@ -687,7 +687,7 @@ export default function MyInvestments() {
             />
           </FormField>
 
-          <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             {availableBalance < activeMandate.minDeposit ? (
               <Link
                 to="/deposit"

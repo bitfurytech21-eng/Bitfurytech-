@@ -26,7 +26,7 @@ export function Card({
       : "bg-white border border-[#DCE4EC] text-[#102030] rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.05)]";
 
   return (
-    <section className={`${toneStyles} ${PADDING_MAP[padding]} ${className}`.trim()}>
+    <section className={`min-w-0 w-full ${toneStyles} ${PADDING_MAP[padding]} ${className}`.trim()}>
       {children}
     </section>
   );
@@ -51,13 +51,13 @@ export function CardHeader({
 
   return (
     <div
-      className={`px-5 py-4 border-b ${borderClass} flex flex-wrap items-center justify-between gap-3 ${className}`.trim()}
+      className={`px-4 sm:px-5 py-4 border-b ${borderClass} flex flex-wrap items-center justify-between gap-3 min-w-0 ${className}`.trim()}
     >
       <div className="min-w-0">
         <h2 className={`text-sm font-bold font-heading ${titleClass}`}>{title}</h2>
         {subtitle && <p className={`text-xs mt-0.5 ${subClass}`}>{subtitle}</p>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="shrink-0 max-w-full">{action}</div>}
     </div>
   );
 }
@@ -69,5 +69,5 @@ export function CardBody({
   className?: string;
   children: React.ReactNode;
 }) {
-  return <div className={`p-5 ${className}`.trim()}>{children}</div>;
+  return <div className={`min-w-0 p-4 sm:p-5 ${className}`.trim()}>{children}</div>;
 }

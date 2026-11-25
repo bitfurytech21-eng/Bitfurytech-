@@ -216,7 +216,7 @@ export default function AdminWithdrawals() {
         <CardHeader
           title={`Withdrawal Requests (${filtered.length})`}
           action={
-            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-md">
+            <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-md">
               {(["All", "Pending", "Completed", "Rejected"] as const).map((tab) => (
                 <button
                   key={tab}

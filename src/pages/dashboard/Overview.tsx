@@ -245,7 +245,7 @@ export default function Overview() {
           {/* Primary Financial Figures (server-verified) */}
           <section
             aria-label="Primary financial metrics"
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
           >
             <Card padding="md" className="flex items-center gap-4 border-[#DCE4EC] bg-white text-[#102030] shadow-sm transition-shadow hover:shadow-md">
               <DashboardSymbol icon={CheckCircle2} tone="navy" size="lg" />
@@ -384,8 +384,8 @@ export default function Overview() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-1.5 rounded-full bg-[#EDF3F7] overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                          <div className="w-full sm:flex-1 h-1.5 rounded-full bg-[#EDF3F7] overflow-hidden">
                             <div
                               className="h-full bg-[#E94D65] rounded-full"
                               style={{ width: `${inv.progressPct}%` }}
@@ -528,7 +528,7 @@ export default function Overview() {
                   {data.opportunities.slice(0, 4).map((plan) => (
                     <div
                       key={plan.id}
-                      className="py-3.5 flex items-center justify-between gap-4"
+                      className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
                     >
                       <div className="min-w-0">
                         <p className="text-xs text-slate-500">
