@@ -5,8 +5,8 @@ import { useAuth } from "../hooks/useAuth";
 import {
   FullPageLoader,
   RouteErrorState,
-  UnauthorizedState,
 } from "../components/RouteStates";
+import AdminAccessGate from "../components/admin/AdminAccessGate";
 
 interface ProtectedRouteProps {
   mode?: "customer" | "admin" | "guestOnly";
@@ -183,7 +183,7 @@ export default function ProtectedRoute({
       const requestedFrom = (location.state as { from?: { pathname?: string } } | null)?.from
         ?.pathname;
       const target =
-        requestedFrom && !(requestedFrom.startsWith("/admin") && !isAdmin)
+        requestedFrom && requestedFrom !== "/login" && requestedFrom !== "/register"
           ? requestedFrom
           : isAdmin
             ? "/admin"
@@ -194,16 +194,25 @@ export default function ProtectedRoute({
   }
 
   if (!user) {
+    if (mode === "admin") {
+      return <AdminAccessGate onUnlocked={() => setAdminGate("authorized")} />;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (needsEmailVerification) {
+    if (mode === "admin") {
+      return <AdminAccessGate onUnlocked={() => setAdminGate("authorized")} />;
+    }
     return <EmailVerificationGate />;
   }
 
   if (!backendSession) {
     if (authError) {
       return <RouteErrorState message={authError} onRetry={retryAuthSync} />;
+    }
+    if (mode === "admin") {
+      return <AdminAccessGate onUnlocked={() => setAdminGate("authorized")} />;
     }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
@@ -212,11 +221,8 @@ export default function ProtectedRoute({
     if (adminGate === "checking") {
       return <FullPageLoader label="Confirming server-side administrator authorization..." />;
     }
-    if (adminGate === "unauthenticated") {
-      return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-    if (adminGate === "unauthorized" || !isAdmin) {
-      return <UnauthorizedState />;
+    if (adminGate === "unauthenticated" || adminGate === "unauthorized" || !isAdmin) {
+      return <AdminAccessGate onUnlocked={() => setAdminGate("authorized")} />;
     }
   }
 

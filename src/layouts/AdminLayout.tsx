@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import AdminSidebar, { ADMIN_NAV_ITEMS } from "../components/admin/AdminSidebar";
 import Topbar, { BreadcrumbSegment } from "../components/dashboard/Topbar";
-import { buttonClasses, Card } from "../components/ui";
+import { UnauthorizedState } from "../components/RouteStates";
 import { useAuth } from "../hooks/useAuth";
 import { NotificationMessage, sessionApiRequest } from "../services/dashboardApi";
 
@@ -65,24 +64,7 @@ export default function AdminLayout({
   };
 
   if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#F6F8FA] flex items-center justify-center p-6">
-        <Card padding="lg" className="max-w-lg w-full space-y-4 border-[#E94D65]/40">
-          <div className="flex items-center gap-2.5 text-[#E94D65]">
-            <Shield className="w-5 h-5" />
-            <h1 className="text-base font-bold font-heading text-[#102030]">
-              Administrator Authorization Required
-            </h1>
-          </div>
-          <p className="text-sm text-[#3B4C5E] leading-relaxed">
-            This operational workspace is restricted to server-verified BitfuryTech administrators.
-          </p>
-          <Link to="/dashboard" className={buttonClasses({ variant: "primary", size: "md" })}>
-            Return to Investor Portal
-          </Link>
-        </Card>
-      </div>
-    );
+    return <UnauthorizedState />;
   }
 
   const meta = resolveAdminMeta(pathname);

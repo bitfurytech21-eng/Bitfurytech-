@@ -16,7 +16,7 @@ const NAV_LINKS = [
 
 export default function PublicLayout({ children }: { children?: React.ReactNode }) {
   const { pathname } = useLocation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [newsletterEmail, setNewsletterEmail] = useState("");
@@ -108,13 +108,23 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
 
           <div className="flex items-center gap-3 shrink-0">
             {user ? (
-              <Link
-                to="/dashboard"
-                className="hidden lg:inline-flex items-center justify-center gap-1.5 bg-[#E94D65] hover:bg-[#D43B53] text-white font-heading font-bold text-xs px-5 py-2.5 rounded-none transition-colors whitespace-nowrap shrink-0"
-              >
-                <span>Open Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+              <div className="hidden lg:flex items-center gap-2.5 shrink-0">
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="inline-flex items-center justify-center bg-[#1B4962] hover:bg-[#14374B] text-white font-heading font-bold text-xs px-4 py-2.5 rounded-none transition-colors whitespace-nowrap shrink-0"
+                  >
+                    Admin Panel
+                  </Link>
+                )}
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center justify-center gap-1.5 bg-[#E94D65] hover:bg-[#D43B53] text-white font-heading font-bold text-xs px-5 py-2.5 rounded-none transition-colors whitespace-nowrap shrink-0"
+                >
+                  <span>Open Dashboard</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             ) : (
               <div className="hidden lg:flex items-center gap-2.5 shrink-0">
                 <Link
@@ -169,13 +179,24 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             })}
             <div className="pt-3 border-t border-[#DCE4EC] grid grid-cols-2 gap-3">
               {user ? (
-                <Link
-                  to="/dashboard"
-                  onClick={() => setMobileOpen(false)}
-                  className="col-span-2 text-center bg-[#E94D65] hover:bg-[#D43B53] text-white font-heading font-bold text-sm py-3 rounded-none"
-                >
-                  Open Dashboard
-                </Link>
+                <>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setMobileOpen(false)}
+                      className="col-span-2 text-center bg-[#1B4962] hover:bg-[#14374B] text-white font-heading font-bold text-sm py-3 rounded-none"
+                    >
+                      Admin Panel
+                    </Link>
+                  )}
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className="col-span-2 text-center bg-[#E94D65] hover:bg-[#D43B53] text-white font-heading font-bold text-sm py-3 rounded-none"
+                  >
+                    Open Dashboard
+                  </Link>
+                </>
               ) : (
                 <>
                   <Link

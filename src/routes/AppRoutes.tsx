@@ -54,6 +54,7 @@ import {
   AdminSupportPage,
   AdminTransactionsPage,
 } from "../pages/admin/AdminSubPages";
+import AdminAccessGate from "../components/admin/AdminAccessGate";
 
 function NotFoundPage() {
   return (
@@ -136,6 +137,8 @@ export default function AppRoutes() {
       </Route>
 
       {/* 4. Administrator Route Group */}
+      <Route path="/admin-unlock" element={<AdminAccessGate />} />
+      <Route path="/admin/unlock" element={<Navigate to="/admin-unlock" replace />} />
       <Route element={<ProtectedRoute mode="admin" />}>
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/customers" element={<AdminCustomers />} />

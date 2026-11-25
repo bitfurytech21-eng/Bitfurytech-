@@ -1981,3 +1981,17 @@ export function resolveMockWithdrawal(
     reference: tx.reference,
   };
 }
+
+export function hasMockUserEmail(email: string): boolean {
+  const target = email.trim().toLowerCase();
+  if (!target) return false;
+  for (const user of usersById.values()) {
+    if (user.email.toLowerCase() === target) return true;
+  }
+  return false;
+}
+
+export function hasAnyMockUser(): boolean {
+  return usersById.size > 0;
+}
+

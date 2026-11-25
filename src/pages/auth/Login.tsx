@@ -19,9 +19,6 @@ function resolveAuthorizedDestination(
 ): string {
   const isAdmin = Boolean(session?.isAdmin);
   if (fromPath) {
-    if (fromPath.startsWith("/admin") && !isAdmin) {
-      return "/dashboard";
-    }
     if (fromPath !== "/login" && fromPath !== "/register") {
       return fromPath;
     }
@@ -212,12 +209,13 @@ export default function Login() {
         <div className="w-full max-w-md bg-white border border-[#DCE4EC] rounded-[5px] shadow-[0_2px_8px_rgba(16,32,48,0.06)] p-8 sm:p-10 space-y-6">
           <div className="space-y-1.5">
             <p className="text-xs font-bold uppercase tracking-wider text-[#E94D65]">
-              Investor Sign In
+              {fromPath?.startsWith("/admin") ? "Administrator Access" : "Investor Sign In"}
             </p>
             <h2 className="text-2xl font-bold font-heading text-[#102030]">Sign in to BitfuryTech</h2>
             <p className="text-sm text-[#4A5B6C]">
-              Authenticate with your registered credentials to verify your session and open your
-              authorized portal.
+              {fromPath?.startsWith("/admin")
+                ? "Sign in with your account to verify or activate access to the BitfuryTech Administrator Panel."
+                : "Authenticate with your registered credentials to verify your session and open your authorized portal."}
             </p>
           </div>
 
@@ -350,13 +348,21 @@ export default function Login() {
             <span>Sign In with Google Authentication</span>
           </button>
 
-          <div className="pt-4 border-t border-[#DCE4EC] flex items-center justify-between text-xs text-[#4A5B6C]">
-            <span>New to BitfuryTech?</span>
+          <div className="pt-4 border-t border-[#DCE4EC] flex flex-wrap items-center justify-between gap-2 text-xs text-[#4A5B6C]">
+            <div>
+              <span>New to BitfuryTech? </span>
+              <Link
+                to="/register"
+                className="font-semibold text-[#1B4962] hover:text-[#E94D65] underline"
+              >
+                Create Account
+              </Link>
+            </div>
             <Link
-              to="/register"
-              className="font-semibold text-[#1B4962] hover:text-[#E94D65] underline"
+              to="/admin"
+              className="font-semibold text-[#1B4962] hover:text-[#E94D65]"
             >
-              Create Account
+              Admin Panel →
             </Link>
           </div>
         </div>
