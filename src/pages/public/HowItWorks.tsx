@@ -319,7 +319,7 @@ export default function HowItWorks() {
                         {item.phase === "Selection & Terms" || item.phase === "Monitoring" ? (
                           <EditorialIcon
                             name={item.phase === "Selection & Terms" ? "horizon" : "growth"}
-                            className="size-9 rounded-full border-2 border-[#D45770]"
+                            className="size-9 rounded-full border-2 border-[#D45770] bg-white p-1.5"
                           />
                         ) : (
                           <Icon className="w-4 h-4 text-[#1B4962] shrink-0" />

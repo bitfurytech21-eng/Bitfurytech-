@@ -252,22 +252,22 @@ function AdminPortalShell({
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-30 h-16 bg-white border-b border-[#DCE4EC] px-4 sm:px-8 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 h-16 bg-[#1F3649] border-b border-white/15 px-4 sm:px-8 flex items-center justify-between gap-4 text-white">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open navigation menu"
-              className="lg:hidden p-2 -ml-2 text-[#1B4962] hover:bg-[#EDF3F7]"
+              className="lg:hidden p-2 -ml-2 text-slate-100 hover:bg-white/10"
             >
               <Menu className="w-5 h-5" />
             </button>
             <div className="min-w-0">
-              <div className="text-xs text-[#5A6B7C] truncate">
+              <div className="text-xs text-slate-300 truncate">
                 BitfuryTech <span aria-hidden="true">/</span> Admin{" "}
                 <span aria-hidden="true">/</span> {resolvedTitle}
               </div>
-              <h1 className="text-base sm:text-lg font-bold font-heading text-[#102030] truncate">
+              <h1 className="text-base sm:text-lg font-bold font-heading text-white truncate">
                 {resolvedTitle}
               </h1>
             </div>
@@ -277,20 +277,21 @@ function AdminPortalShell({
             <Link
               to="/notifications"
               aria-label="View notifications"
-              className="p-2 rounded-[5px] border border-[#DCE4EC] text-[#1B4962] hover:bg-[#F6F8FA]"
+              className="p-2 rounded-[5px] border border-white/20 bg-white/10 text-white hover:bg-white/15"
             >
               <Bell className="w-4 h-4" />
             </Link>
 
             <DropdownMenu
               label="Account navigation menu"
+              tone="dark"
               items={accountMenuItems}
               trigger={
                 <span className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-none bg-[#1B4962] text-white flex items-center justify-center font-bold text-xs">
+                  <span className="w-6 h-6 rounded-md bg-white/15 border border-white/20 text-white flex items-center justify-center font-bold text-xs">
                     {(profile?.displayName || user?.email || "B")[0].toUpperCase()}
                   </span>
-                  <span className="hidden sm:inline max-w-[140px] truncate text-left font-semibold text-[#102030]">
+                  <span className="hidden sm:inline max-w-[140px] truncate text-left font-semibold text-white">
                     {profile?.displayName || user?.displayName || "Account"}
                   </span>
                 </span>

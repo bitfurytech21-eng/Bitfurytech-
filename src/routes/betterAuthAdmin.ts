@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type pg from "pg";
 import { requireBetterAuth, requireBetterAdmin, type BetterAuthRequest } from "../middleware/betterAuth.ts";
+import { isBootstrapAdminEmail } from "../lib/blockedUsers.ts";
 import { databasePool, isDatabaseConfigured, queryDatabase } from "../db/pool.ts";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -10,14 +11,19 @@ import { MANUAL_PAYMENT_METHODS } from "../trading/manualPaymentMethods.ts";
 import {
   addMockAuditLog,
   addMockBroadcast,
+  addMockUserNotification,
+  blockMockUser,
   getMockAdminData,
   getMockAdminDocuments,
   getMockAdminReferrals,
   getMockEmailOutbox,
   getMockEmailTemplates,
+  listMockBlockedUsers,
   resolveMockDeposit,
   resolveMockWithdrawal,
   saveMockEmailTemplate,
+  unblockMockUser,
+  updateMockCustomerDetails,
   updateMockCustomerStatus,
   updateMockInvestmentStatus,
   updateMockProperty,
@@ -27,8 +33,13 @@ import {
   deleteMockCryptoWallet,
 } from "../services/inMemoryFinancialMock.ts";
 import { DEFAULT_MAIL_TEMPLATES } from "../services/mailTemplates.ts";
-import { enqueueMailEvent } from "../services/mailOutbox.ts";
+import { enqueueMailEvent, getMailDeliveryStatus, sendCustomMailEvent } from "../services/mailOutbox.ts";
+import { processPlanDrivenRoi } from "../services/planDrivenRoiEngine.ts";
 import type { CustomerDocumentDTO } from "../services/dashboardApi.ts";
+import {
+  buildInvestmentAgreementDocument,
+  buildTransactionDocument,
+} from "../services/institutionalDocuments.ts";
 
 
 type Row = Record<string, unknown>;
@@ -86,10 +97,51 @@ export function createBetterAuthAdminRouter(): Router {
     }
     try {
       const result = await queryDatabase<Row>(
-        "SELECT u.id AS uid, u.username, u.email, u.name AS \"displayName\", COALESCE(p.country,'') AS country, COALESCE(p.phone,'') AS phone, COALESCE(p.kyc_status,'not_submitted') AS \"kycStatus\", COALESCE(w.available_balance,0) AS \"walletBalance\", COALESCE(p.account_status,'Active') AS \"accountStatus\", u.\"createdAt\" AS \"createdAt\", COALESCE(inv.count,0)::int AS \"investmentsCount\", COALESCE(tx.count,0)::int AS \"transactionsCount\" FROM \"user\" u LEFT JOIN user_profiles p ON p.user_id=u.id LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD' LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items FROM investments i WHERE i.user_id=u.id) inv ON true LEFT JOIN LATERAL (SELECT COUNT(*) count, jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items FROM transactions t WHERE t.user_id=u.id) tx ON true WHERE NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role='admin') ORDER BY u.\"createdAt\" DESC"
+        `SELECT u.id AS uid,
+                u.username,
+                u.email,
+                u.name AS "displayName",
+                u.image AS "photoUrl",
+                COALESCE(p.country,'') AS country,
+                COALESCE(p.phone,'') AS phone,
+                COALESCE(p.kyc_status,'not_submitted') AS "kycStatus",
+                COALESCE(w.available_balance,0) AS "walletBalance",
+                COALESCE(p.account_status,'Active') AS "accountStatus",
+                u."createdAt" AS "createdAt",
+                COALESCE(inv.count,0)::int AS "investmentsCount",
+                COALESCE(tx.count,0)::int AS "transactionsCount",
+                COALESCE(inv.items,'[]'::jsonb) AS investments,
+                COALESCE(tx.items,'[]'::jsonb) AS transactions
+         FROM "user" u
+         LEFT JOIN user_profiles p ON p.user_id=u.id
+         LEFT JOIN wallets w ON w.user_id=u.id AND w.currency='USD'
+         LEFT JOIN LATERAL (
+           SELECT COUNT(*) count,
+                  jsonb_agg(jsonb_build_object('id',i.id,'planName',COALESCE(i.plan_snapshot->>'name','Investment'),'amount',i.principal,'status',initcap(i.status))) AS items
+           FROM investments i WHERE i.user_id=u.id
+         ) inv ON true
+         LEFT JOIN LATERAL (
+           SELECT COUNT(*) count,
+                  jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items
+           FROM transactions t WHERE t.user_id=u.id
+         ) tx ON true
+         WHERE NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role='admin')
+           AND NOT EXISTS (SELECT 1 FROM blocked_users bu WHERE bu.user_id=u.id OR lower(bu.email)=lower(u.email))
+         ORDER BY u."createdAt" DESC`
       );
       res.setHeader("Cache-Control", "no-store");
-      res.json({ customers: result.rows });
+      res.json({
+        customers: result.rows.map((row) => ({
+          ...row,
+          walletBalance: number(row.walletBalance, 0),
+          totalDeposit: 0,
+          totalProfit: 0,
+          referralBonus: 0,
+          role: "investor",
+          investments: Array.isArray(row.investments) ? row.investments : [],
+          transactions: Array.isArray(row.transactions) ? row.transactions : [],
+        })),
+      });
     } catch (error) {
       console.error("Neon admin customers query failed:", error);
       res.status(502).json({ error: "Unable to load customer records from Neon." });
@@ -366,11 +418,16 @@ export function createBetterAuthAdminRouter(): Router {
       res.status(400).json({ error: "A valid customer ID and account status are required." });
       return;
     }
+    const actorId = auditActor(req as BetterAuthRequest);
+    if (uid === actorId) {
+      res.status(403).json({ error: "You cannot change the status of your own administrator account." });
+      return;
+    }
     if (!isDatabaseConfigured) {
       const ok = updateMockCustomerStatus(
         uid,
         status,
-        auditActor(req as BetterAuthRequest),
+        actorId,
         (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin"
       );
       if (!ok) {
@@ -382,19 +439,496 @@ export function createBetterAuthAdminRouter(): Router {
     }
     try {
       await withAdminTransaction(async (client) => {
-        const user = await client.query('SELECT id FROM "user" WHERE id=$1 FOR UPDATE', [uid]);
+        const user = await client.query<{ id: string; email: string }>('SELECT id, email FROM "user" WHERE id=$1 FOR UPDATE', [uid]);
         if (!user.rowCount) throw Object.assign(new Error("Customer not found."), { statusCode: 404 });
+        if (isBootstrapAdminEmail(user.rows[0].email)) {
+          throw Object.assign(new Error("Primary administrator account cannot be modified here."), { statusCode: 403 });
+        }
         await client.query(
           "INSERT INTO user_profiles (user_id, account_status) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET account_status=EXCLUDED.account_status, updated_at=now()",
           [uid, status]
         );
-        await auditInTransaction(client, auditActor(req as BetterAuthRequest)!, "UPDATE_CUSTOMER_STATUS", "user", uid, { status });
+        if (status === "Suspended") {
+          await client.query('DELETE FROM session WHERE "userId"=$1', [uid]);
+        }
+        await auditInTransaction(client, actorId, "UPDATE_CUSTOMER_STATUS", "user", uid, { status });
       });
       res.json({ ok: true, uid, accountStatus: status });
     } catch (error) {
       const code = Number((error as { statusCode?: number }).statusCode) || 502;
-      res.status(code).json({ error: code === 404 ? "Customer not found." : "Unable to update customer status." });
+      res.status(code).json({ error: error instanceof Error ? error.message : "Unable to update customer status." });
     }
+  });
+
+  router.patch("/customers/:uid", async (req: BetterAuthRequest, res) => {
+    const uid = typeof req.params.uid === "string" ? req.params.uid.trim() : "";
+    const actorId = auditActor(req);
+    const actorEmail = req.betterAuthSession?.user.email ?? "admin";
+    if (!uid) {
+      res.status(400).json({ error: "A valid user ID is required." });
+      return;
+    }
+    if (uid === actorId) {
+      res.status(403).json({ error: "You cannot edit your own administrator account from user management." });
+      return;
+    }
+
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const displayName = typeof body.displayName === "string" ? body.displayName.trim().slice(0, 120) : undefined;
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 200) : undefined;
+    const country = typeof body.country === "string" ? body.country.trim().slice(0, 80) : undefined;
+    const phone = typeof body.phone === "string" ? body.phone.trim().slice(0, 40) : undefined;
+    const accountStatus = typeof body.accountStatus === "string" ? body.accountStatus.trim() : undefined;
+    const balanceNote = typeof body.balanceNote === "string" ? body.balanceNote.trim().slice(0, 240) : undefined;
+    const hasBalance = body.walletBalance !== undefined && body.walletBalance !== null && body.walletBalance !== "";
+    const walletBalance = hasBalance ? Number(body.walletBalance) : undefined;
+
+    if (displayName !== undefined && !displayName) {
+      res.status(400).json({ error: "Full name cannot be empty." });
+      return;
+    }
+    if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: "Provide a valid email address." });
+      return;
+    }
+    if (accountStatus !== undefined && !["Active", "Review", "Suspended"].includes(accountStatus)) {
+      res.status(400).json({ error: "Account status must be Active, Review, or Suspended." });
+      return;
+    }
+    if (walletBalance !== undefined && (!Number.isFinite(walletBalance) || walletBalance < 0 || walletBalance > 1_000_000_000)) {
+      res.status(400).json({ error: "Balance must be a valid non-negative amount." });
+      return;
+    }
+
+    if (!isDatabaseConfigured) {
+      try {
+        const updated = updateMockCustomerDetails(
+          uid,
+          {
+            displayName,
+            email,
+            country,
+            phone,
+            accountStatus: accountStatus as "Active" | "Review" | "Suspended" | undefined,
+            walletBalance,
+            balanceNote,
+          },
+          actorId,
+          actorEmail
+        );
+        if (!updated) {
+          res.status(404).json({ error: "User account not found." });
+          return;
+        }
+        res.json({ ok: true, customer: updated });
+      } catch (error) {
+        const code = Number((error as { statusCode?: number }).statusCode) || 400;
+        res.status(code).json({ error: error instanceof Error ? error.message : "Unable to update user." });
+      }
+      return;
+    }
+
+    try {
+      const updated = await withAdminTransaction(async (client) => {
+        const found = await client.query<{ id: string; name: string; email: string }>(
+          'SELECT id, name, email FROM "user" WHERE id=$1 FOR UPDATE',
+          [uid]
+        );
+        const target = found.rows[0];
+        if (!target) throw Object.assign(new Error("User account not found."), { statusCode: 404 });
+        if (isBootstrapAdminEmail(target.email)) {
+          throw Object.assign(new Error("Primary administrator account cannot be modified here."), { statusCode: 403 });
+        }
+
+        const roleCheck = await client.query<{ role: string }>(
+          "SELECT role FROM user_roles WHERE user_id=$1 AND role='admin' LIMIT 1",
+          [uid]
+        );
+        if (roleCheck.rowCount) {
+          throw Object.assign(new Error("Administrator accounts cannot be modified from user management."), { statusCode: 403 });
+        }
+
+        if (email !== undefined && email !== target.email.toLowerCase()) {
+          const emailTaken = await client.query('SELECT id FROM "user" WHERE lower(email)=lower($1) AND id<>$2 LIMIT 1', [email, uid]);
+          if (emailTaken.rowCount) {
+            throw Object.assign(new Error("Email address is already in use by another account."), { statusCode: 409 });
+          }
+          const blocked = await client.query('SELECT id FROM blocked_users WHERE lower(email)=lower($1) LIMIT 1', [email]);
+          if (blocked.rowCount) {
+            throw Object.assign(new Error("Email address belongs to a blocked defaulter."), { statusCode: 409 });
+          }
+        }
+
+        const nextName = displayName ?? target.name;
+        const nextEmail = email ?? target.email;
+        await client.query(
+          'UPDATE "user" SET name=$2, email=$3, "updatedAt"=now() WHERE id=$1',
+          [uid, nextName, nextEmail]
+        );
+
+        await client.query(
+          `INSERT INTO user_profiles (user_id, country, phone, account_status, updated_at)
+           VALUES ($1, $2, $3, $4, now())
+           ON CONFLICT (user_id) DO UPDATE SET
+             country = COALESCE($5, user_profiles.country),
+             phone = COALESCE($6, user_profiles.phone),
+             account_status = COALESCE($7, user_profiles.account_status),
+             updated_at = now()`,
+          [
+            uid,
+            country ?? "",
+            phone ?? "",
+            accountStatus ?? "Active",
+            country ?? null,
+            phone ?? null,
+            accountStatus ?? null,
+          ]
+        );
+
+        if (accountStatus === "Suspended") {
+          await client.query('DELETE FROM session WHERE "userId"=$1', [uid]);
+        }
+
+        const currentWallet = await client.query<{ available_balance: string }>(
+          "SELECT available_balance FROM wallets WHERE user_id=$1 AND currency='USD' FOR UPDATE",
+          [uid]
+        );
+        let currentBalance = Number(currentWallet.rows[0]?.available_balance ?? 0);
+        let balanceAdjusted = false;
+
+        if (walletBalance !== undefined) {
+          const targetBalance = Number(walletBalance.toFixed(2));
+          const delta = Number((targetBalance - currentBalance).toFixed(2));
+          if (Math.abs(delta) >= 0.01) {
+            const absAmount = Math.abs(delta);
+            const txId = `tx_adj_${randomUUID()}`;
+            const reference = `ADJ-${Date.now().toString().slice(-8)}-${randomUUID().slice(0, 4).toUpperCase()}`;
+            await client.query(
+              `INSERT INTO transactions (id, user_id, type, amount, currency, method, destination, reference, status, metadata)
+               VALUES ($1, $2, 'adjustment', $3, 'USD', 'Admin Balance Adjustment', 'Wallet', $4, 'completed', $5::jsonb)`,
+              [
+                txId,
+                uid,
+                absAmount,
+                reference,
+                JSON.stringify({
+                  direction: delta > 0 ? "credit" : "debit",
+                  previousBalance: currentBalance,
+                  newBalance: targetBalance,
+                  reason: balanceNote || "Administrator balance adjustment",
+                  actorEmail,
+                }),
+              ]
+            );
+            const debitAccount = delta > 0 ? "platform_custody" : "customer_available";
+            const creditAccount = delta > 0 ? "customer_available" : "platform_custody";
+            const memo = balanceNote || `Admin balance ${delta > 0 ? "credit" : "debit"} adjustment`;
+            await client.query(
+              `INSERT INTO ledger_entries (transaction_id, user_id, account_code, direction, amount, currency, memo)
+               VALUES ($1, $2, $3, 'debit', $4, 'USD', $5), ($1, $2, $6, 'credit', $4, 'USD', $5)`,
+              [txId, uid, debitAccount, absAmount, memo, creditAccount]
+            );
+            await client.query(
+              `INSERT INTO wallets (user_id, currency, available_balance)
+               VALUES ($1, 'USD', $2)
+               ON CONFLICT (user_id, currency) DO UPDATE SET available_balance=$2, updated_at=now()`,
+              [uid, targetBalance]
+            );
+            currentBalance = targetBalance;
+            balanceAdjusted = true;
+          }
+        }
+
+        await auditInTransaction(client, actorId, "EDIT_USER_ACCOUNT", "user", uid, {
+          displayName: nextName,
+          email: nextEmail,
+          accountStatus: accountStatus ?? null,
+          balanceAdjusted,
+          walletBalance: currentBalance,
+        });
+
+        return {
+          uid,
+          displayName: nextName,
+          email: nextEmail,
+          country: country ?? "",
+          phone: phone ?? "",
+          accountStatus: accountStatus ?? "Active",
+          walletBalance: currentBalance,
+        };
+      });
+      res.json({ ok: true, customer: updated });
+    } catch (error) {
+      const code = Number((error as { statusCode?: number }).statusCode) || 502;
+      res.status(code).json({ error: error instanceof Error ? error.message : "Unable to update user account." });
+    }
+  });
+
+  router.get("/blocked-users", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (!isDatabaseConfigured) {
+      res.json({ blockedUsers: listMockBlockedUsers() });
+      return;
+    }
+    try {
+      const result = await queryDatabase<Row>(
+        `SELECT id, user_id AS "userId", email, display_name AS "displayName", reason, blocked_by AS "blockedBy", created_at AS "createdAt"
+         FROM blocked_users
+         ORDER BY created_at DESC`
+      );
+      res.json({ blockedUsers: result.rows });
+    } catch (error) {
+      console.error("Neon blocked users query failed:", error);
+      res.status(502).json({ error: "Unable to load blocked users." });
+    }
+  });
+
+  router.post("/users/block", async (req: BetterAuthRequest, res) => {
+    const actorId = auditActor(req);
+    const actorEmail = req.betterAuthSession?.user.email ?? "admin";
+    const userIdInput = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+    const emailInput = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    const reason = typeof req.body?.reason === "string" ? req.body.reason.trim().slice(0, 400) : "";
+
+    if (!userIdInput && (!emailInput || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput))) {
+      res.status(400).json({ error: "Select a user or enter a valid defaulter email address." });
+      return;
+    }
+    if (reason.length < 3) {
+      res.status(400).json({ error: "Provide a brief reason (at least 3 characters) for blocking this defaulter." });
+      return;
+    }
+    if ((userIdInput && userIdInput === actorId) || isBootstrapAdminEmail(emailInput)) {
+      res.status(403).json({ error: "Administrator accounts cannot be blocked or removed." });
+      return;
+    }
+
+    if (!isDatabaseConfigured) {
+      try {
+        const entry = blockMockUser({
+          userId: userIdInput || null,
+          email: emailInput || null,
+          reason,
+          actorUid: actorId,
+          actorEmail,
+        });
+        res.status(201).json({ ok: true, blockedUser: entry });
+      } catch (error) {
+        const code = Number((error as { statusCode?: number }).statusCode) || 400;
+        res.status(code).json({ error: error instanceof Error ? error.message : "Unable to block user." });
+      }
+      return;
+    }
+
+    try {
+      const blockedUser = await withAdminTransaction(async (client) => {
+        const found = await client.query<{ id: string; email: string; name: string }>(
+          userIdInput
+            ? 'SELECT id, email, name FROM "user" WHERE id=$1 FOR UPDATE'
+            : 'SELECT id, email, name FROM "user" WHERE lower(email)=lower($1) FOR UPDATE',
+          [userIdInput || emailInput]
+        );
+        const matched = found.rows[0] ?? null;
+        const targetEmail = (matched?.email || emailInput).trim().toLowerCase();
+        if (!targetEmail) {
+          throw Object.assign(new Error("A valid user or email address is required."), { statusCode: 400 });
+        }
+        if ((matched && matched.id === actorId) || isBootstrapAdminEmail(targetEmail)) {
+          throw Object.assign(new Error("Administrator accounts cannot be blocked or removed."), { statusCode: 403 });
+        }
+        if (matched) {
+          const adminRole = await client.query(
+            "SELECT 1 FROM user_roles WHERE user_id=$1 AND role='admin' LIMIT 1",
+            [matched.id]
+          );
+          if (adminRole.rowCount) {
+            throw Object.assign(new Error("Administrator accounts cannot be blocked or removed."), { statusCode: 403 });
+          }
+        }
+
+        const blockId = `blk_${randomUUID().slice(0, 12)}`;
+        const displayName = matched?.name || targetEmail.split("@")[0] || "Defaulter";
+        await client.query(
+          `INSERT INTO blocked_users (id, user_id, email, display_name, reason, blocked_by)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (email) DO UPDATE SET
+             user_id = COALESCE(EXCLUDED.user_id, blocked_users.user_id),
+             display_name = EXCLUDED.display_name,
+             reason = EXCLUDED.reason,
+             blocked_by = EXCLUDED.blocked_by,
+             created_at = now()`,
+          [blockId, matched?.id ?? null, targetEmail, displayName, reason, actorEmail]
+        );
+
+        let hardDeleted = false;
+        if (matched) {
+          await client.query('DELETE FROM session WHERE "userId"=$1', [matched.id]);
+          await client.query(
+            "INSERT INTO user_profiles (user_id, account_status) VALUES ($1, 'Suspended') ON CONFLICT (user_id) DO UPDATE SET account_status='Suspended', updated_at=now()",
+            [matched.id]
+          );
+          const refs = await client.query<{ has_refs: boolean }>(
+            `SELECT (
+               EXISTS (SELECT 1 FROM investments WHERE user_id=$1) OR
+               EXISTS (SELECT 1 FROM transactions WHERE user_id=$1) OR
+               EXISTS (SELECT 1 FROM ledger_entries WHERE user_id=$1) OR
+               EXISTS (SELECT 1 FROM roi_accruals WHERE user_id=$1) OR
+               EXISTS (SELECT 1 FROM manual_payment_assignments WHERE user_id=$1 OR created_by=$1) OR
+               EXISTS (SELECT 1 FROM referrals WHERE referrer_user_id=$1 OR referred_user_id=$1) OR
+               EXISTS (SELECT 1 FROM audit_logs WHERE actor_user_id=$1) OR
+               EXISTS (SELECT 1 FROM email_outbox WHERE user_id=$1)
+             ) AS has_refs`,
+            [matched.id]
+          );
+          if (!refs.rows[0]?.has_refs) {
+            await client.query('DELETE FROM "user" WHERE id=$1', [matched.id]);
+            hardDeleted = true;
+          }
+        }
+
+        await auditInTransaction(client, actorId, "BLOCK_REMOVE_USER", "user", matched?.id ?? targetEmail, {
+          email: targetEmail,
+          reason,
+          hardDeleted,
+        });
+
+        return {
+          id: blockId,
+          userId: matched?.id ?? null,
+          email: targetEmail,
+          displayName,
+          reason,
+          blockedBy: actorEmail,
+          createdAt: new Date().toISOString(),
+        };
+      });
+      res.status(201).json({ ok: true, blockedUser });
+    } catch (error) {
+      const code = Number((error as { statusCode?: number }).statusCode) || 502;
+      res.status(code).json({ error: error instanceof Error ? error.message : "Unable to block user." });
+    }
+  });
+
+  router.delete("/blocked-users/:id", async (req: BetterAuthRequest, res) => {
+    const id = typeof req.params.id === "string" ? req.params.id.trim() : "";
+    const actorId = auditActor(req);
+    const actorEmail = req.betterAuthSession?.user.email ?? "admin";
+    if (!id) {
+      res.status(400).json({ error: "A valid blocked record ID is required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      const ok = unblockMockUser(id, actorId, actorEmail);
+      if (!ok) {
+        res.status(404).json({ error: "Blocked record not found." });
+        return;
+      }
+      res.json({ ok: true });
+      return;
+    }
+    try {
+      const result = await queryDatabase<{ email: string }>(
+        "DELETE FROM blocked_users WHERE id=$1 RETURNING email",
+        [id]
+      );
+      if (!result.rowCount) {
+        res.status(404).json({ error: "Blocked record not found." });
+        return;
+      }
+      await recordAudit(req, "UNBLOCK_USER", "blocked_user", id, { email: result.rows[0].email });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Unblock user failed:", error);
+      res.status(502).json({ error: "Unable to unblock user." });
+    }
+  });
+
+  router.post("/customers/:uid/private-notice", async (req: BetterAuthRequest, res) => {
+    const uid = typeof req.params.uid === "string" ? req.params.uid.trim() : "";
+    const subject = typeof req.body?.subject === "string" ? req.body.subject.trim().slice(0, 160) : "";
+    const message = typeof req.body?.message === "string" ? req.body.message.trim().slice(0, 3000) : "";
+    const alsoNotifyInApp = req.body?.alsoNotifyInApp !== false;
+
+    if (!uid || subject.length < 2 || message.length < 3) {
+      res.status(400).json({ error: "Select a recipient and enter a valid subject and notice message." });
+      return;
+    }
+
+    let recipientEmail = "";
+    let recipientName = "Investor";
+
+    if (!isDatabaseConfigured) {
+      const customer = getMockAdminData().customers.find((c) => c.uid === uid);
+      if (!customer) {
+        res.status(404).json({ error: "User account not found." });
+        return;
+      }
+      recipientEmail = customer.email;
+      recipientName = customer.displayName;
+    } else {
+      try {
+        const result = await queryDatabase<{ id: string; email: string; name: string }>(
+          `SELECT u.id, u.email, u.name
+           FROM "user" u
+           WHERE u.id=$1
+             AND NOT EXISTS (SELECT 1 FROM blocked_users bu WHERE bu.user_id=u.id OR lower(bu.email)=lower(u.email))
+           LIMIT 1`,
+          [uid]
+        );
+        if (!result.rows[0]) {
+          res.status(404).json({ error: "User account not found." });
+          return;
+        }
+        recipientEmail = result.rows[0].email;
+        recipientName = result.rows[0].name;
+      } catch (error) {
+        console.error("Private notice lookup failed:", error);
+        res.status(502).json({ error: "Unable to verify recipient account." });
+        return;
+      }
+    }
+
+    const mailResult = await sendCustomMailEvent({
+      eventType: "admin_private_notice",
+      userId: uid,
+      recipient: recipientEmail,
+      subject,
+      body: message,
+    });
+
+    let inAppSent = false;
+    if (alsoNotifyInApp) {
+      if (!isDatabaseConfigured) {
+        addMockUserNotification(uid, "Private Notice", subject, message);
+        inAppSent = true;
+      } else {
+        try {
+          await queryDatabase(
+            "INSERT INTO notifications (id, user_id, category, title, body) VALUES ($1, $2, 'Private Notice', $3, $4)",
+            [randomUUID(), uid, subject, message]
+          );
+          inAppSent = true;
+        } catch (notifError) {
+          console.error("In-app private notice persistence failed:", notifError);
+        }
+      }
+    }
+
+    await recordAudit(req, "SEND_PRIVATE_NOTICE", "user", uid, {
+      recipient: recipientEmail,
+      recipientName,
+      subject,
+      emailDelivered: mailResult.delivered,
+      inAppSent,
+    });
+
+    res.status(201).json({
+      ok: true,
+      recipient: recipientEmail,
+      emailDelivered: mailResult.delivered,
+      deliveryError: mailResult.error ?? null,
+      inAppSent,
+    });
   });
 
   router.patch("/customers/:uid/kyc", async (req, res) => {
@@ -433,7 +967,7 @@ export function createBetterAuthAdminRouter(): Router {
           userId: uid,
           recipient: result.email,
           values: {
-            firstName: result.name.trim().split(/\\s+/)[0] || "Investor",
+            firstName: result.name.trim().split(/\s+/)[0] || "Investor",
             status: status.replace(/_/g, " "),
           },
         });
@@ -1010,52 +1544,147 @@ export function createBetterAuthAdminRouter(): Router {
         queryDatabase<{
           id: string;
           user_id: string;
-          plan_name: string;
+          user_name: string;
+          user_email: string;
+          plan_snapshot: Record<string, unknown> | null;
           principal: string | number;
+          status: string;
+          started_at: Date | string | null;
+          matures_at: Date | string | null;
           created_at: Date | string;
         }>(
-          `SELECT id, user_id, COALESCE(plan_snapshot->>'name', 'Investment') AS plan_name, principal, created_at
-           FROM investments ORDER BY created_at DESC LIMIT 300`
+          `SELECT i.id,
+                  i.user_id,
+                  u.name AS user_name,
+                  u.email AS user_email,
+                  i.plan_snapshot,
+                  i.principal,
+                  i.status,
+                  i.started_at,
+                  i.matures_at,
+                  i.created_at
+           FROM investments i
+           JOIN "user" u ON u.id = i.user_id
+           ORDER BY i.created_at DESC
+           LIMIT 300`
         ),
         queryDatabase<{
           id: string;
           user_id: string;
+          user_name: string;
+          user_email: string;
           type: string;
           method: string | null;
+          destination: string | null;
           amount: string | number;
           currency: string;
           reference: string | null;
           status: string;
+          metadata: Record<string, unknown> | null;
           created_at: Date | string;
         }>(
-          `SELECT id, user_id, initcap(type) AS type, method, amount, currency, reference, initcap(status) AS status, created_at
-           FROM transactions ORDER BY created_at DESC LIMIT 300`
+          `SELECT t.id,
+                  t.user_id,
+                  u.name AS user_name,
+                  u.email AS user_email,
+                  initcap(t.type) AS type,
+                  t.method,
+                  t.destination,
+                  t.amount,
+                  t.currency,
+                  t.reference,
+                  initcap(t.status) AS status,
+                  t.metadata,
+                  t.created_at
+           FROM transactions t
+           JOIN "user" u ON u.id = t.user_id
+           ORDER BY t.created_at DESC
+           LIMIT 300`
         ),
       ]);
       const docs: CustomerDocumentDTO[] = [
-        ...invRows.rows.map((row) => ({
-          id: `agr-${row.id}`,
-          userId: row.user_id,
-          title: `${row.plan_name} Allocation Agreement`,
-          docType: "Agreement" as const,
-          reference: `INV-${row.id.slice(-8).toUpperCase()}`,
-          summary: `Principal allocation of $${Number(row.principal || 0).toFixed(2)} USD in ${row.plan_name}.`,
-          createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-        })),
-        ...txRows.rows.map((row) => ({
-          id: `txdoc-${row.id}`,
-          userId: row.user_id,
-          title: `${row.type} ${row.status} Record — ${row.method || "Account"}`,
-          docType:
-            row.type === "Deposit"
-              ? ("DepositConfirmation" as const)
-              : row.type === "Withdrawal"
-                ? ("WithdrawalRecord" as const)
-                : ("Receipt" as const),
-          reference: row.reference || row.id,
-          summary: `${row.type} of $${Number(row.amount || 0).toFixed(2)} ${row.currency || "USD"} · Status: ${row.status}.`,
-          createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-        })),
+        ...invRows.rows.map((row) => {
+          const snap = row.plan_snapshot ?? {};
+          const principal = number(row.principal, 0);
+          const dailyRatePct = number(snap.dailyRatePct, 0);
+          const durationDays = Math.max(1, Math.round(number(snap.durationDays, 30)));
+          const category = String(snap.category || "crypto");
+          const categoryLabel =
+            category === "stock"
+              ? "Global Equities"
+              : category === "estate"
+                ? "Real Estate"
+                : "Digital Assets";
+          const startDate = row.started_at
+            ? new Date(row.started_at).toISOString()
+            : new Date(row.created_at).toISOString();
+          const maturityDate = row.matures_at
+            ? new Date(row.matures_at).toISOString()
+            : new Date(new Date(startDate).getTime() + durationDays * 86400000).toISOString();
+          return buildInvestmentAgreementDocument(
+            {
+              uid: row.user_id,
+              name: row.user_name,
+              email: row.user_email,
+            },
+            {
+              id: row.id,
+              reference: `INV-${row.id.slice(-8).toUpperCase()}`,
+              planName: String(snap.name || "Investment Mandate"),
+              categoryLabel,
+              amount: principal,
+              dailyRatePct,
+              durationDays,
+              status: row.status.toLowerCase() === "completed" ? "Completed" : "Active",
+              startDate,
+              maturityDate,
+              expectedPaymentTerms: String(snap.returnTerms || ""),
+              paymentFrequency: String(snap.paymentFrequency || "Daily trading session accrual"),
+              settlementRail: String(snap.settlementRail || "USDT (TRC20) / Bank Wire"),
+              projectedCycleReturn: Number(((principal * dailyRatePct * durationDays) / 100).toFixed(2)),
+            }
+          );
+        }),
+        ...txRows.rows.map((row) => {
+          const mappedType: "Deposit" | "Withdrawal" | "Investment" | "Profit" | "Referral" =
+            row.type === "Deposit" ||
+            row.type === "Withdrawal" ||
+            row.type === "Investment" ||
+            row.type === "Profit" ||
+            row.type === "Referral"
+              ? row.type
+              : "Receipt" === row.type
+                ? "Profit"
+                : "Deposit";
+          const mappedStatus: "Pending" | "Completed" | "Rejected" =
+            row.status === "Pending" || row.status === "Processing"
+              ? "Pending"
+              : row.status === "Rejected" || row.status === "Failed"
+                ? "Rejected"
+                : "Completed";
+          return buildTransactionDocument(
+            {
+              uid: row.user_id,
+              name: row.user_name,
+              email: row.user_email,
+            },
+            {
+              id: row.id,
+              type: row.type === "Adjustment" || row.type === "Return" ? "Profit" : mappedType,
+              method: row.method || "Custody Ledger",
+              amount: number(row.amount, 0),
+              destination: row.destination || "Segregated Custody Account",
+              reference: row.reference || row.id,
+              status: mappedStatus,
+              currency: row.currency || "USD",
+              description:
+                typeof row.metadata?.description === "string"
+                  ? row.metadata.description
+                  : `${row.type} ledger settlement`,
+              createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+            }
+          );
+        }),
       ];
       res.json({ documents: docs });
     } catch (error) {
@@ -1257,6 +1886,30 @@ export function createBetterAuthAdminRouter(): Router {
     }
   });
 
+  router.get("/email-status", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const mail = getMailDeliveryStatus();
+    res.json({
+      ...mail,
+      roiEngineEnabled: process.env.PLAN_DRIVEN_ROI_ENABLED !== "false",
+      dailyRoiEmailEnabled: process.env.DAILY_ROI_EMAILS_ENABLED !== "false",
+    });
+  });
+
+  router.post("/roi/run", async (req: BetterAuthRequest, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    try {
+      const summary = await processPlanDrivenRoi();
+      await recordAudit(req, "RUN_ROI_ENGINE", "investment", "batch", { ...summary });
+      res.json({ ok: true, ...summary });
+    } catch (error) {
+      console.error("Manual admin ROI engine run failed:", error);
+      res.status(502).json({
+        error: error instanceof Error ? error.message : "Unable to process ROI payouts.",
+      });
+    }
+  });
+
   router.get("/email-outbox", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     if (!isDatabaseConfigured) {
@@ -1270,8 +1923,10 @@ export function createBetterAuthAdminRouter(): Router {
         recipient: string;
         payload: Record<string, unknown>;
         status: string;
+        last_error: string | null;
+        sent_at: Date | string | null;
         created_at: Date | string;
-      }>("SELECT id, event_type, recipient, payload, status, created_at FROM email_outbox ORDER BY created_at DESC LIMIT 50");
+      }>("SELECT id, event_type, recipient, payload, status, last_error, sent_at, created_at FROM email_outbox ORDER BY created_at DESC LIMIT 50");
       res.json({
         outbox: result.rows.map((r) => ({
           id: r.id,
@@ -1280,6 +1935,8 @@ export function createBetterAuthAdminRouter(): Router {
           subject: textValue(r.payload?.subject, r.event_type),
           body: textValue(r.payload?.body, ""),
           status: r.status,
+          lastError: r.last_error ?? (typeof r.payload?.error === "string" ? r.payload.error : null),
+          sentAt: r.sent_at ? new Date(r.sent_at).toISOString() : null,
           createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
         })),
       });

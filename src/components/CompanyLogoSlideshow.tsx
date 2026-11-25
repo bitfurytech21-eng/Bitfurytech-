@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
 const COMPANIES = [
   { name: "Strabella", detail: "Finance & Banking", image: "/images/partners/strabella.png" },
@@ -10,16 +10,43 @@ const COMPANIES = [
 
 export default function CompanyLogoSlideshow() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const touchStartX = useRef<number | null>(null);
   const activeCompany = COMPANIES[activeIndex];
 
-  const showCompany = (index: number) => {
-    setActiveIndex((index + COMPANIES.length) % COMPANIES.length);
+  useEffect(() => {
+    if (paused) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % COMPANIES.length);
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [paused]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const endX = e.changedTouches[0]?.clientX ?? touchStartX.current;
+    const delta = endX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(delta) < 35) return;
+    setActiveIndex((prev) =>
+      delta < 0
+        ? (prev + 1) % COMPANIES.length
+        : (prev - 1 + COMPANIES.length) % COMPANIES.length
+    );
   };
 
   return (
     <section
       aria-labelledby="company-logos-heading"
       className="border-y border-[#DCE4EC] bg-[#F6F8FA]"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl space-y-2 text-center">
@@ -35,69 +62,43 @@ export default function CompanyLogoSlideshow() {
         </div>
 
         <div
-          className="mx-auto mt-8 flex max-w-xl items-center justify-center gap-3 sm:gap-6"
-          role="group"
+          className="mx-auto mt-8 max-w-xl"
+          role="region"
           aria-roledescription="carousel"
           aria-label="Company logos"
         >
-          <button
-            type="button"
-            onClick={() => showCompany(activeIndex - 1)}
-            aria-label="Previous company logo"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#CBD6E2] bg-white text-[#1B4962] transition-colors hover:border-[#1B4962] hover:bg-[#EDF3F7]"
-          >
-            <ChevronLeft aria-hidden="true" className="h-5 w-5" />
-          </button>
-
           <div
             id="company-logo-slide"
-            className="flex min-h-36 min-w-0 flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-[#DCE4EC] bg-white px-5 py-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:min-h-40"
+            className="flex min-h-36 min-w-0 flex-col items-center justify-center rounded-xl border border-[#DCE4EC] bg-white px-6 py-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:min-h-40 overflow-hidden"
             role="group"
             aria-roledescription="slide"
             aria-label={`Company logo: ${activeCompany.name}`}
           >
-            <img
-              key={activeCompany.image}
-              src={activeCompany.image}
-              alt={`${activeCompany.name} logo`}
-              className="h-12 max-w-full object-contain sm:h-14"
-            />
-            <p className="text-sm font-heading font-semibold text-[#102030]">
-              {activeCompany.name}
-              {activeCompany.detail && (
-                <span className="font-normal text-[#5A6B7C]"> · {activeCompany.detail}</span>
-              )}
-            </p>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeCompany.name}
+                initial={{ opacity: 0, x: 18 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -18 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col items-center justify-center gap-3 text-center"
+              >
+                <img
+                  src={activeCompany.image}
+                  alt={`${activeCompany.name} logo`}
+                  className="h-12 max-w-full object-contain sm:h-14"
+                />
+                <p className="text-sm font-heading font-semibold text-[#102030]">
+                  {activeCompany.name}
+                  {activeCompany.detail && (
+                    <span className="font-normal text-[#5A6B7C]"> · {activeCompany.detail}</span>
+                  )}
+                </p>
+              </motion.div>
+            </AnimatePresence>
           </div>
-
-          <button
-            type="button"
-            onClick={() => showCompany(activeIndex + 1)}
-            aria-label="Next company logo"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#CBD6E2] bg-white text-[#1B4962] transition-colors hover:border-[#1B4962] hover:bg-[#EDF3F7]"
-          >
-            <ChevronRight aria-hidden="true" className="h-5 w-5" />
-          </button>
         </div>
 
-        <div
-          className="mt-4 flex justify-center gap-2"
-          role="group"
-          aria-label="Choose a company logo"
-        >
-          {COMPANIES.map((company, index) => (
-            <button
-              key={company.name}
-              type="button"
-              onClick={() => showCompany(index)}
-              aria-label={`Show ${company.name}`}
-              aria-pressed={index === activeIndex}
-              className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                index === activeIndex ? "bg-[#B92841]" : "bg-[#CBD6E2] hover:bg-[#8A99A8]"
-              }`}
-            />
-          ))}
-        </div>
         <p className="sr-only" aria-live="polite" aria-atomic="true">
           Showing {activeCompany.name}.
         </p>

@@ -3,11 +3,15 @@ import FinancialAmount from "../../components/FinancialAmount";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowUpRight,
+  BarChart3,
   Calendar,
+  CheckCircle2,
   Eye,
+  Layers,
   Plus,
   RefreshCw,
   Search,
+  TrendingUp,
 } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
@@ -15,6 +19,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   ErrorState,
   FormField,
@@ -374,29 +379,41 @@ export default function MyInvestments() {
         <div className="space-y-6">
           {/* Summary KPI Strip */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card padding="md">
-              <p className="text-xs text-slate-500">Total Invested</p>
-              <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {<FinancialAmount value={data?.summary.totalInvested ?? 0} size="md" />}
-              </p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={BarChart3} tone="amber" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">Total Invested</p>
+                <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1 truncate">
+                  {<FinancialAmount value={data?.summary.totalInvested ?? 0} size="md" />}
+                </p>
+              </div>
             </Card>
-            <Card padding="md">
-              <p className="text-xs text-slate-500">Active Capital</p>
-              <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {<FinancialAmount value={data?.summary.activeCapital ?? 0} size="md" />}
-              </p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={Layers} tone="navy" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">Active Capital</p>
+                <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1 truncate">
+                  {<FinancialAmount value={data?.summary.activeCapital ?? 0} size="md" />}
+                </p>
+              </div>
             </Card>
-            <Card padding="md">
-              <p className="text-xs text-slate-500">Active Mandates</p>
-              <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {data?.summary.activeCount ?? 0}
-              </p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={TrendingUp} tone="green" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">Active Mandates</p>
+                <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+                  {data?.summary.activeCount ?? 0}
+                </p>
+              </div>
             </Card>
-            <Card padding="md">
-              <p className="text-xs text-slate-500">Completed Mandates</p>
-              <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1">
-                {data?.summary.completedCount ?? 0}
-              </p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={CheckCircle2} tone="navy" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">Completed Mandates</p>
+                <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+                  {data?.summary.completedCount ?? 0}
+                </p>
+              </div>
             </Card>
           </div>
 

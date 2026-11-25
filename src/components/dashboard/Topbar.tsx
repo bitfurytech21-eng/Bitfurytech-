@@ -14,6 +14,7 @@ import {
 import { DropdownItem, DropdownMenu } from "../ui";
 import {
   formatTimestamp,
+  isSafeProfilePhotoUrl,
   NotificationMessage,
   sessionApiRequest,
 } from "../../services/dashboardApi";
@@ -28,6 +29,7 @@ export interface TopbarProps {
   breadcrumbs: BreadcrumbSegment[];
   userEmail: string;
   displayName: string;
+  photoUrl?: string | null;
   userId?: string;
   isAdmin: boolean;
   notifications: NotificationMessage[];
@@ -41,6 +43,7 @@ export default function Topbar({
   breadcrumbs,
   userEmail,
   displayName,
+  photoUrl,
   userId,
   isAdmin,
   notifications,
@@ -122,35 +125,36 @@ export default function Topbar({
   ];
 
   const initial = (displayName || userEmail || "B").trim().charAt(0).toUpperCase();
+  const safePhoto = isSafeProfilePhotoUrl(photoUrl) ? photoUrl : null;
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white border-b border-[#DCE4EC] px-4 sm:px-8 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 h-16 bg-[#1F3649] border-b border-white/15 px-4 sm:px-8 flex items-center justify-between gap-4 text-white">
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
           onClick={onOpenMobileMenu}
           aria-label="Open navigation menu"
-          className="lg:hidden min-w-[44px] min-h-[44px] -ml-2 rounded-[5px] text-[#1B4962] hover:bg-[#EDF3F7] flex items-center justify-center cursor-pointer"
+          className="lg:hidden min-w-[44px] min-h-[44px] -ml-2 rounded-[5px] text-slate-100 hover:text-white hover:bg-white/10 flex items-center justify-center cursor-pointer"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         <div className="min-w-0">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs text-[#5A6B7C] truncate">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs text-slate-300 truncate">
             {breadcrumbs.map((crumb, idx) => (
               <span key={`${crumb.label}-${idx}`} className="inline-flex items-center gap-1 min-w-0">
-                {idx > 0 && <ChevronRight className="w-3 h-3 text-[#7A8B9C] shrink-0" />}
+                {idx > 0 && <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />}
                 {crumb.to && idx < breadcrumbs.length - 1 ? (
-                  <Link to={crumb.to} className="hover:text-[#1B4962] whitespace-nowrap">
+                  <Link to={crumb.to} className="hover:text-white whitespace-nowrap transition-colors">
                     {crumb.label}
                   </Link>
                 ) : (
-                  <span className="text-[#102030] font-medium truncate">{crumb.label}</span>
+                  <span className="text-white font-medium truncate">{crumb.label}</span>
                 )}
               </span>
             ))}
           </nav>
-          <p className="text-sm sm:text-base font-bold font-heading text-[#102030] truncate">{title}</p>
+          <p className="text-sm sm:text-base font-bold font-heading text-white truncate">{title}</p>
         </div>
       </div>
 
@@ -162,12 +166,12 @@ export default function Topbar({
             aria-expanded={notifOpen}
             aria-haspopup="dialog"
             aria-label="Account notifications"
-            className="inline-flex items-center gap-2 min-h-[40px] px-3 py-2 rounded-[5px] border border-[#DCE4EC] bg-white hover:bg-[#F6F8FA] text-[#102030] text-xs font-medium whitespace-nowrap cursor-pointer"
+            className="inline-flex items-center gap-2 min-h-[40px] px-3 py-2 rounded-[5px] border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-medium whitespace-nowrap transition-colors cursor-pointer"
           >
-            <Bell className="w-4 h-4 text-[#1B4962] shrink-0" />
+            <Bell className="w-4.5 h-4.5 text-white shrink-0" strokeWidth={2} />
             <span className="hidden sm:inline">Notifications</span>
             {unreadCount > 0 && (
-              <span className="font-mono tabular-nums font-bold text-[#E94D65]">
+              <span className="font-mono tabular-nums font-bold text-[#FFD1D8]">
                 ({unreadCount})
               </span>
             )}
@@ -231,13 +235,24 @@ export default function Topbar({
 
         <DropdownMenu
           label="Account menu"
+          tone="dark"
           items={accountMenuItems}
           trigger={
             <span className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-none bg-[#1B4962] text-white flex items-center justify-center font-bold text-xs shrink-0">
-                {initial}
-              </span>
-              <span className="hidden sm:inline max-w-[140px] truncate text-left font-semibold text-[#102030]">
+              {safePhoto ? (
+                <span className="w-7 h-7 rounded-md overflow-hidden border border-white/25 bg-white/10 shrink-0">
+                  <img
+                    src={safePhoto}
+                    alt={displayName || "Investor"}
+                    className="w-full h-full object-cover"
+                  />
+                </span>
+              ) : (
+                <span className="w-7 h-7 rounded-md bg-white/15 border border-white/20 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  {initial}
+                </span>
+              )}
+              <span className="hidden sm:inline max-w-[140px] truncate text-left font-semibold text-white">
                 {displayName || userEmail || "Account"}
               </span>
             </span>

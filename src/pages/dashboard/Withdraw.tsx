@@ -7,6 +7,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   FormField,
   NotificationBanner,
@@ -217,7 +218,7 @@ export default function Withdraw() {
           <CardHeader
             title="Withdrawal Disbursement Request"
             subtitle={`Minimum withdrawal ${formatUsd(config.minWithdrawal)} · Fee ${config.feeRatePct}% (min ${formatUsd(config.minFeeUsd)})`}
-            action={<ArrowUpRight className="w-4 h-4 text-slate-400" />}
+            action={<DashboardSymbol icon={ArrowUpRight} tone="red" size="md" />}
           />
           <CardBody>
             <form onSubmit={handleSubmit} className="space-y-5">

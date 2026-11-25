@@ -28,6 +28,12 @@ export default function EmailTemplatesPage() {
   const [saving, setSaving] = useState(false);
   const [templatesUnavailable, setTemplatesUnavailable] = useState(false);
   const [outboxUnavailable, setOutboxUnavailable] = useState(false);
+  const [mailStatus, setMailStatus] = useState<{
+    configured: boolean;
+    missingKeys: string[];
+    roiEngineEnabled: boolean;
+    dailyRoiEmailEnabled: boolean;
+  } | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const rulesUnavailable = templatesUnavailable || outboxUnavailable;
 
@@ -52,6 +58,14 @@ export default function EmailTemplatesPage() {
           console.error("Email outbox fetch failed:", error);
           setOutboxUnavailable(true);
         }),
+      sessionApiRequest<{
+        configured: boolean;
+        missingKeys: string[];
+        roiEngineEnabled: boolean;
+        dailyRoiEmailEnabled: boolean;
+      }>("/api/admin/email-status")
+        .then((res) => setMailStatus(res))
+        .catch(() => setMailStatus(null)),
     ]);
   }, [isAdmin]);
 
@@ -84,10 +98,12 @@ export default function EmailTemplatesPage() {
   const previewValues = {
     firstName: "Alex",
     email: "alex@example.com",
-    amount: "$1,250.00",
+    amount: "125.00",
+    plan: "Crypto Prime",
     method: "USDT (TRC20)",
     reference: "DEP-482193",
     status: "Approved",
+    reportDate: new Date().toISOString().slice(0, 10),
   };
 
   const updateDraft = (patch: Partial<{ subject: string; body: string; enabled: boolean }>) => {
@@ -134,11 +150,21 @@ export default function EmailTemplatesPage() {
       subtitle="Manage event copy and review queued platform email events."
       section="admin"
     >
-      <div role="status" className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-950">
+      <div
+        role="status"
+        className={`flex items-start gap-3 rounded-md border p-4 ${
+          mailStatus && !mailStatus.configured
+            ? "border-amber-300 bg-amber-50 text-amber-950"
+            : "border-emerald-200 bg-emerald-50 text-emerald-950"
+        }`}
+      >
         <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
         <p className="text-sm leading-relaxed">
-          Transactional email delivery uses Resend when configured. Wired events can also be queued
-          in the platform outbox. Verification and password-reset emails continue to use Better Auth.
+          {mailStatus
+            ? mailStatus.configured
+              ? "Resend email delivery is configured and active for ROI payouts, account updates, and transactional notifications."
+              : `Email delivery is currently paused because ${mailStatus.missingKeys.join(" and ")} ${mailStatus.missingKeys.length === 1 ? "is" : "are"} not configured on the server. Add those environment variables to deliver ROI and account emails.`
+            : "Transactional email delivery uses Resend when configured. Verification and password-reset emails continue to use Better Auth."}
         </p>
       </div>
 
@@ -284,21 +310,43 @@ export default function EmailTemplatesPage() {
             </div>
             {outbox.length ? (
               <ul className="flex flex-col gap-3">
-                {outbox.map((message) => (
-                  <li key={message.id} className="rounded-md border border-slate-200 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-slate-900">
-                        {DEFAULT_MAIL_TEMPLATES.find((item) => item.eventType === message.eventType)?.label ?? message.eventType}
-                      </span>
-                      <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
-                        Awaiting provider
-                      </span>
-                    </div>
-                    <p className="mt-1 break-all text-xs text-slate-600">{message.recipient}</p>
-                    <p className="mt-1 text-sm text-slate-800">{message.subject}</p>
-                    <p className="mt-2 text-[11px] text-slate-500">{formatTimestamp(message.createdAt)}</p>
-                  </li>
-                ))}
+                {outbox.map((message) => {
+                  const normalizedStatus = message.status.toLowerCase();
+                  const badgeClass =
+                    normalizedStatus === "sent"
+                      ? "bg-emerald-100 text-emerald-900"
+                      : normalizedStatus === "failed"
+                        ? "bg-rose-100 text-rose-900"
+                        : "bg-amber-100 text-amber-900";
+                  const badgeLabel =
+                    normalizedStatus === "sent"
+                      ? "Sent"
+                      : normalizedStatus === "failed"
+                        ? "Failed"
+                        : "Pending";
+                  return (
+                    <li key={message.id} className="rounded-md border border-slate-200 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-900">
+                          {DEFAULT_MAIL_TEMPLATES.find((item) => item.eventType === message.eventType)?.label ?? message.eventType}
+                        </span>
+                        <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${badgeClass}`}>
+                          {badgeLabel}
+                        </span>
+                      </div>
+                      <p className="mt-1 break-all text-xs text-slate-600">{message.recipient}</p>
+                      <p className="mt-1 text-sm text-slate-800">{message.subject}</p>
+                      {message.lastError && (
+                        <p className="mt-1.5 rounded bg-rose-50 px-2 py-1 text-xs text-rose-800">
+                          {message.lastError}
+                        </p>
+                      )}
+                      <p className="mt-2 text-[11px] text-slate-500">
+                        {formatTimestamp(message.sentAt ?? message.createdAt)}
+                      </p>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="rounded-md border border-dashed border-slate-300 p-4 text-sm text-slate-600">

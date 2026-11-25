@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { DashboardOverviewDTO } from "../../services/dashboardApi";
 import { formatUsd } from "../../trading/tradingPage";
 import { Card, CardBody, CardHeader } from "../ui";
@@ -100,17 +101,21 @@ export default function PortfolioCharts({ data }: PortfolioChartsProps) {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
               <span className="text-[10px] font-medium text-[#5A6B7C]">Invested</span>
-              <span className="text-xs font-bold font-mono tabular-nums text-[#102030]">
+              <span className="text-xs font-bold font-tabular-sans tabular-nums text-[#102030]">
                 {formatUsd(totalAllocated)}
               </span>
             </div>
           </div>
 
-          <div className="flex-1 w-full space-y-2.5">
+          <div className="flex-1 w-full grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-2.5 text-xs">
             {portfolioSummary.map((bucket) => {
               const color = SECTOR_PALETTE[bucket.category] ?? "#1B4962";
+              const pct = Math.round(Number(bucket.sharePct) || 0);
+              const amount = Number.isFinite(Number(bucket.investedAmount))
+                ? Number(bucket.investedAmount)
+                : 0;
               return (
-                <div key={bucket.category} className="flex items-center justify-between gap-3 text-xs">
+                <Fragment key={bucket.category}>
                   <div className="flex items-center gap-2 min-w-0">
                     <span
                       className="w-2.5 h-2.5 shrink-0"
@@ -119,10 +124,13 @@ export default function PortfolioCharts({ data }: PortfolioChartsProps) {
                     />
                     <span className="font-semibold text-[#102030] truncate">{bucket.label}</span>
                   </div>
-                  <span className="font-mono tabular-nums text-[#5A6B7C] shrink-0">
-                    {bucket.sharePct}% · {formatUsd(bucket.investedAmount)}
+                  <span className="font-tabular-sans tabular-nums text-right text-[#5A6B7C] whitespace-nowrap">
+                    {pct}%
                   </span>
-                </div>
+                  <span className="font-tabular-sans tabular-nums text-right text-[#5A6B7C] whitespace-nowrap">
+                    {formatUsd(amount)}
+                  </span>
+                </Fragment>
               );
             })}
           </div>
@@ -170,11 +178,11 @@ export default function PortfolioCharts({ data }: PortfolioChartsProps) {
                 >
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <span className="font-semibold text-[#5A6B7C]">{slice.label}</span>
-                    <span className="font-mono tabular-nums text-[#102030] font-semibold">
+                    <span className="font-tabular-sans tabular-nums text-[#102030] font-semibold">
                       {pct}%
                     </span>
                   </div>
-                  <p className="text-base font-bold font-mono tabular-nums text-[#102030]">
+                  <p className="text-base font-bold font-tabular-sans tabular-nums text-[#102030]">
                     {formatUsd(slice.value)}
                   </p>
                   <div className="h-1.5 w-full bg-[#DCE4EC] rounded-[5px] overflow-hidden">

@@ -144,6 +144,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+.font-tabular-sans {
+  font-family: "Inter", var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 0;
+}
+
 .bf-container {
   max-width: var(--bf-container-max);
   margin-inline: auto;

@@ -7,6 +7,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   FormField,
   NotificationBanner,
@@ -178,7 +179,7 @@ export default function Deposit() {
           <CardHeader
             title="Submit Deposit Notice"
             subtitle="Balances update strictly after settlement desk verification — never client-side"
-            action={<ArrowDownCircle className="w-4 h-4 text-slate-400" />}
+            action={<DashboardSymbol icon={ArrowDownCircle} tone="green" size="md" />}
           />
           <CardBody>
             <form onSubmit={handleSubmit} className="space-y-5">

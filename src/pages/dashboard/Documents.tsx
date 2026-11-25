@@ -6,11 +6,15 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   ErrorState,
-  Modal,
   TableColumn,
 } from "../../components/ui";
+import {
+  downloadInstitutionalHtml,
+  InstitutionalDocumentModal,
+} from "../../components/documents/InstitutionalDocumentModal";
 import { useAuth } from "../../hooks/useAuth";
 import {
   CustomerDocumentDTO,
@@ -60,53 +64,36 @@ export default function Documents() {
     return documents.filter((d) => d.docType === categoryFilter);
   }, [categoryFilter, documents]);
 
-  const downloadDocumentCopy = (docItem: CustomerDocumentDTO) => {
-    const content = [
-      "BITFURYTECH CLIENT RECORD DOCUMENT",
-      "==================================",
-      `Title:       ${docItem.title}`,
-      `Category:    ${docItem.docType}`,
-      `Reference:   ${docItem.reference}`,
-      `Date:        ${formatIsoDate(docItem.createdAt)}`,
-      `Owner UID:   ${docItem.userId}`,
-      "----------------------------------",
-      docItem.summary,
-      "==================================",
-    ].join("\n");
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `bitfurytech-${docItem.reference}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const columns: TableColumn<CustomerDocumentDTO>[] = [
     {
       key: "title",
       header: "Document",
       render: (doc) => (
-        <span className="font-semibold text-slate-900">{doc.title}</span>
+        <div className="min-w-[220px]">
+          <p className="font-semibold text-[#102030]">{doc.title}</p>
+          <p className="text-[11px] text-[#5A6B7C] line-clamp-1">{doc.summary}</p>
+        </div>
       ),
     },
     {
       key: "docType",
       header: "Category",
-      render: (doc) => <span className="text-slate-600">{doc.docType}</span>,
+      render: (doc) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#EDF3F7] text-[#1B4962] text-[11px] font-semibold">
+          {doc.fullDocument?.documentCode || doc.docType}
+        </span>
+      ),
     },
     {
       key: "reference",
       header: "Reference",
-      render: (doc) => <span className="font-mono text-slate-700">{doc.reference}</span>,
+      render: (doc) => <span className="font-mono text-[#3B4C5E]">{doc.reference}</span>,
     },
     {
       key: "date",
       header: "Date",
       render: (doc) => (
-        <span className="font-mono text-slate-500">{formatIsoDate(doc.createdAt)}</span>
+        <span className="text-[#5A6B7C] tabular-nums">{formatIsoDate(doc.createdAt)}</span>
       ),
     },
     {
@@ -117,12 +104,12 @@ export default function Documents() {
         <div className="inline-flex items-center gap-1.5">
           <Button variant="ghost" size="sm" onClick={() => setActiveDoc(doc)}>
             <Eye className="w-3.5 h-3.5" />
-            <span>Inspect</span>
+            <span>Open Agreement</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadDocumentCopy(doc)}
+            onClick={() => downloadInstitutionalHtml(doc)}
             aria-label={`Download ${doc.reference}`}
           >
             <Download className="w-3.5 h-3.5" />
@@ -135,7 +122,7 @@ export default function Documents() {
   return (
     <DashboardLayout
       title="Documents"
-      subtitle="Inspect and download your investment agreements, transaction receipts, deposit confirmations, withdrawal records, and account disclosures."
+      subtitle="Inspect, print, and download your institutional investment agreements, master custody disclosures, deposit confirmations, withdrawal instruments, and ledger receipts."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadDocs()}>
           <RefreshCw className="w-3.5 h-3.5" />
@@ -159,7 +146,7 @@ export default function Documents() {
                 onClick={() => setCategoryFilter(t.id)}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   categoryFilter === t.id
-                    ? "bg-slate-900 text-white"
+                    ? "bg-[#1B4962] text-white"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
               >
@@ -171,8 +158,8 @@ export default function Documents() {
           <Card>
             <CardHeader
               title="Authenticated Client Vault"
-              subtitle="Protected strictly to your verified user identity"
-              action={<FileText className="w-4 h-4 text-slate-400" />}
+              subtitle="Full institutional agreements and custody instruments protected strictly to your verified user identity"
+              action={<DashboardSymbol icon={FileText} tone="navy" size="md" />}
             />
             <CardBody>
               <DataTable
@@ -181,56 +168,18 @@ export default function Documents() {
                 rowKey={(d) => d.id}
                 loading={loading}
                 emptyTitle="No Documents in This Category"
-                emptyDescription="Agreements, receipts, and confirmations are automatically generated as you deposit, invest, or withdraw."
+                emptyDescription="Full institutional agreements, receipts, and confirmations are automatically generated as you deposit, invest, or withdraw."
               />
             </CardBody>
           </Card>
         </div>
       )}
 
-      <Modal
-        open={Boolean(activeDoc)}
+      <InstitutionalDocumentModal
+        documentItem={activeDoc}
         onClose={() => setActiveDoc(null)}
-        title={activeDoc?.title || "Document"}
-        description={activeDoc ? `${activeDoc.docType} · Reference ${activeDoc.reference}` : undefined}
-        maxWidthClass="max-w-lg"
-        footer={
-          activeDoc && (
-            <>
-              <Button variant="outline" size="sm" onClick={() => setActiveDoc(null)}>
-                Close
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => downloadDocumentCopy(activeDoc)}
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download Copy</span>
-              </Button>
-            </>
-          )
-        }
-      >
-        {activeDoc && (
-          <div className="space-y-3 text-xs text-slate-700 leading-relaxed">
-            <p className="font-mono text-slate-500">
-              Recorded Date: {formatIsoDate(activeDoc.createdAt)}
-            </p>
-            <p>{activeDoc.summary}</p>
-            {activeDoc.fileUrl && (
-              <a
-                href={activeDoc.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block font-semibold text-[#1B4962] hover:text-[#B92841] hover:underline"
-              >
-                Open Attached File
-              </a>
-            )}
-          </div>
-        )}
-      </Modal>
+      />
     </DashboardLayout>
   );
 }
+

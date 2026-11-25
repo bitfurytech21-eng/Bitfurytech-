@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Play, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import AdminLayout from "../../layouts/AdminLayout";
 import {
   Button,
@@ -40,7 +40,7 @@ export default function AdminInvestments() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [banner, setBanner] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [banner, setBanner] = useState<{ tone: "success" | "error" | "info"; text: string } | null>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Completed">("All");
@@ -49,6 +49,7 @@ export default function AdminInvestments() {
   const [nextStatus, setNextStatus] = useState<"Active" | "Completed">("Completed");
   const [auditReason, setAuditReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [runningRoi, setRunningRoi] = useState(false);
 
   const loadInvestments = useCallback(
     async (isRefresh = false) => {
@@ -130,6 +131,33 @@ export default function AdminInvestments() {
     }
   };
 
+  const handleRunRoiCycle = async () => {
+    setRunningRoi(true);
+    setBanner(null);
+    try {
+      const res = await sessionApiRequest<{
+        ok: boolean;
+        processed: number;
+        payoutsCreated: number;
+        totalPaidUsd: number;
+        emailsSent: number;
+        emailsFailed: number;
+      }>("/api/admin/roi/run", { method: "POST" });
+      setBanner({
+        tone: res.emailsFailed > 0 ? "info" : "success",
+        text: `ROI cycle complete (${res.processed} active positions checked): ${res.payoutsCreated} payouts credited totaling ${formatUsd(res.totalPaidUsd)}. Emails sent: ${res.emailsSent}${res.emailsFailed > 0 ? `, failed: ${res.emailsFailed} (see Email Templates outbox)` : ""}.`,
+      });
+      await loadInvestments(true);
+    } catch (err) {
+      setBanner({
+        tone: "error",
+        text: err instanceof Error ? err.message : "Unable to process ROI cycle.",
+      });
+    } finally {
+      setRunningRoi(false);
+    }
+  };
+
   const columns: TableColumn<AdminInvestmentRow>[] = [
     {
       key: "ref",
@@ -195,15 +223,26 @@ export default function AdminInvestments() {
       title="Investment Administration"
       subtitle="Monitor customer investment positions, maturity schedules, and apply audited lifecycle status updates."
       actions={
-        <Button
-          variant="outline"
-          size="sm"
-          loading={refreshing}
-          onClick={() => void loadInvestments(true)}
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            loading={runningRoi}
+            onClick={() => void handleRunRoiCycle()}
+          >
+            <Play className="w-3.5 h-3.5" />
+            <span>Process Due ROI</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            loading={refreshing}
+            onClick={() => void loadInvestments(true)}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh</span>
+          </Button>
+        </div>
       }
     >
       <NotificationBanner

@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Mail,
   ShieldCheck,
 } from "lucide-react";
@@ -21,12 +19,14 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { useInvestmentPlans } from "../../hooks/useInvestmentPlans";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { EditorialIcon } from "../../components/EditorialArtwork";
 import InvestorTestimonials from "../../components/InvestorTestimonials";
 import BoardLeadershipSection from "../../components/BoardLeadershipSection";
 import HighlightMetricsSection from "../../components/HighlightMetricsSection";
+import HomeLiveTradeSection from "../../components/HomeLiveTradeSection";
 import PaymentMethods from "../../components/PaymentMethods";
+import CompanyOverviewVideo from "../../components/CompanyOverviewVideo";
 import { PropertyOffering } from "../../services/dashboardApi";
 import { MandateCategory } from "../../trading/tradingPage";
 import { ASSET_CLASS_GUIDES } from "./assetClassData";
@@ -262,6 +262,8 @@ export default function Home() {
   const { plans, loading: plansLoading, error: plansError } = useInvestmentPlans();
 
   const [slideIdx, setSlideIdx] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
+  const heroTouchStartX = useRef<number | null>(null);
 
   const [properties, setProperties] = useState<PropertyOffering[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
@@ -275,16 +277,31 @@ export default function Home() {
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactStatus, setContactStatus] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Rotate hero slides cleanly every 7s unless reduced-motion is preferred
+  // Rotate hero slides cleanly without arrow or bar controls
   useEffect(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
+    if (heroPaused) return;
     const timer = window.setInterval(() => {
       setSlideIdx((prev) => (prev + 1) % HERO_SLIDES.length);
-    }, 7000);
+    }, 5500);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [heroPaused]);
+
+  const handleHeroTouchStart = (e: React.TouchEvent) => {
+    heroTouchStartX.current = e.touches[0]?.clientX ?? null;
+  };
+
+  const handleHeroTouchEnd = (e: React.TouchEvent) => {
+    if (heroTouchStartX.current === null) return;
+    const endX = e.changedTouches[0]?.clientX ?? heroTouchStartX.current;
+    const delta = endX - heroTouchStartX.current;
+    heroTouchStartX.current = null;
+    if (Math.abs(delta) < 40) return;
+    setSlideIdx((prev) =>
+      delta < 0
+        ? (prev + 1) % HERO_SLIDES.length
+        : (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length
+    );
+  };
 
   useEffect(() => {
     let active = true;
@@ -373,97 +390,87 @@ export default function Home() {
   return (
     <PublicLayout>
       {/* 1. Homepage Introduction & Rotating Hero Banner */}
-      <section aria-label="Featured investment overview" className="relative isolate overflow-hidden bg-[#102f43] text-white">
+      <section
+        aria-label="Featured investment overview"
+        className="relative isolate overflow-hidden bg-[#102f43] text-white"
+        onMouseEnter={() => setHeroPaused(true)}
+        onMouseLeave={() => setHeroPaused(false)}
+        onTouchStart={handleHeroTouchStart}
+        onTouchEnd={handleHeroTouchEnd}
+      >
         <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_12%_12%,rgba(233,77,101,0.2),transparent_36%),linear-gradient(115deg,#102f43_0%,#1B4962_58%,#112e3e_100%)]" />
         <div className="relative mx-auto grid max-w-7xl items-stretch gap-10 px-4 py-14 sm:px-6 lg:grid-cols-12 lg:px-8 lg:py-24">
           <div className="flex flex-col justify-center space-y-6 lg:col-span-7">
-            <p className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[11px] font-heading font-bold uppercase tracking-[0.16em] text-[#ffd0d7]">
-              {activeSlide.kicker}
-            </p>
-            <h1
-              className="max-w-3xl font-heading font-bold tracking-[-0.035em] text-white text-balance leading-[1.04]"
-              style={{ fontSize: "clamp(2.5rem, 5vw, 4.35rem)" }}
-            >
-              {activeSlide.headline}
-            </h1>
-            <p className="text-base sm:text-lg text-slate-200 max-w-2xl leading-relaxed">
-              {activeSlide.description}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              {user ? (
-                <Link
-                  to="/dashboard"
-                  className={buttonClasses({ variant: "primary", size: "lg" })}
-                >
-                  <span>Open Client Dashboard</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              ) : (
-                <Link
-                  to={activeSlide.primaryTo}
-                  className={buttonClasses({ variant: "primary", size: "lg" })}
-                >
-                  <span>{activeSlide.primaryLabel}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              )}
-
-              <Link
-                to={user ? "/investments-catalog" : activeSlide.secondaryTo}
-                className={buttonClasses({ variant: "outlineDark", size: "lg" })}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSlide.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="space-y-6"
               >
-                {user ? "Explore Opportunities" : activeSlide.secondaryLabel}
-              </Link>
-            </div>
+                <p className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[11px] font-heading font-bold uppercase tracking-[0.16em] text-[#ffd0d7]">
+                  {activeSlide.kicker}
+                </p>
+                <h1
+                  className="max-w-3xl font-heading font-bold tracking-[-0.035em] text-white text-balance leading-[1.04]"
+                  style={{ fontSize: "clamp(2.5rem, 5vw, 4.35rem)" }}
+                >
+                  {activeSlide.headline}
+                </h1>
+                <p className="text-base sm:text-lg text-slate-200 max-w-2xl leading-relaxed">
+                  {activeSlide.description}
+                </p>
 
-            {/* Banner Slide Controls */}
-            <div className="flex items-center gap-4 pt-3" aria-label="Hero carousel controls">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSlideIdx((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)
-                  }
-                  aria-label="Previous hero banner"
-                  className="w-9 h-9 border border-white/30 hover:bg-white/10 text-white flex items-center justify-center rounded-none cursor-pointer transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSlideIdx((prev) => (prev + 1) % HERO_SLIDES.length)}
-                  aria-label="Next hero banner"
-                  className="w-9 h-9 border border-white/30 hover:bg-white/10 text-white flex items-center justify-center rounded-none cursor-pointer transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex items-center gap-2" role="tablist" aria-label="Hero banner slides">
-                {HERO_SLIDES.map((s, idx) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={slideIdx === idx}
-                    aria-label={`Slide ${idx + 1}: ${s.kicker}`}
-                    onClick={() => setSlideIdx(idx)}
-                    className={`h-2 transition-all cursor-pointer rounded-none ${
-                      slideIdx === idx ? "w-8 bg-[#E94D65]" : "w-3 bg-white/35 hover:bg-white/60"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  {user ? (
+                    <Link
+                      to="/dashboard"
+                      className={buttonClasses({ variant: "primary", size: "lg" })}
+                    >
+                      <span>Open Client Dashboard</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  ) : (
+                    <Link
+                      to={activeSlide.primaryTo}
+                      className={buttonClasses({ variant: "primary", size: "lg" })}
+                    >
+                      <span>{activeSlide.primaryLabel}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  )}
+
+                  <Link
+                    to={user ? "/investments-catalog" : activeSlide.secondaryTo}
+                    className={buttonClasses({ variant: "outlineDark", size: "lg" })}
+                  >
+                    {user ? "Explore Opportunities" : activeSlide.secondaryLabel}
+                  </Link>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           <div className="relative min-h-[300px] overflow-hidden rounded-2xl border border-white/15 bg-[#14374B] shadow-[0_28px_80px_rgba(4,18,29,0.35)] lg:col-span-5 lg:min-h-[460px]">
-            <ResilientImage
-              src={activeSlide.image}
-              alt={activeSlide.imageAlt}
-              fallbackLabel="BitfuryTech Custody Architecture"
-              className="w-full h-full object-cover"
-            />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSlide.id}
+                initial={{ opacity: 0.2, scale: 1.02 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0.2 }}
+                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                className="h-full w-full"
+              >
+                <ResilientImage
+                  src={activeSlide.image}
+                  alt={activeSlide.imageAlt}
+                  fallbackLabel="BitfuryTech Custody Architecture"
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
+            </AnimatePresence>
             <div className="absolute inset-0 bg-gradient-to-t from-[#112E3E]/90 via-[#112E3E]/20 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#102f43]/95 via-[#102f43]/65 to-transparent px-6 pb-6 pt-20 text-xs text-slate-200 sm:px-8 sm:pb-8">
               <p className="font-heading font-bold text-white text-sm">{activeSlide.kicker}</p>
@@ -474,6 +481,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* 1b. Live Market Ticker & Integrated Trade View Chart */}
+      <HomeLiveTradeSection />
 
       {/* 2. Platform Scale & Animated Metric Rings */}
       <HighlightMetricsSection />
@@ -672,7 +682,7 @@ export default function Home() {
           </div>
 
           <section className="grid items-center gap-8 rounded-2xl border border-[#DCE4EC] bg-white p-5 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:p-7 lg:grid-cols-12">
-            <div className="space-y-3 lg:col-span-4">
+            <div className="space-y-4 lg:col-span-5">
               <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
                 Company Introduction
               </p>
@@ -680,21 +690,28 @@ export default function Home() {
                 A closer look at Bitfury Tech Investment
               </h3>
               <p className="text-sm leading-relaxed text-[#5A6B7C]">
-                Learn about the company&apos;s investment areas, research approach, and client services.
+                Watch our company introduction video to learn about Bitfury Tech Investment&apos;s
+                investment areas, research approach, and client services across digital assets,
+                global equities, and commercial property.
               </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <Link
+                  to="/how-it-works"
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
+                >
+                  <span>How It Works</span>
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </Link>
+                <Link
+                  to="/investments-catalog"
+                  className="text-xs font-heading font-bold text-[#1B4962] hover:text-[#B92841] hover:underline"
+                >
+                  Browse Mandates
+                </Link>
+              </div>
             </div>
-            <div className="lg:col-span-8">
-              <video
-                controls
-                playsInline
-                preload="none"
-                poster="/images/hero-private-capital.jpg"
-                aria-label="Bitfury Tech Investment company introduction video"
-                className="aspect-video w-full rounded-xl bg-slate-950 object-cover"
-              >
-                <source src="/videos/bitfurytechinvestment.mp4" type="video/mp4" />
-                Your browser does not support HTML video.
-              </video>
+            <div className="lg:col-span-7">
+              <CompanyOverviewVideo />
             </div>
           </section>
         </div>

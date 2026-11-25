@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Save, WalletCards } from "lucide-react";
 import AdminLayout from "../../layouts/AdminLayout";
-import { Button, Card, CardBody, CardHeader, FormField, NotificationBanner, TextInput } from "../../components/ui";
+import { Button, Card, CardBody, CardHeader, DashboardSymbol, FormField, NotificationBanner, TextInput } from "../../components/ui";
 import { sessionApiRequest } from "../../services/dashboardApi";
 
 interface PaymentWallet {
@@ -79,7 +79,7 @@ export default function PaymentWalletsPage() {
         <div className="grid gap-5 xl:grid-cols-2">
           {wallets.map((wallet) => (
             <Card key={wallet.id}>
-              <CardHeader title={wallet.label} subtitle={wallet.currency} action={<WalletCards className="h-4 w-4 text-slate-400" />} />
+              <CardHeader title={wallet.label} subtitle={wallet.currency} action={<DashboardSymbol icon={WalletCards} tone="navy" size="md" />} />
               <CardBody>
                 <div className="space-y-4">
                   <FormField id={"network-" + wallet.id.replace(/[^a-zA-Z0-9_-]/g, "-")} label="Network / Payment Rail">

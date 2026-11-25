@@ -4,11 +4,11 @@ import {
   ArrowDownCircle,
   ArrowRight,
   ArrowUpRight,
+  BarChart3,
   Building2,
   RefreshCw,
   Shield,
-  TrendingUp,
-  UserPlus,
+  UserCheck,
   Users,
 } from "lucide-react";
 import AdminLayout from "../../layouts/AdminLayout";
@@ -18,6 +18,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   ErrorState,
   SkeletonBlock,
@@ -218,9 +219,7 @@ export default function AdminOverview() {
               </p>
             </div>
             <div className="flex items-center gap-4 border-t border-white/15 pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/10 text-[#FFD1D8]">
-                <Shield className="h-5 w-5" aria-hidden="true" />
-              </div>
+              <DashboardSymbol icon={Shield} tone="red" size="md" />
               <div>
                 <p className="text-xs text-slate-300">Items awaiting review</p>
                 <p className="mt-0.5 text-lg font-bold font-mono tabular-nums text-white">
@@ -233,9 +232,10 @@ export default function AdminOverview() {
           {/* Primary Operations KPIs */}
           <section
             aria-label="Platform key metrics"
-            className="grid grid-cols-1 min-[390px]:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
           >
-            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+            <Card padding="md" className="flex min-w-0 items-center gap-4 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={Users} tone="navy" size="lg" />
               <div className="min-w-0">
                 <p className="text-xs font-medium text-[#5A6B7C]">Total Customers</p>
                 <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
@@ -245,57 +245,49 @@ export default function AdminOverview() {
                   {data.stats.newRegistrations} registered in past 7 days
                 </p>
               </div>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#EDF3F7] text-[#1B4962]">
-                <Users className="h-4 w-4" aria-hidden="true" />
-              </div>
             </Card>
 
-            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+            <Card padding="md" className="flex min-w-0 items-center gap-4 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={BarChart3} tone="amber" size="lg" />
               <div className="min-w-0">
                 <p className="text-xs font-medium text-[#5A6B7C]">Total Invested Capital</p>
-                <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
+                <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl truncate">
                   {formatUsd(data.stats.totalInvested)}
                 </p>
                 <p className="mt-1 text-xs text-[#5A6B7C]">
                   {data.stats.activeInvestmentsCount} active positions
                 </p>
               </div>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#FFF0F2] text-[#B92841]">
-                <TrendingUp className="h-4 w-4" aria-hidden="true" />
-              </div>
             </Card>
 
-            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+            <Card padding="md" className="flex min-w-0 items-center gap-4 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={ArrowDownCircle} tone="green" size="lg" />
               <div className="min-w-0">
                 <p className="text-xs font-medium text-[#5A6B7C]">Pending Deposits</p>
                 <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {data.stats.pendingDepositsCount}
                 </p>
-                <p className="mt-1 text-xs text-[#5A6B7C]">
+                <p className="mt-1 text-xs text-[#5A6B7C] truncate">
                   Queue volume <span className="font-mono">{formatUsd(data.stats.pendingDepositsAmount)}</span>
                 </p>
               </div>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-700">
-                <ArrowDownCircle className="h-4 w-4" aria-hidden="true" />
-              </div>
             </Card>
 
-            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+            <Card padding="md" className="flex min-w-0 items-center gap-4 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={ArrowUpRight} tone="red" size="lg" />
               <div className="min-w-0">
                 <p className="text-xs font-medium text-[#5A6B7C]">Pending Withdrawals</p>
                 <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {data.stats.pendingWithdrawalsCount}
                 </p>
-                <p className="mt-1 text-xs text-[#5A6B7C]">
+                <p className="mt-1 text-xs text-[#5A6B7C] truncate">
                   Queue volume <span className="font-mono">{formatUsd(data.stats.pendingWithdrawalsAmount)}</span>
                 </p>
               </div>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#FFF0F2] text-[#B92841]">
-                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-              </div>
             </Card>
 
-            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+            <Card padding="md" className="flex min-w-0 items-center gap-4 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={UserCheck} tone="green" size="lg" />
               <div className="min-w-0">
                 <p className="text-xs font-medium text-[#5A6B7C]">New Registrations (7d)</p>
                 <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
@@ -303,23 +295,18 @@ export default function AdminOverview() {
                 </p>
                 <p className="mt-1 text-xs text-[#5A6B7C]">Verified onboarding flow</p>
               </div>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
-                <UserPlus className="h-4 w-4" aria-hidden="true" />
-              </div>
             </Card>
 
-            <Card padding="md" className="flex min-w-0 items-start justify-between gap-3 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+            <Card padding="md" className="flex min-w-0 items-center gap-4 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={Building2} tone="navy" size="lg" />
               <div className="min-w-0">
-                <p className="text-xs font-medium text-[#5A6B7C]">Listed Properties & Inquiries</p>
+                <p className="text-xs font-medium text-[#5A6B7C]">Listed Properties &amp; Inquiries</p>
                 <p className="mt-1 text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
                   {data.stats.propertiesCount} / {data.stats.inquiriesCount}
                 </p>
                 <p className="mt-1 text-xs text-[#5A6B7C]">
                   Properties cataloged · Support inquiries
                 </p>
-              </div>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#EDF3F7] text-[#1B4962]">
-                <Building2 className="h-4 w-4" aria-hidden="true" />
               </div>
             </Card>
           </section>

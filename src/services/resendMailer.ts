@@ -16,7 +16,10 @@ export async function sendResendEmail(input: ResendEmailInput): Promise<string> 
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from, to: [input.to], subject: input.subject,
+      from,
+      to: [input.to],
+      subject: input.subject,
+      ...(input.text ? { text: input.text } : {}),
       html: renderBrandedEmail(input.html),
     }),
     signal: AbortSignal.timeout(15000),

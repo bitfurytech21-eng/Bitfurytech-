@@ -97,9 +97,9 @@ async function assertAccountAllowed(client: pg.PoolClient, userId: string, opera
 
 export function createBetterAuthFinancialRouter(): Router {
   const router = Router();
-  router.use(requireBetterAuth, requireBetterVerifiedEmail);
+  const requireVerifiedSession = [requireBetterAuth, requireBetterVerifiedEmail] as const;
 
-  router.get("/deposits/methods", async (_req, res) => {
+  router.get("/deposits/methods", ...requireVerifiedSession, async (_req, res) => {
     if (!isDatabaseConfigured) {
       res.setHeader("Cache-Control", "no-store");
       res.json({ methods: DEPOSIT_RAILS });
@@ -124,9 +124,9 @@ export function createBetterAuthFinancialRouter(): Router {
       res.status(503).json({ error: "Payment methods are temporarily unavailable." });
     }
   });
-  router.get("/withdrawals/config", (_req, res) => res.json(WITHDRAWAL_CONFIG));
+  router.get("/withdrawals/config", ...requireVerifiedSession, (_req, res) => res.json(WITHDRAWAL_CONFIG));
 
-  router.get("/investments/catalog", async (_req, res) => {
+  router.get("/investments/catalog", ...requireVerifiedSession, async (_req, res) => {
     if (!isDatabaseConfigured) {
       res.setHeader("Cache-Control", "no-store");
       res.json(getMockCatalog(INVESTMENT_FEE_PCT));
@@ -169,7 +169,7 @@ export function createBetterAuthFinancialRouter(): Router {
     }
   });
 
-  router.post("/deposits", async (req: BetterAuthRequest, res) => {
+  router.post("/deposits", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
     const user = userOf(req);
     const body = (req.body ?? {}) as Record<string, unknown>;
     const method = cleanText(body.method, 100);
@@ -258,7 +258,7 @@ export function createBetterAuthFinancialRouter(): Router {
     }
   });
 
-  router.post("/withdrawals", async (req: BetterAuthRequest, res) => {
+  router.post("/withdrawals", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
     const user = userOf(req);
     const body = (req.body ?? {}) as Record<string, unknown>;
     const method = cleanText(body.method, 100);
@@ -334,7 +334,7 @@ export function createBetterAuthFinancialRouter(): Router {
     }
   });
 
-  router.post("/investments/purchase", async (req: BetterAuthRequest, res) => {
+  router.post("/investments/purchase", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
     const user = userOf(req);
     const body = (req.body ?? {}) as Record<string, unknown>;
     const targetType = body.targetType === "property" ? "property" : "plan";
@@ -433,7 +433,18 @@ export function createBetterAuthFinancialRouter(): Router {
         const investmentId = randomUUID();
         const transactionId = randomUUID();
         const reference = makeReference("INV");
-        const snapshot = { name: planName, category, categoryLabel: category === "estate" ? "Real Estate" : category === "stock" ? "Global Equities" : "Digital Assets", dailyRatePct, durationDays, paymentFrequency, settlementRail, returnTerms: termsSummary, propertyId };
+        const snapshot = {
+          mandateId: targetType === "plan" ? targetId : null,
+          name: planName,
+          category,
+          categoryLabel: category === "estate" ? "Real Estate" : category === "stock" ? "Global Equities" : "Digital Assets",
+          dailyRatePct,
+          durationDays,
+          paymentFrequency,
+          settlementRail,
+          returnTerms: termsSummary,
+          propertyId,
+        };
         await client.query("UPDATE wallets SET available_balance=available_balance-$2,updated_at=now() WHERE user_id=$1 AND currency='USD'", [user.id, totalCost]);
         await client.query(
           "INSERT INTO investments(id,user_id,plan_id,plan_snapshot,principal,currency,status,started_at,matures_at) VALUES($1,$2,$3,$4::jsonb,$5,'USD','active',now(),now()+($6::text||' days')::interval)",

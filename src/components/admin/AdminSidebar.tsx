@@ -18,6 +18,7 @@ import {
   Share2,
   Shield,
   TrendingUp,
+  UserCog,
   Users,
   WalletCards,
   X,
@@ -26,13 +27,14 @@ import {
 export interface AdminNavItem {
   to: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   matchExact?: boolean;
 }
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, matchExact: true },
   { to: "/admin/customers", label: "Customers", icon: Users },
+  { to: "/admin/manage-users", label: "Manage User", icon: UserCog },
   { to: "/admin/properties", label: "Properties", icon: Building2 },
   { to: "/admin/plans", label: "Investment Plans", icon: Layers },
   { to: "/admin/investments", label: "Investments", icon: TrendingUp },
@@ -78,7 +80,7 @@ function AdminSidebarContent({
   return (
     <div className="flex flex-col justify-between h-full bg-[#1B4962] text-slate-100">
       <div>
-        <div className="h-16 px-5 flex items-center justify-between border-b border-white/15">
+        <div className="h-16 px-5 flex items-center justify-between border-b border-white/15 bg-[#1F3649]">
           <Link
             to="/admin"
             onClick={onNavigate}
@@ -106,8 +108,10 @@ function AdminSidebarContent({
         </div>
 
         <div className="px-5 py-3.5 border-b border-white/15 bg-[#14374B]">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#FFD1D8]">
-            <Shield className="w-3.5 h-3.5 shrink-0" />
+          <div className="flex items-center gap-2.5 text-xs font-semibold text-[#FFD1D8]">
+            <span className="h-7 w-7 rounded-md bg-[#E25B63] text-white flex items-center justify-center shrink-0">
+              <Shield className="w-4 h-4" strokeWidth={2.1} />
+            </span>
             <span>Operations Console</span>
           </div>
           <p className="text-[11px] text-slate-300 mt-0.5">
@@ -130,7 +134,7 @@ function AdminSidebarContent({
                     : "text-slate-100 hover:bg-white/10 hover:text-white font-medium"
                 }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
+                <Icon className="w-5 h-5 shrink-0" strokeWidth={2} />
                 <span className="truncate">{item.label}</span>
               </Link>
             );
@@ -144,7 +148,7 @@ function AdminSidebarContent({
           onClick={onNavigate}
           className="flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] text-sm text-slate-100 hover:bg-white/10 hover:text-white whitespace-nowrap"
         >
-          <LayoutDashboard className="w-4 h-4 shrink-0" />
+          <LayoutDashboard className="w-4.5 h-4.5 shrink-0" strokeWidth={2} />
           <span>Customer Portal</span>
         </Link>
         <Link
@@ -152,7 +156,7 @@ function AdminSidebarContent({
           onClick={onNavigate}
           className="flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] text-sm text-slate-100 hover:bg-white/10 hover:text-white whitespace-nowrap"
         >
-          <Home className="w-4 h-4 shrink-0" />
+          <Home className="w-4.5 h-4.5 shrink-0" strokeWidth={2} />
           <span>Corporate Website</span>
         </Link>
         <button
@@ -160,7 +164,7 @@ function AdminSidebarContent({
           onClick={onSignOut}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] text-sm font-medium text-[#FFD1D8] hover:bg-white/10 text-left whitespace-nowrap cursor-pointer"
         >
-          <LogOut className="w-4 h-4 shrink-0" />
+          <LogOut className="w-4.5 h-4.5 shrink-0" strokeWidth={2} />
           <span>Logout</span>
         </button>
       </div>

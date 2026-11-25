@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 import { betterAuthInstance } from "../lib/better-auth.ts";
 import { isDatabaseConfigured, queryDatabase } from "../db/pool.ts";
+import { BOOTSTRAP_ADMIN_EMAIL, isUserBlocked } from "../lib/blockedUsers.ts";
 
 export interface BetterAuthRequest extends Request {
   betterAuthSession?: Awaited<ReturnType<typeof betterAuthInstance.api.getSession>>;
@@ -45,6 +46,13 @@ export async function requireBetterAuth(
       res.status(401).json({ error: "Authentication required." });
       return;
     }
+    if (await isUserBlocked(session.user.id, session.user.email)) {
+      if (isDatabaseConfigured) {
+        await queryDatabase('DELETE FROM session WHERE "userId" = $1', [session.user.id]).catch(() => undefined);
+      }
+      res.status(403).json({ error: "This account has been blocked and removed from the platform." });
+      return;
+    }
     req.betterAuthSession = session;
     next();
   } catch (error) {
@@ -52,8 +60,6 @@ export async function requireBetterAuth(
     res.status(401).json({ error: "Invalid or expired session." });
   }
 }
-
-const BOOTSTRAP_ADMIN_EMAIL = (process.env.BITFURYTECH_ADMIN_EMAIL || "bitfurytech21@gmail.com").trim().toLowerCase();
 
 export async function resolveBetterAuthRole(userId: string, email?: string | null): Promise<"admin" | "support" | "investor"> {
   // The explicitly configured bootstrap identity takes precedence over the default

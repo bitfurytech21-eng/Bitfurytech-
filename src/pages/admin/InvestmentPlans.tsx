@@ -6,6 +6,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   FormField,
   Modal,
@@ -205,7 +206,7 @@ export default function AdminInvestmentPlans() {
       <Card>
         <CardHeader
           title={`Configured Plans (${plans.length})`}
-          action={<Layers className="w-4 h-4 text-slate-400" />}
+          action={<DashboardSymbol icon={Layers} tone="amber" size="md" />}
         />
         <CardBody>
           <DataTable

@@ -1,12 +1,13 @@
 import FinancialAmount from "../../components/FinancialAmount";
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, RefreshCw, Share2 } from "lucide-react";
+import { Check, CheckCircle2, Copy, RefreshCw, Share2, UserCheck, Users } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
   Button,
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   ErrorState,
   StatusText,
@@ -136,33 +137,45 @@ export default function Referrals() {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <Card padding="md">
-              <p className="text-xs font-medium text-slate-500">Unique Referral Code</p>
-              <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
-                {code}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">Assigned to your account</p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={Share2} tone="navy" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Unique Referral Code</p>
+                <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1 truncate">
+                  {code}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Assigned to your account</p>
+              </div>
             </Card>
-            <Card padding="md">
-              <p className="text-xs font-medium text-slate-500">Total Referrals</p>
-              <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
-                {loading ? "—" : data?.totalReferrals ?? 0}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">Registered attributions</p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={Users} tone="amber" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Total Referrals</p>
+                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+                  {loading ? "—" : data?.totalReferrals ?? 0}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Registered attributions</p>
+              </div>
             </Card>
-            <Card padding="md">
-              <p className="text-xs font-medium text-slate-500">Qualified Referrals</p>
-              <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
-                {loading ? "—" : data?.qualifiedReferrals ?? 0}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">Verified &amp; settled</p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={UserCheck} tone="green" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Qualified Referrals</p>
+                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+                  {loading ? "—" : data?.qualifiedReferrals ?? 0}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Verified &amp; settled</p>
+              </div>
             </Card>
-            <Card padding="md">
-              <p className="text-xs font-medium text-slate-500">Referral Earnings</p>
-              <p className="text-2xl font-bold font-mono tabular-nums text-emerald-700 mt-1.5">
-                {loading ? "—" : <FinancialAmount value={data?.referralEarnings ?? 0} size="md" />}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">Verified backend total</p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={CheckCircle2} tone="green" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Referral Earnings</p>
+                <p className="text-2xl font-bold font-mono tabular-nums text-emerald-700 mt-1 truncate">
+                  {loading ? "—" : <FinancialAmount value={data?.referralEarnings ?? 0} size="md" />}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Verified backend total</p>
+              </div>
             </Card>
           </div>
 
@@ -173,7 +186,7 @@ export default function Referrals() {
                 data?.ruleSummary ||
                 "Invited sign-ups track under Total Referrals and qualify for rewards strictly upon administrator verification of qualifying settled deposits."
               }
-              action={<Share2 className="w-4 h-4 text-slate-400" />}
+              action={<DashboardSymbol icon={Share2} tone="navy" size="md" />}
             />
             <CardBody className="flex flex-col sm:flex-row gap-2">
               <input

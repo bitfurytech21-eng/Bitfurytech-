@@ -1,4 +1,7 @@
 import { Router } from "express";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import {
   requireBetterAuth,
   requireBetterVerifiedEmail,
@@ -21,8 +24,56 @@ import {
   updateMockUserProfile,
 } from "../services/inMemoryFinancialMock.ts";
 import type { CustomerDocumentDTO } from "../services/dashboardApi.ts";
+import {
+  buildAccountDisclosureDocument,
+  buildInvestmentAgreementDocument,
+  buildTransactionDocument,
+} from "../services/institutionalDocuments.ts";
 
 const VALID_RAILS = new Set(["USDT (TRC20)", "Bitcoin (BTC)", "Ethereum (ETH)", "Bank Wire"]);
+const AVATAR_UPLOADS_DIR = path.resolve(process.cwd(), "uploads", "avatars");
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const ALLOWED_AVATAR_MIME: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+};
+
+function matchesImageMagicBytes(mime: string, buffer: Buffer): boolean {
+  if (buffer.length < 12) return false;
+  if (mime === "image/jpeg" || mime === "image/jpg") {
+    return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
+  if (mime === "image/png") {
+    return (
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47 &&
+      buffer[4] === 0x0d &&
+      buffer[5] === 0x0a &&
+      buffer[6] === 0x1a &&
+      buffer[7] === 0x0a
+    );
+  }
+  if (mime === "image/webp") {
+    return (
+      buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
+      buffer.subarray(8, 12).toString("ascii") === "WEBP"
+    );
+  }
+  return false;
+}
+
+async function removePreviousAvatarFile(existingUrl: string | null | undefined): Promise<void> {
+  if (!existingUrl || !existingUrl.startsWith("/uploads/avatars/")) return;
+  const filename = path.basename(existingUrl);
+  if (!filename || filename === "." || filename === "..") return;
+  const candidate = path.resolve(AVATAR_UPLOADS_DIR, filename);
+  if (!candidate.startsWith(AVATAR_UPLOADS_DIR + path.sep)) return;
+  await fs.unlink(candidate).catch(() => undefined);
+}
 
 export function createCustomerRouter(): Router {
   const router = Router();
@@ -101,6 +152,7 @@ export function createCustomerRouter(): Router {
         username: string | null;
         email: string;
         displayName: string;
+        photoUrl: string | null;
         emailVerified: boolean;
         createdAt: Date | string;
         updatedAt: Date | string;
@@ -115,6 +167,7 @@ export function createCustomerRouter(): Router {
                 COALESCE(u.username, p.username) AS username,
                 u.email,
                 u.name AS "displayName",
+                u.image AS "photoUrl",
                 u."emailVerified",
                 u."createdAt",
                 COALESCE(p.updated_at, u."updatedAt") AS "updatedAt",
@@ -141,6 +194,7 @@ export function createCustomerRouter(): Router {
           username: row.username ?? undefined,
           email: row.email,
           displayName: row.displayName,
+          photoUrl: row.photoUrl ?? null,
           country: row.country ?? "",
           phone: row.phone ?? "",
           preferredRail: row.preferredRail ?? "USDT (TRC20)",
@@ -278,6 +332,128 @@ export function createCustomerRouter(): Router {
     }
   });
 
+  router.post("/profile/photo", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
+    const user = req.betterAuthSession?.user;
+    if (!user?.id) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+
+    const dataUrl = typeof req.body?.dataUrl === "string" ? req.body.dataUrl.trim() : "";
+    const match = dataUrl.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+    if (!match) {
+      res.status(400).json({ error: "Upload a valid JPEG, PNG, or WebP profile image." });
+      return;
+    }
+
+    const mime = match[1].toLowerCase();
+    const ext = ALLOWED_AVATAR_MIME[mime];
+    if (!ext) {
+      res.status(400).json({ error: "Unsupported profile photo format." });
+      return;
+    }
+
+    const buffer = Buffer.from(match[2], "base64");
+    if (!buffer.length || buffer.length > MAX_AVATAR_BYTES) {
+      res.status(400).json({ error: "Profile photo must be under 2 MB." });
+      return;
+    }
+
+    if (!matchesImageMagicBytes(mime, buffer)) {
+      res.status(400).json({ error: "Uploaded file contents do not match a valid image." });
+      return;
+    }
+
+    const safeUserTag = user.id.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24) || "investor";
+    const finalName = `avatar_${safeUserTag}_${Date.now()}_${randomUUID().slice(0, 8)}${ext}`;
+    const targetPath = path.resolve(AVATAR_UPLOADS_DIR, finalName);
+    if (!targetPath.startsWith(AVATAR_UPLOADS_DIR + path.sep)) {
+      res.status(400).json({ error: "Invalid avatar storage path." });
+      return;
+    }
+
+    try {
+      let previousUrl: string | null = null;
+      if (!isDatabaseConfigured) {
+        previousUrl = getMockUserProfile(user.id, {
+          email: user.email,
+          name: user.name,
+          emailVerified: user.emailVerified,
+        }).photoUrl ?? null;
+      } else {
+        const current = await queryDatabase<{ image: string | null }>(
+          'SELECT image FROM "user" WHERE id = $1 LIMIT 1',
+          [user.id]
+        );
+        previousUrl = current.rows[0]?.image ?? null;
+      }
+
+      await fs.mkdir(AVATAR_UPLOADS_DIR, { recursive: true });
+      await fs.writeFile(targetPath, buffer, { flag: "wx" });
+      const photoUrl = `/uploads/avatars/${finalName}`;
+
+      if (!isDatabaseConfigured) {
+        const role = await resolveBetterAuthRole(user.id, user.email).catch(() => "investor" as const);
+        updateMockUserProfile(
+          user.id,
+          { photoUrl },
+          { email: user.email, name: user.name, emailVerified: user.emailVerified, role }
+        );
+      } else {
+        await queryDatabase('UPDATE "user" SET image = $1, "updatedAt" = now() WHERE id = $2', [
+          photoUrl,
+          user.id,
+        ]);
+      }
+
+      await removePreviousAvatarFile(previousUrl);
+      res.status(201).json({ ok: true, photoUrl });
+    } catch (error) {
+      await fs.unlink(targetPath).catch(() => undefined);
+      console.error("Investor profile photo upload failed:", error);
+      res.status(500).json({ error: "Unable to save profile photo." });
+    }
+  });
+
+  router.delete("/profile/photo", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
+    const user = req.betterAuthSession?.user;
+    if (!user?.id) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+    try {
+      let previousUrl: string | null = null;
+      if (!isDatabaseConfigured) {
+        const role = await resolveBetterAuthRole(user.id, user.email).catch(() => "investor" as const);
+        previousUrl = getMockUserProfile(user.id, {
+          email: user.email,
+          name: user.name,
+          emailVerified: user.emailVerified,
+          role,
+        }).photoUrl ?? null;
+        updateMockUserProfile(
+          user.id,
+          { photoUrl: null },
+          { email: user.email, name: user.name, emailVerified: user.emailVerified, role }
+        );
+      } else {
+        const current = await queryDatabase<{ image: string | null }>(
+          'SELECT image FROM "user" WHERE id = $1 LIMIT 1',
+          [user.id]
+        );
+        previousUrl = current.rows[0]?.image ?? null;
+        await queryDatabase('UPDATE "user" SET image = NULL, "updatedAt" = now() WHERE id = $1', [
+          user.id,
+        ]);
+      }
+      await removePreviousAvatarFile(previousUrl);
+      res.json({ ok: true, photoUrl: null });
+    } catch (error) {
+      console.error("Investor profile photo removal failed:", error);
+      res.status(500).json({ error: "Unable to remove profile photo." });
+    }
+  });
+
   router.get("/referrals", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
     const userId = req.betterAuthSession?.user.id;
     if (!userId) {
@@ -348,47 +524,34 @@ export function createCustomerRouter(): Router {
       return;
     }
     try {
-      const invPayload = await getNeonCustomerInvestments(userId);
+      const [invPayload, userRow, profileRow] = await Promise.all([
+        getNeonCustomerInvestments(userId),
+        queryDatabase<{ name: string; email: string; "createdAt": Date | string }>(
+          'SELECT name, email, "createdAt" FROM "user" WHERE id = $1 LIMIT 1',
+          [userId]
+        ),
+        queryDatabase<{ country: string }>(
+          "SELECT country FROM user_profiles WHERE user_id = $1 LIMIT 1",
+          [userId]
+        ),
+      ]);
+      const party = {
+        uid: userId,
+        name: userRow.rows[0]?.name || req.betterAuthSession?.user.name || "Accredited Client",
+        email: userRow.rows[0]?.email || req.betterAuthSession?.user.email || "",
+        country: profileRow.rows[0]?.country || "",
+      };
+      const accountCreated = userRow.rows[0]?.createdAt
+        ? new Date(userRow.rows[0].createdAt).toISOString()
+        : null;
       const docs: CustomerDocumentDTO[] = [
-        {
-          id: `acct-${userId}`,
-          userId,
-          title: "BitfuryTech Custody & Mandate Disclosure Agreement",
-          docType: "AccountDocument",
-          reference: `ACCT-${userId.slice(0, 8).toUpperCase()}`,
-          summary:
-            "Standard BitfuryTech account disclosure, risk notice, and segregated ledger settlement terms governing your investor profile.",
-          fileUrl: "/documents/bitfury-company-certificate.pdf",
-          createdAt: new Date().toISOString(),
-        },
+        buildAccountDisclosureDocument(party, accountCreated),
       ];
       for (const inv of invPayload.investments) {
-        docs.push({
-          id: `agr-${inv.id}`,
-          userId,
-          title: `${inv.planName} Allocation Agreement`,
-          docType: "Agreement",
-          reference: inv.reference,
-          summary: `Principal allocation of $${inv.amount.toFixed(2)} USD in ${inv.planName} (${inv.durationDays} days). ${inv.expectedPaymentTerms}`,
-          createdAt: inv.startDate,
-        });
+        docs.push(buildInvestmentAgreementDocument(party, inv));
       }
       for (const tx of invPayload.allTransactions) {
-        const docType =
-          tx.type === "Deposit"
-            ? "DepositConfirmation"
-            : tx.type === "Withdrawal"
-              ? "WithdrawalRecord"
-              : "Receipt";
-        docs.push({
-          id: `txdoc-${tx.id}`,
-          userId,
-          title: `${tx.type} ${tx.status} Record — ${tx.method}`,
-          docType,
-          reference: tx.reference,
-          summary: `${tx.description || tx.type} (${tx.amount.toFixed(2)} ${tx.currency || "USD"}) · Status: ${tx.status}.`,
-          createdAt: tx.createdAt,
-        });
+        docs.push(buildTransactionDocument(party, tx));
       }
       res.json({ documents: docs });
     } catch (error) {

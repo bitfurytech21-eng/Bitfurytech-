@@ -4,6 +4,7 @@ import { bearer } from "better-auth/plugins";
 import { databasePool, isDatabaseConfigured } from "../db/pool.ts";
 import { sendBetterAuthEmail } from "../services/betterAuthMailer.ts";
 import { registerMockUser } from "../services/inMemoryFinancialMock.ts";
+import { isUserBlocked } from "./blockedUsers.ts";
 
 const baseURL =
   process.env.BETTER_AUTH_URL ||
@@ -113,6 +114,9 @@ export const betterAuthInstance = betterAuth({
     user: {
       create: {
         before: async (user) => {
+          if (await isUserBlocked(null, user.email)) {
+            throw new Error("This email address is blocked from accessing BitfuryTech.");
+          }
           if (!emailSendingConfigured) {
             return { data: { ...user, emailVerified: true } };
           }
@@ -126,6 +130,15 @@ export const betterAuthInstance = betterAuth({
               name: user.name,
               username: (user as { username?: string | null }).username,
             });
+          }
+        },
+      },
+    },
+    session: {
+      create: {
+        before: async (session) => {
+          if (await isUserBlocked(session.userId, null)) {
+            throw new Error("Account access has been blocked by administration.");
           }
         },
       },

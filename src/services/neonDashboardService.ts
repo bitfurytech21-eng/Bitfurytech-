@@ -60,6 +60,24 @@ function mapTransaction(row: DbTransaction, email: string) {
     description: typeof row.metadata?.description === "string" ? row.metadata.description : row.type.toLowerCase() === "deposit" ? `Deposit notice via ${row.method ?? "account rail"}` : row.type.toLowerCase() === "withdrawal" ? `Withdrawal disbursement via ${row.method ?? "account rail"} to ${row.destination ?? "registered destination"}` : row.type.toLowerCase() === "investment" ? `Investment allocation: ${row.method ?? "investment plan"}` : row.type.toLowerCase() === "referral" ? `Referral commission settlement (${row.method ?? "referral"})` : `Yield distribution: ${row.method ?? "account ledger"}`,
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),
+    _investmentId: typeof row.metadata?.investmentId === "string" ? row.metadata.investmentId : null,
+  };
+}
+function stripInternalTx(tx: ReturnType<typeof mapTransaction>) {
+  return {
+    id: tx.id,
+    userId: tx.userId,
+    userEmail: tx.userEmail,
+    type: tx.type,
+    method: tx.method,
+    amount: tx.amount,
+    destination: tx.destination,
+    reference: tx.reference,
+    status: tx.status,
+    currency: tx.currency,
+    description: tx.description,
+    createdAt: tx.createdAt,
+    updatedAt: tx.updatedAt,
   };
 }
 function categoryOf(value: unknown): "crypto" | "stock" | "estate" {
@@ -67,7 +85,8 @@ function categoryOf(value: unknown): "crypto" | "stock" | "estate" {
 }
 function mapInvestment(row: DbInvestment, transactions: ReturnType<typeof mapTransaction>[]) {
   const snapshot = record(row.plan_snapshot);
-  const mandate = row.plan_id ? getMandateById(row.plan_id) : undefined;
+  const mandateLookupId = row.plan_id ?? (typeof snapshot.mandateId === "string" ? snapshot.mandateId : "");
+  const mandate = mandateLookupId ? getMandateById(mandateLookupId) : undefined;
   const category = categoryOf(snapshot.category ?? mandate?.category);
   const principal = amount(row.principal);
   const startDate = iso(row.started_at ?? row.created_at) ?? new Date().toISOString();
@@ -78,7 +97,18 @@ function mapInvestment(row: DbInvestment, transactions: ReturnType<typeof mapTra
   const daysElapsed = status === "Completed" ? durationDays : Math.min(durationDays, elapsed);
   const planName = String(snapshot.name ?? snapshot.planName ?? mandate?.name ?? "Investment");
   const planId = row.plan_id ?? "";
-  const related = transactions.filter(tx => tx.userId === row.user_id && (tx.type === "Investment" || tx.type === "Profit") && (tx.destination === planId || tx.method.toLowerCase().includes(planName.toLowerCase())));
+  const related = transactions
+    .filter(
+      (tx) =>
+        tx.userId === row.user_id &&
+        (tx.type === "Investment" || tx.type === "Profit") &&
+        (tx._investmentId === row.id ||
+          tx.destination === row.id ||
+          (planId !== "" && tx.destination === planId) ||
+          (mandateLookupId !== "" && tx.destination === mandateLookupId) ||
+          tx.method.toLowerCase().includes(planName.toLowerCase()))
+    )
+    .map(stripInternalTx);
   const dailyRatePct = amount(snapshot.dailyRatePct ?? mandate?.dailyRatePct);
   return {
     id: row.id,
@@ -108,8 +138,8 @@ function mapInvestment(row: DbInvestment, transactions: ReturnType<typeof mapTra
 
 async function loadFinancialRows(userId: string) {
   const [user, profile, wallet, investmentRows, transactionRows, ledger] = await Promise.all([
-    queryDatabase<{ id: string; name: string; email: string; "emailVerified": boolean }>(
-      'SELECT id, name, email, "emailVerified" FROM "user" WHERE id = $1 LIMIT 1', [userId]),
+    queryDatabase<{ id: string; name: string; email: string; "emailVerified": boolean; image: string | null }>(
+      'SELECT id, name, email, "emailVerified", image FROM "user" WHERE id = $1 LIMIT 1', [userId]),
     queryDatabase<{ preferred_rail: string }>(
       "SELECT preferred_rail FROM user_profiles WHERE user_id = $1 LIMIT 1", [userId]),
     queryDatabase<{ available_balance: string | number }>(
@@ -166,6 +196,7 @@ export async function getNeonDashboardOverview(
       uid: userId,
       email: rows.user.email,
       displayName: rows.user.name || rows.user.email.split("@")[0],
+      photoUrl: rows.user.image ?? null,
       preferredRail: rows.profile?.preferred_rail ?? "USDT (TRC20)",
       role: "investor",
     },
@@ -184,7 +215,7 @@ export async function getNeonDashboardOverview(
       completedInvestmentsCount: completed.length,
     },
     activeInvestments: active,
-    recentTransactions: rows.transactions.slice(0, 6),
+    recentTransactions: rows.transactions.slice(0, 6).map(stripInternalTx),
     portfolioSummary,
     opportunities,
     unreadNotificationsCount: 0,
@@ -205,7 +236,7 @@ export async function getNeonCustomerInvestments(userId: string) {
   const completed = rows.investments.filter(item => item.status === "Completed");
   return {
     investments: rows.investments,
-    allTransactions: rows.transactions,
+    allTransactions: rows.transactions.map(stripInternalTx),
     summary: {
       totalInvested: Number(rows.investments.reduce((sum, item) => sum + item.amount, 0).toFixed(2)),
       activeCapital: Number(active.reduce((sum, item) => sum + item.amount, 0).toFixed(2)),
@@ -220,5 +251,5 @@ export async function getNeonCustomerTransactions(userId: string) {
     return getMockCustomerTransactions(userId);
   }
   const rows = await loadFinancialRows(userId);
-  return rows.transactions;
+  return rows.transactions.map(stripInternalTx);
 }

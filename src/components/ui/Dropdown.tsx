@@ -18,6 +18,7 @@ interface DropdownMenuProps {
   items: DropdownItem[];
   align?: "left" | "right";
   label?: string;
+  tone?: "light" | "dark";
 }
 
 export function DropdownMenu({
@@ -25,6 +26,7 @@ export function DropdownMenu({
   items,
   align = "right",
   label = "Open menu",
+  tone = "light",
 }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,6 +49,8 @@ export function DropdownMenu({
     };
   }, [open]);
 
+  const isDark = tone === "dark";
+
   return (
     <div ref={containerRef} className="relative inline-block">
       <button
@@ -55,13 +59,17 @@ export function DropdownMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-2 rounded-[5px] border border-[#DCE4EC] bg-white hover:bg-[#F6F8FA] px-3 py-1.5 text-xs font-medium text-[#102030] transition-colors cursor-pointer"
+        className={`inline-flex items-center gap-2 rounded-[5px] border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+          isDark
+            ? "border-white/20 bg-white/10 hover:bg-white/15 text-white"
+            : "border-[#DCE4EC] bg-white hover:bg-[#F6F8FA] text-[#102030]"
+        }`}
       >
         {trigger}
         <ChevronDown
-          className={`w-3.5 h-3.5 text-[#5A6B7C] transition-transform duration-150 ${
-            open ? "rotate-180" : ""
-          }`}
+          className={`w-3.5 h-3.5 transition-transform duration-150 ${
+            isDark ? "text-slate-200" : "text-[#5A6B7C]"
+          } ${open ? "rotate-180" : ""}`}
         />
       </button>
 

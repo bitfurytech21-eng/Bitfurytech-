@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, BarChart3, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CandlestickChart, RefreshCw } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
+import TradingViewChart from "../../components/TradingViewChart";
+import TradingViewTickerTape from "../../components/TradingViewTickerTape";
 import {
   Button,
   buttonClasses,
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   ErrorState,
   NotificationBanner,
   SkeletonBlock,
@@ -21,11 +24,48 @@ import {
   type MandateCategory,
 } from "../../trading/tradingPage";
 
+interface MarketPreset {
+  symbol: string;
+  label: string;
+  category: MandateCategory;
+}
+
+const MARKET_PRESETS: MarketPreset[] = [
+  { symbol: "BITSTAMP:BTCUSD", label: "BTC / USD", category: "crypto" },
+  { symbol: "BITSTAMP:ETHUSD", label: "ETH / USD", category: "crypto" },
+  { symbol: "COINBASE:SOLUSD", label: "SOL / USD", category: "crypto" },
+  { symbol: "BINANCE:BNBUSDT", label: "BNB / USDT", category: "crypto" },
+  { symbol: "FOREXCOM:SPXUSD", label: "S&P 500", category: "stock" },
+  { symbol: "NASDAQ:QQQ", label: "Nasdaq 100", category: "stock" },
+  { symbol: "NASDAQ:AAPL", label: "Apple (AAPL)", category: "stock" },
+  { symbol: "NASDAQ:NVDA", label: "NVIDIA (NVDA)", category: "stock" },
+  { symbol: "AMEX:VNQ", label: "Real Estate ETF (VNQ)", category: "estate" },
+  { symbol: "NYSE:PLD", label: "Prologis (PLD)", category: "estate" },
+  { symbol: "NYSE:O", label: "Realty Income (O)", category: "estate" },
+];
+
+const INTERVAL_OPTIONS: Array<{ id: "15" | "60" | "240" | "D" | "W"; label: string }> = [
+  { id: "15", label: "15m" },
+  { id: "60", label: "1H" },
+  { id: "240", label: "4H" },
+  { id: "D", label: "1D" },
+  { id: "W", label: "1W" },
+];
+
+function defaultSymbolForCategory(cat: MandateCategory): string {
+  if (cat === "stock") return "FOREXCOM:SPXUSD";
+  if (cat === "estate") return "AMEX:VNQ";
+  return "BITSTAMP:BTCUSD";
+}
+
 export default function TradingDesk() {
   const { user } = useAuth();
   const [plans, setPlans] = useState<InvestmentMandate[]>(INVESTMENT_MANDATES);
   const [category, setCategory] = useState<"all" | MandateCategory>("all");
   const [selectedId, setSelectedId] = useState<string>(INVESTMENT_MANDATES[0].id);
+  const [symbol, setSymbol] = useState<string>("BITSTAMP:BTCUSD");
+  const [interval, setInterval] = useState<"15" | "60" | "240" | "D" | "W">("60");
+  const [chartTheme, setChartTheme] = useState<"light" | "dark">("light");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,40 +108,30 @@ export default function TradingDesk() {
     return plans.filter((p) => p.category === category);
   }, [category, plans]);
 
+  const visiblePresets = useMemo(() => {
+    if (category === "all") return MARKET_PRESETS;
+    return MARKET_PRESETS.filter((p) => p.category === category);
+  }, [category]);
+
   const activePlan =
     filteredPlans.find((p) => p.id === selectedId) || filteredPlans[0] || plans[0];
 
-  // Illustrative indicative benchmark curve strictly labeled as a non-live mandate benchmark
-  const benchmarkPoints = useMemo(() => {
-    if (!activePlan) return [];
-    const days = Math.min(30, activePlan.durationDays);
-    const pts: Array<{ day: number; value: number }> = [];
-    for (let d = 0; d <= days; d += 3) {
-      const value = Number(
-        (100 + 100 * (activePlan.dailyRatePct / 100) * d).toFixed(2)
-      );
-      pts.push({ day: d, value });
+  const handleCategoryChange = (next: "all" | MandateCategory) => {
+    setCategory(next);
+    if (next !== "all") {
+      setSymbol(defaultSymbolForCategory(next));
     }
-    return pts;
-  }, [activePlan]);
+  };
 
-  const svgPolyline = useMemo(() => {
-    if (benchmarkPoints.length < 2) return "";
-    const minV = benchmarkPoints[0].value;
-    const maxV = Math.max(...benchmarkPoints.map((p) => p.value), minV + 1);
-    return benchmarkPoints
-      .map((pt, idx) => {
-        const x = (idx / (benchmarkPoints.length - 1)) * 560 + 20;
-        const y = 160 - ((pt.value - minV) / (maxV - minV)) * 120;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
-  }, [benchmarkPoints]);
+  const handleSelectMandate = (mandate: InvestmentMandate) => {
+    setSelectedId(mandate.id);
+    setSymbol(defaultSymbolForCategory(mandate.category));
+  };
 
   return (
     <DashboardLayout
-      title="Mandate & Market Desk"
-      subtitle="Compare structured mandate benchmarks across asset categories. Live external ticker feeds are disabled; values reflect mandate benchmark schedules only."
+      title="Trade View & Live Market Desk"
+      subtitle="Monitor real-time TradingView market charts across Digital Assets, Global Equities, and Real Estate alongside structured mandate benchmarks."
       actions={
         <>
           <Link to="/dashboard" className={buttonClasses({ variant: "outline", size: "sm" })}>
@@ -127,48 +157,91 @@ export default function TradingDesk() {
       {loading ? (
         <div className="grid lg:grid-cols-12 gap-6">
           <Card padding="lg" className="lg:col-span-4">
-            <SkeletonBlock className="h-72 w-full" />
+            <SkeletonBlock className="h-96 w-full" />
           </Card>
           <Card padding="lg" className="lg:col-span-8">
-            <SkeletonBlock className="h-72 w-full" />
+            <SkeletonBlock className="h-96 w-full" />
           </Card>
         </div>
       ) : error ? (
         <ErrorState
-          title="Unable to Load Mandate Desk"
+          title="Unable to Load Trade View"
           message={error}
           onRetry={() => void loadMandates()}
         />
       ) : (
         <div className="space-y-6">
+          {/* Live TradingView Ticker Tape */}
+          <div className="rounded-lg border border-[#14374B] bg-[#112E3E] px-3 py-1 text-white shadow-sm">
+            <TradingViewTickerTape colorTheme="dark" displayMode="adaptive" />
+          </div>
+
           <NotificationBanner
             tone="info"
-            title="Benchmark Data Disclosure"
-            message="BitfuryTech does not present simulated prices as live market quotes. External live ticker feeds are not connected; the curve below illustrates the selected mandate's indicative target benchmark index (Base 100) only."
+            title="Live Market Data & Mandate Notice"
+            message="Interactive candlestick charts and price quotes below are streamed live via TradingView. Mandate daily rates represent indicative target benchmarks and are non-guaranteed."
           />
 
-          <div className="flex flex-wrap items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-4 py-3">
-            {(
-              [
-                { id: "all", label: "All Markets" },
-                { id: "crypto", label: "Digital Assets" },
-                { id: "stock", label: "Global Equities" },
-                { id: "estate", label: "Real Estate" },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setCategory(tab.id)}
-                className={`px-3 py-1.5 rounded-none text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                  category === tab.id
-                    ? "bg-[#E94D65] text-white"
-                    : "text-[#1B4962] hover:bg-[#F6F8FA]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200 rounded-lg px-4 py-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(
+                [
+                  { id: "all", label: "All Markets" },
+                  { id: "crypto", label: "Digital Assets" },
+                  { id: "stock", label: "Global Equities" },
+                  { id: "estate", label: "Real Estate" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleCategoryChange(tab.id)}
+                  className={`px-3 py-1.5 rounded-none text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                    category === tab.id
+                      ? "bg-[#E94D65] text-white"
+                      : "text-[#1B4962] hover:bg-[#F6F8FA]"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center border border-slate-200 bg-slate-50 p-0.5 rounded-[5px]">
+                {INTERVAL_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setInterval(opt.id)}
+                    className={`px-2.5 py-1 text-[11px] font-mono font-semibold transition-colors cursor-pointer rounded-[3px] ${
+                      interval === opt.id
+                        ? "bg-[#1B4962] text-white"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center border border-slate-200 bg-slate-50 p-0.5 rounded-[5px]">
+                {(["light", "dark"] as const).map((themeOpt) => (
+                  <button
+                    key={themeOpt}
+                    type="button"
+                    onClick={() => setChartTheme(themeOpt)}
+                    className={`px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors cursor-pointer rounded-[3px] ${
+                      chartTheme === themeOpt
+                        ? "bg-[#1B4962] text-white"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {themeOpt}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-12 gap-6 items-start">
@@ -177,14 +250,14 @@ export default function TradingDesk() {
                 title="Select Mandate"
                 subtitle={`${filteredPlans.length} available strategy structures`}
               />
-              <CardBody className="divide-y divide-slate-100 p-0">
+              <CardBody className="divide-y divide-slate-100 p-0 max-h-[640px] overflow-y-auto">
                 {filteredPlans.map((m) => {
                   const selected = activePlan?.id === m.id;
                   return (
                     <button
                       key={m.id}
                       type="button"
-                      onClick={() => setSelectedId(m.id)}
+                      onClick={() => handleSelectMandate(m)}
                       className={`w-full text-left px-5 py-3.5 transition-colors cursor-pointer ${
                         selected ? "bg-slate-100" : "hover:bg-slate-50"
                       }`}
@@ -207,74 +280,91 @@ export default function TradingDesk() {
               </CardBody>
             </Card>
 
-            {activePlan && (
-              <Card className="lg:col-span-8">
+            <div className="lg:col-span-8 space-y-6">
+              <Card>
                 <CardHeader
-                  title={`${activePlan.name} — Indicative Benchmark Trajectory`}
-                  subtitle={`${activePlan.categoryLabel} · Live exchange ticker unavailable; showing Base-100 mandate target schedule`}
-                  action={<BarChart3 className="w-4 h-4 text-slate-400" />}
+                  title={`Live TradingView Chart — ${symbol}`}
+                  subtitle="Real-time market feed with interactive indicators, drawing tools, and symbol search"
+                  action={<DashboardSymbol icon={CandlestickChart} tone="amber" size="md" />}
                 />
-                <CardBody className="space-y-5">
-                  <div className="w-full overflow-x-auto border border-slate-200 rounded-md bg-slate-50 p-3">
-                    <svg
-                      viewBox="0 0 600 185"
-                      className="w-full h-44 min-w-[320px]"
-                      role="img"
-                      aria-label={`Indicative benchmark curve for ${activePlan.name}`}
-                    >
-                      <line x1="20" y1="40" x2="580" y2="40" stroke="#e2e8f0" strokeDasharray="4 4" />
-                      <line x1="20" y1="100" x2="580" y2="100" stroke="#e2e8f0" strokeDasharray="4 4" />
-                      <line x1="20" y1="160" x2="580" y2="160" stroke="#cbd5e1" />
-                      {svgPolyline && (
-                        <polyline
-                          fill="none"
-                          stroke="#1B4962"
-                          strokeWidth="2.5"
-                          points={svgPolyline}
-                        />
-                      )}
-                      <text x="20" y="178" fontSize="10" fill="#64748b">
-                        Day 0 (Base 100.00)
-                      </text>
-                      <text x="485" y="178" fontSize="10" fill="#64748b">
-                        Day {Math.min(30, activePlan.durationDays)}
-                      </text>
-                    </svg>
+                <CardBody className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {visiblePresets.map((preset) => (
+                      <button
+                        key={preset.symbol}
+                        type="button"
+                        onClick={() => setSymbol(preset.symbol)}
+                        className={`px-2.5 py-1 text-xs font-mono font-semibold border rounded-[4px] transition-colors cursor-pointer ${
+                          symbol === preset.symbol
+                            ? "border-[#1B4962] bg-[#1B4962] text-white"
+                            : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
                   </div>
 
-                  <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                    <div>
-                      <dt className="text-slate-500">Minimum Entry</dt>
-                      <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                        <FinancialAmount value={activePlan.minDeposit} size="md" />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-slate-500">Maximum Cap</dt>
-                      <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                        {<FinancialAmount value={activePlan.maxDeposit} size="md" />}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-slate-500">Cycle Duration</dt>
-                      <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
-                        {activePlan.durationDays} days
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-slate-500">Indicative Target</dt>
-                      <dd className="font-mono tabular-nums font-bold text-emerald-700 mt-0.5">
-                        {activePlan.dailyRatePct}% / day
-                      </dd>
-                    </div>
-                  </dl>
-
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {activePlan.returnTerms}
-                  </p>
+                  <TradingViewChart
+                    symbol={symbol}
+                    interval={interval}
+                    colorTheme={chartTheme}
+                    height={520}
+                    allowSymbolChange
+                  />
                 </CardBody>
               </Card>
-            )}
+
+              {activePlan && (
+                <Card>
+                  <CardHeader
+                    title={`${activePlan.name} — Mandate Parameters`}
+                    subtitle={`${activePlan.categoryLabel} · ${activePlan.settlementRail}`}
+                    action={
+                      <Link
+                        to={`/invest?plan=${activePlan.id}`}
+                        className={buttonClasses({ variant: "primary", size: "sm" })}
+                      >
+                        <span>Allocate to Plan</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
+                    }
+                  />
+                  <CardBody className="space-y-4">
+                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                      <div>
+                        <dt className="text-slate-500">Minimum Entry</dt>
+                        <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
+                          <FinancialAmount value={activePlan.minDeposit} size="md" />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500">Maximum Cap</dt>
+                        <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
+                          <FinancialAmount value={activePlan.maxDeposit} size="md" />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500">Cycle Duration</dt>
+                        <dd className="font-mono tabular-nums font-bold text-slate-900 mt-0.5">
+                          {activePlan.durationDays} days
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500">Indicative Target</dt>
+                        <dd className="font-mono tabular-nums font-bold text-emerald-700 mt-0.5">
+                          {activePlan.dailyRatePct}% / day
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {activePlan.returnTerms}
+                    </p>
+                  </CardBody>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
       )}

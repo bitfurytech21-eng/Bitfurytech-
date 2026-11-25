@@ -6,6 +6,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   FormField,
   Modal,
@@ -337,7 +338,7 @@ export default function AdminProperties() {
       <Card>
         <CardHeader
           title={`Real Estate Catalog (${properties.length})`}
-          action={<Building2 className="w-4 h-4 text-slate-400" />}
+          action={<DashboardSymbol icon={Building2} tone="navy" size="md" />}
         />
         <CardBody>
           <DataTable

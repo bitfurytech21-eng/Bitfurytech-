@@ -36,6 +36,7 @@ import { TransactionDetailsPage } from "../pages/app/TransactionsPage";
 import { NotificationsPage } from "../pages/app/AccountPages";
 import AdminOverview from "../pages/admin/Overview";
 import AdminCustomers from "../pages/admin/Customers";
+import AdminManageUsers from "../pages/admin/ManageUsers";
 import AdminProperties from "../pages/admin/Properties";
 import AdminInvestmentPlans from "../pages/admin/InvestmentPlans";
 import AdminWalletsPage from "../pages/admin/AdminWallets";
@@ -138,8 +139,9 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute mode="admin" />}>
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/customers" element={<AdminCustomers />} />
+        <Route path="/admin/manage-users" element={<AdminManageUsers />} />
         <Route path="/admin/wallets" element={<AdminWalletsPage />} />
-        <Route path="/admin/users" element={<Navigate to="/admin/customers" replace />} />
+        <Route path="/admin/users" element={<Navigate to="/admin/manage-users" replace />} />
         <Route path="/admin/properties" element={<AdminProperties />} />
         <Route path="/admin/plans" element={<AdminInvestmentPlans />} />
         <Route path="/admin/investments" element={<AdminInvestments />} />

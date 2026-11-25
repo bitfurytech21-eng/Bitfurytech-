@@ -34,13 +34,22 @@ export class ErrorBoundary extends React.Component<
           <div className="max-w-lg w-full bg-white border border-slate-200 rounded-lg shadow-sm p-6 space-y-4">
             <h1 className="text-lg font-bold text-slate-900">BitfuryTech Workspace Notice</h1>
             <p className="text-sm text-slate-600">{this.state.message}</p>
-            <button
-              type="button"
-              onClick={() => this.setState({ hasError: false, message: "" })}
-              className="bg-[#294158] hover:bg-[#1f3346] text-white text-xs font-semibold px-4 py-2 rounded-md"
-            >
-              Retry Workspace
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => this.setState({ hasError: false, message: "" })}
+                className="bg-[#294158] hover:bg-[#1f3346] text-white text-xs font-semibold px-4 py-2 rounded-md cursor-pointer"
+              >
+                Retry Workspace
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-4 py-2 rounded-md cursor-pointer"
+              >
+                Reload Page
+              </button>
+            </div>
           </div>
         </div>
       );

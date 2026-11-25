@@ -8,6 +8,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   FormField,
   NotificationBanner,
   SelectInput,
@@ -172,7 +173,7 @@ export default function Settings() {
           <CardHeader
             title="Notification & Payout Security Preferences"
             subtitle="Saved securely through authenticated backend profile validation"
-            action={<Shield className="w-4 h-4 text-slate-400" />}
+            action={<DashboardSymbol icon={Shield} tone="navy" size="md" />}
           />
           <CardBody className="space-y-5">
             {error && (
@@ -257,7 +258,7 @@ export default function Settings() {
           <Card>
             <CardHeader
               title="Password & Authentication Security"
-              action={<KeyRound className="w-4 h-4 text-slate-400" />}
+              action={<DashboardSymbol icon={KeyRound} tone="amber" size="md" />}
             />
             <CardBody className="space-y-4 text-xs">
               {pwdError && (

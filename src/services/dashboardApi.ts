@@ -55,6 +55,7 @@ export interface DashboardOverviewDTO {
     uid: string;
     email: string;
     displayName: string;
+    photoUrl?: string | null;
     preferredRail: string;
     role: string;
   };
@@ -111,6 +112,36 @@ export interface WithdrawalConfigDTO {
   supportedRails: string[];
 }
 
+export interface DocumentClauseMeta {
+  label: string;
+  value: string;
+}
+
+export interface DocumentSection {
+  heading: string;
+  body: string[];
+}
+
+export interface InstitutionalDocumentBody {
+  documentCode: string;
+  classification: string;
+  jurisdiction: string;
+  counterpartyName: string;
+  counterpartyEmail: string;
+  counterpartyUid: string;
+  effectiveDate: string;
+  keyTerms: DocumentClauseMeta[];
+  preamble: string;
+  sections: DocumentSection[];
+  signatories: Array<{
+    role: string;
+    entity: string;
+    nameOrTitle: string;
+    verificationStatus: string;
+  }>;
+  authenticityHash: string;
+}
+
 export interface CustomerDocumentDTO {
   id: string;
   userId: string;
@@ -125,6 +156,7 @@ export interface CustomerDocumentDTO {
   summary: string;
   fileUrl?: string;
   createdAt: string | null;
+  fullDocument?: InstitutionalDocumentBody;
 }
 
 export interface UserAccount {
@@ -132,6 +164,7 @@ export interface UserAccount {
   username?: string;
   email: string;
   displayName: string;
+  photoUrl?: string | null;
   country: string;
   phone: string;
   walletBalance: number;
@@ -193,6 +226,8 @@ export interface EmailOutboxRecord {
   subject: string;
   body: string;
   status: string;
+  lastError?: string | null;
+  sentAt?: string | null;
   createdAt?: string | null;
 }
 
@@ -254,4 +289,55 @@ export function formatTimestamp(ts?: string | Date | null): string {
     month: "short",
     day: "numeric",
   });
+}
+
+const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+
+export function isSafeProfilePhotoUrl(url?: string | null): url is string {
+  if (!url || typeof url !== "string") return false;
+  return url.startsWith("/uploads/avatars/") || url.startsWith("https://");
+}
+
+function readImageAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Unable to read selected image file."));
+    };
+    reader.onerror = () => reject(new Error("Unable to read selected image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function uploadInvestorProfilePhoto(file: File): Promise<string> {
+  if (!ALLOWED_PHOTO_TYPES.has(file.type.toLowerCase())) {
+    throw new Error("Please select a JPEG, PNG, or WebP image.");
+  }
+  if (file.size <= 0 || file.size > MAX_PHOTO_BYTES) {
+    throw new Error("Profile photo must be smaller than 2 MB.");
+  }
+  const dataUrl = await readImageAsDataUrl(file);
+  const res = await sessionApiRequest<{ ok: boolean; photoUrl: string }>("/api/profile/photo", {
+    method: "POST",
+    body: JSON.stringify({ fileName: file.name, dataUrl }),
+  });
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("bitfury:profile-updated", { detail: { photoUrl: res.photoUrl } })
+    );
+  }
+  return res.photoUrl;
+}
+
+export async function removeInvestorProfilePhoto(): Promise<void> {
+  await sessionApiRequest<{ ok: boolean; photoUrl: null }>("/api/profile/photo", {
+    method: "DELETE",
+  });
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("bitfury:profile-updated", { detail: { photoUrl: null } })
+    );
+  }
 }

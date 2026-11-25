@@ -8,12 +8,14 @@ export interface AuthUser {
   email: string | null;
   emailVerified: boolean;
   displayName: string | null;
+  photoUrl?: string | null;
 }
 
 export interface BackendSessionProfile {
   uid: string;
   email: string | null;
   emailVerified: boolean;
+  photoUrl?: string | null;
   role: "admin" | "investor";
   isAdmin: boolean;
   authTime?: number;
@@ -55,7 +57,16 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 
 type SessionResponse = {
   authenticated?: boolean;
-  user?: { id?: string; name?: string; email?: string | null; emailVerified?: boolean; role?: string; isAdmin?: boolean };
+  user?: {
+    id?: string;
+    name?: string;
+    email?: string | null;
+    emailVerified?: boolean;
+    photoUrl?: string | null;
+    image?: string | null;
+    role?: string;
+    isAdmin?: boolean;
+  };
   session?: { expiresAt?: string | number };
   error?: string;
 };
@@ -85,6 +96,7 @@ async function readSession(): Promise<BackendSessionProfile | null> {
     uid: body.user.id,
     email: body.user.email ?? null,
     emailVerified: Boolean(body.user.emailVerified),
+    photoUrl: body.user.photoUrl ?? body.user.image ?? null,
     role: body.user.role === "admin" && body.user.isAdmin ? "admin" : "investor",
     isAdmin: Boolean(body.user.isAdmin && body.user.role === "admin" && body.user.emailVerified),
     expiresAt: expiry ? (typeof expiry === "number" ? expiry : Math.floor(Date.parse(expiry) / 1000)) : undefined,
@@ -98,6 +110,7 @@ function asCompatUser(session: BackendSessionProfile | null): AuthUser | null {
     email: session.email,
     emailVerified: session.emailVerified,
     displayName: null,
+    photoUrl: session.photoUrl ?? null,
   };
 }
 

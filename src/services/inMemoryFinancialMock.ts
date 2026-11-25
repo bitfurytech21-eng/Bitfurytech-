@@ -10,6 +10,11 @@ import type {
   NotificationMessage,
 } from "./dashboardApi.ts";
 import { DEFAULT_MAIL_TEMPLATES } from "./mailTemplates.ts";
+import {
+  buildAccountDisclosureDocument,
+  buildInvestmentAgreementDocument,
+  buildTransactionDocument,
+} from "./institutionalDocuments.ts";
 
 interface MockWallet {
   availableBalance: number;
@@ -65,6 +70,7 @@ interface MockUserInfo {
   emailAlerts: boolean;
   twoFactorEnabled: boolean;
   accountStatus: "Active" | "Review" | "Suspended";
+  photoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -88,6 +94,16 @@ interface MockReferralRecord {
   createdAt: string;
 }
 
+export interface MockBlockedUser {
+  id: string;
+  userId: string | null;
+  email: string;
+  displayName: string;
+  reason: string;
+  blockedBy: string;
+  createdAt: string;
+}
+
 const usersById = new Map<string, MockUserInfo>();
 const emailByUsername = new Map<string, string>();
 const walletsByUser = new Map<string, MockWallet>();
@@ -101,6 +117,9 @@ const inquiriesList: MockInquiry[] = [];
 const referralsList: MockReferralRecord[] = [];
 const customEmailTemplates = new Map<string, EmailTemplateRecord>();
 const emailOutboxList: EmailOutboxRecord[] = [];
+const mockRoiAccruedDates = new Map<string, Set<string>>();
+const mockRoiUnpaidBalances = new Map<string, number>();
+const blockedUsersById = new Map<string, MockBlockedUser>();
 const auditLogs: Array<{
   id: string;
   actorUid: string;
@@ -190,6 +209,7 @@ export function getMockUserProfile(
     twoFactorEnabled: info.twoFactorEnabled,
     role: fallback?.role || "investor",
     accountStatus: info.accountStatus,
+    photoUrl: info.photoUrl ?? null,
     emailVerified: Boolean(fallback?.emailVerified ?? true),
     createdAt: info.createdAt,
     updatedAt: info.updatedAt,
@@ -206,6 +226,7 @@ export function updateMockUserProfile(
     preferredRail?: string;
     emailAlerts?: boolean;
     twoFactorEnabled?: boolean;
+    photoUrl?: string | null;
   },
   fallback?: { email?: string | null; name?: string | null; emailVerified?: boolean; role?: string }
 ) {
@@ -229,6 +250,7 @@ export function updateMockUserProfile(
   if (patch.preferredRail !== undefined) info.preferredRail = patch.preferredRail;
   if (patch.emailAlerts !== undefined) info.emailAlerts = patch.emailAlerts;
   if (patch.twoFactorEnabled !== undefined) info.twoFactorEnabled = patch.twoFactorEnabled;
+  if (patch.photoUrl !== undefined) info.photoUrl = patch.photoUrl || null;
   info.updatedAt = new Date().toISOString();
   return getMockUserProfile(userId, fallback);
 }
@@ -239,7 +261,9 @@ function toInvestmentDTO(inv: MockStoredInvestment, userTxs: DashboardTransactio
   const related = userTxs.filter(
     (tx) =>
       (tx.type === "Investment" || tx.type === "Profit") &&
-      (tx.destination === inv.planId || tx.method.toLowerCase().includes(inv.planName.toLowerCase()))
+      (tx.destination === inv.id ||
+        tx.destination === inv.planId ||
+        tx.method.toLowerCase().includes(inv.planName.toLowerCase()))
   );
   return {
     id: inv.id,
@@ -347,6 +371,7 @@ export function getMockDashboardOverview(
       uid: userId,
       email,
       displayName,
+      photoUrl: known?.photoUrl ?? null,
       preferredRail: "USDT (TRC20)",
       role: "investor",
     },
@@ -784,20 +809,31 @@ export function createMockInvestmentPurchase(params: {
   return { response, duplicate: false };
 }
 
+export function isMockUserBlocked(userId?: string | null, email?: string | null): boolean {
+  const cleanUid = userId?.trim();
+  const cleanEmail = email?.trim().toLowerCase();
+  for (const entry of blockedUsersById.values()) {
+    if (cleanUid && entry.userId && entry.userId === cleanUid) return true;
+    if (cleanEmail && entry.email.toLowerCase() === cleanEmail) return true;
+  }
+  return false;
+}
+
 export function getMockAdminOverview() {
   const pendingD = transactions.filter((t) => t.type === "Deposit" && t.status === "Pending");
   const pendingW = transactions.filter((t) => t.type === "Withdrawal" && t.status === "Pending");
   const activeInv = investments.filter((i) => i.status === "Active");
+  const activeUsers = Array.from(usersById.values()).filter((u) => !isMockUserBlocked(u.id, u.email));
   return {
     stats: {
-      totalCustomers: usersById.size,
+      totalCustomers: activeUsers.length,
       activeInvestmentsCount: activeInv.length,
       totalInvested: money(investments.reduce((s, i) => s + i.amount, 0)),
       pendingDepositsCount: pendingD.length,
       pendingDepositsAmount: money(pendingD.reduce((s, t) => s + t.amount, 0)),
       pendingWithdrawalsCount: pendingW.length,
       pendingWithdrawalsAmount: money(pendingW.reduce((s, t) => s + t.amount, 0)),
-      newRegistrations: usersById.size,
+      newRegistrations: activeUsers.length,
       propertiesCount: customProperties.size,
       inquiriesCount: inquiriesList.length,
     },
@@ -817,19 +853,56 @@ export function getMockAdminOverview() {
 
 export function getMockAdminData() {
   return {
-    customers: Array.from(usersById.values()).map((u) => ({
-      uid: u.id,
-      username: u.username ?? null,
-      email: u.email,
-      displayName: u.name,
-      country: u.country,
-      phone: u.phone,
-      walletBalance: getOrCreateWallet(u.id).availableBalance,
-      accountStatus: u.accountStatus,
-      createdAt: u.createdAt,
-      investmentsCount: investments.filter((i) => i.userId === u.id).length,
-      transactionsCount: transactions.filter((t) => t.userId === u.id).length,
-    })),
+    customers: Array.from(usersById.values())
+      .filter((u) => !isMockUserBlocked(u.id, u.email))
+      .map((u) => {
+        const userInvs = investments.filter((i) => i.userId === u.id);
+        const userTxs = transactions.filter((t) => t.userId === u.id);
+        return {
+          uid: u.id,
+          username: u.username ?? null,
+          email: u.email,
+          displayName: u.name,
+          photoUrl: u.photoUrl ?? null,
+          country: u.country,
+          phone: u.phone,
+          walletBalance: getOrCreateWallet(u.id).availableBalance,
+          totalDeposit: money(
+            userTxs
+              .filter((t) => t.type === "Deposit" && t.status === "Completed")
+              .reduce((sum, t) => sum + t.amount, 0)
+          ),
+          totalProfit: money(
+            userTxs
+              .filter((t) => t.type === "Profit" && t.status === "Completed")
+              .reduce((sum, t) => sum + t.amount, 0)
+          ),
+          referralBonus: money(
+            userTxs
+              .filter((t) => t.type === "Referral" && t.status === "Completed")
+              .reduce((sum, t) => sum + t.amount, 0)
+          ),
+          role: "investor",
+          kycStatus: "not_submitted",
+          accountStatus: u.accountStatus,
+          createdAt: u.createdAt,
+          investmentsCount: userInvs.length,
+          transactionsCount: userTxs.length,
+          investments: userInvs.map((i) => ({
+            id: i.id,
+            planName: i.planName,
+            amount: i.amount,
+            status: i.status,
+          })),
+          transactions: userTxs.map((t) => ({
+            id: t.id,
+            type: t.type,
+            reference: t.reference,
+            amount: t.amount,
+            status: t.status,
+          })),
+        };
+      }),
     deposits: transactions.filter((t) => t.type === "Deposit"),
     withdrawals: transactions.filter((t) => t.type === "Withdrawal"),
     investments: investments.map((i) => ({
@@ -975,46 +1048,21 @@ export function getMockAdminReferrals() {
 export function getMockCustomerDocuments(userId: string): CustomerDocumentDTO[] {
   const userInv = getMockCustomerInvestments(userId).investments;
   const userTx = getMockCustomerTransactions(userId);
+  const info = usersById.get(userId);
+  const party = {
+    uid: userId,
+    name: info?.name || "Accredited Investor",
+    email: info?.email || "investor@bitfurytech.local",
+    country: info?.country || "",
+  };
   const docs: CustomerDocumentDTO[] = [
-    {
-      id: `acct-${userId}`,
-      userId,
-      title: "BitfuryTech Custody & Mandate Disclosure Agreement",
-      docType: "AccountDocument",
-      reference: `ACCT-${userId.slice(0, 8).toUpperCase()}`,
-      summary:
-        "Standard BitfuryTech account disclosure, risk notice, and segregated ledger settlement terms governing your investor profile.",
-      fileUrl: "/documents/bitfury-company-certificate.pdf",
-      createdAt: usersById.get(userId)?.createdAt ?? new Date().toISOString(),
-    },
+    buildAccountDisclosureDocument(party, info?.createdAt ?? null),
   ];
   for (const inv of userInv) {
-    docs.push({
-      id: `agr-${inv.id}`,
-      userId,
-      title: `${inv.planName} Allocation Agreement`,
-      docType: "Agreement",
-      reference: inv.reference,
-      summary: `Principal allocation of $${inv.amount.toFixed(2)} USD in ${inv.planName} (${inv.durationDays} days). ${inv.expectedPaymentTerms}`,
-      createdAt: inv.startDate,
-    });
+    docs.push(buildInvestmentAgreementDocument(party, inv));
   }
   for (const tx of userTx) {
-    const docType =
-      tx.type === "Deposit"
-        ? "DepositConfirmation"
-        : tx.type === "Withdrawal"
-          ? "WithdrawalRecord"
-          : "Receipt";
-    docs.push({
-      id: `txdoc-${tx.id}`,
-      userId,
-      title: `${tx.type} ${tx.status} Record — ${tx.method}`,
-      docType,
-      reference: tx.reference,
-      summary: `${tx.description || tx.type} (${tx.amount.toFixed(2)} ${tx.currency || "USD"}) · Status: ${tx.status}.`,
-      createdAt: tx.createdAt,
-    });
+    docs.push(buildTransactionDocument(party, tx));
   }
   return docs;
 }
@@ -1039,6 +1087,184 @@ export function updateMockCustomerStatus(
   user.updatedAt = new Date().toISOString();
   addMockAuditLog(actorUid, actorEmail, "UPDATE_CUSTOMER_STATUS", "user", uid, { status });
   return true;
+}
+
+export function updateMockCustomerDetails(
+  uid: string,
+  patch: {
+    displayName?: string;
+    email?: string;
+    country?: string;
+    phone?: string;
+    accountStatus?: "Active" | "Review" | "Suspended";
+    walletBalance?: number;
+    balanceNote?: string;
+  },
+  actorUid: string,
+  actorEmail: string
+) {
+  const user = usersById.get(uid);
+  if (!user || isMockUserBlocked(uid, user.email)) return null;
+
+  if (patch.email !== undefined) {
+    const cleanEmail = patch.email.trim().toLowerCase();
+    for (const [otherId, otherUser] of usersById.entries()) {
+      if (otherId !== uid && otherUser.email.toLowerCase() === cleanEmail) {
+        throw Object.assign(new Error("Email address is already in use by another account."), { statusCode: 409 });
+      }
+    }
+    if (isMockUserBlocked(null, cleanEmail)) {
+      throw Object.assign(new Error("Email address belongs to a blocked defaulter."), { statusCode: 409 });
+    }
+    if (user.username) {
+      emailByUsername.set(user.username, cleanEmail);
+    }
+    user.email = cleanEmail;
+    for (const tx of transactions) {
+      if (tx.userId === uid) tx.userEmail = cleanEmail;
+    }
+    for (const inv of investments) {
+      if (inv.userId === uid) inv.userEmail = cleanEmail;
+    }
+  }
+
+  if (patch.displayName !== undefined) user.name = patch.displayName.trim();
+  if (patch.country !== undefined) user.country = patch.country.trim();
+  if (patch.phone !== undefined) user.phone = patch.phone.trim();
+  if (patch.accountStatus !== undefined) user.accountStatus = patch.accountStatus;
+  user.updatedAt = new Date().toISOString();
+
+  const wallet = getOrCreateWallet(uid);
+  let balanceAdjusted = false;
+  if (patch.walletBalance !== undefined && Number.isFinite(patch.walletBalance) && patch.walletBalance >= 0) {
+    const target = money(patch.walletBalance);
+    const delta = money(target - wallet.availableBalance);
+    if (Math.abs(delta) >= 0.01) {
+      wallet.availableBalance = target;
+      balanceAdjusted = true;
+      const nowIso = new Date().toISOString();
+      transactions.unshift({
+        id: randomUUID(),
+        userId: uid,
+        userEmail: user.email,
+        type: delta > 0 ? "Deposit" : "Withdrawal",
+        method: "Admin Balance Adjustment",
+        amount: Math.abs(delta),
+        destination: "Wallet",
+        reference: `ADJ-${Date.now().toString().slice(-8)}`,
+        status: "Completed",
+        currency: "USD",
+        description: patch.balanceNote?.trim() || `Administrator balance ${delta > 0 ? "credit" : "debit"} adjustment`,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+    }
+  }
+
+  addMockAuditLog(actorUid, actorEmail, "EDIT_USER_ACCOUNT", "user", uid, {
+    displayName: user.name,
+    email: user.email,
+    accountStatus: user.accountStatus,
+    balanceAdjusted,
+    walletBalance: wallet.availableBalance,
+  });
+
+  return {
+    uid: user.id,
+    displayName: user.name,
+    email: user.email,
+    country: user.country,
+    phone: user.phone,
+    accountStatus: user.accountStatus,
+    walletBalance: wallet.availableBalance,
+  };
+}
+
+export function listMockBlockedUsers(): MockBlockedUser[] {
+  return Array.from(blockedUsersById.values()).sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
+}
+
+export function blockMockUser(params: {
+  userId?: string | null;
+  email?: string | null;
+  reason: string;
+  actorUid: string;
+  actorEmail: string;
+}): MockBlockedUser {
+  const matchedUser = params.userId
+    ? usersById.get(params.userId)
+    : Array.from(usersById.values()).find(
+        (u) => params.email && u.email.toLowerCase() === params.email.trim().toLowerCase()
+      );
+
+  const cleanEmail = (matchedUser?.email || params.email || "").trim().toLowerCase();
+  if (!cleanEmail) {
+    throw Object.assign(new Error("A valid user or email address is required."), { statusCode: 400 });
+  }
+
+  const blockId = `blk_${randomUUID().slice(0, 10)}`;
+  const entry: MockBlockedUser = {
+    id: blockId,
+    userId: matchedUser?.id ?? params.userId ?? null,
+    email: cleanEmail,
+    displayName: matchedUser?.name ?? cleanEmail.split("@")[0] ?? "Defaulter",
+    reason: params.reason.trim(),
+    blockedBy: params.actorEmail,
+    createdAt: new Date().toISOString(),
+  };
+
+  for (const [existingId, existing] of blockedUsersById.entries()) {
+    if (existing.email.toLowerCase() === cleanEmail) {
+      blockedUsersById.delete(existingId);
+    }
+  }
+  blockedUsersById.set(blockId, entry);
+
+  if (matchedUser) {
+    matchedUser.accountStatus = "Suspended";
+    if (matchedUser.username) {
+      emailByUsername.delete(matchedUser.username);
+    }
+    usersById.delete(matchedUser.id);
+  }
+
+  addMockAuditLog(params.actorUid, params.actorEmail, "BLOCK_REMOVE_USER", "user", entry.userId || cleanEmail, {
+    email: cleanEmail,
+    reason: entry.reason,
+  });
+
+  return entry;
+}
+
+export function unblockMockUser(blockId: string, actorUid: string, actorEmail: string): boolean {
+  const existing = blockedUsersById.get(blockId);
+  if (!existing) return false;
+  blockedUsersById.delete(blockId);
+  addMockAuditLog(actorUid, actorEmail, "UNBLOCK_USER", "blocked_user", blockId, {
+    email: existing.email,
+  });
+  return true;
+}
+
+export function addMockUserNotification(
+  userId: string,
+  category: string,
+  title: string,
+  body: string
+): NotificationMessage {
+  const entry: NotificationMessage = {
+    id: randomUUID(),
+    userId,
+    category,
+    title,
+    body,
+    read: false,
+    createdAt: new Date().toISOString(),
+  };
+  notificationsList.unshift(entry);
+  return entry;
 }
 
 export function updateMockInvestmentStatus(
@@ -1131,8 +1357,164 @@ export function saveMockEmailTemplate(
   return record;
 }
 
+export function addMockEmailOutbox(entry: {
+  id: string;
+  eventType: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  status: "sent" | "failed" | "pending";
+  lastError?: string | null;
+}): void {
+  const now = new Date().toISOString();
+  emailOutboxList.unshift({
+    id: entry.id,
+    eventType: entry.eventType,
+    recipient: entry.recipient,
+    subject: entry.subject,
+    body: entry.body,
+    status: entry.status,
+    lastError: entry.lastError ?? null,
+    sentAt: entry.status === "sent" ? now : null,
+    createdAt: now,
+  });
+  if (emailOutboxList.length > 200) emailOutboxList.length = 200;
+}
+
 export function getMockEmailOutbox(): EmailOutboxRecord[] {
   return emailOutboxList.slice(0, 50);
+}
+
+function utcDayStart(value: Date | string): Date {
+  const d = new Date(value);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+function resolveMockPayoutFrequency(value: unknown): "daily" | "weekly" | "monthly" | "maturity" {
+  const s = String(value ?? "").toLowerCase();
+  if (s.includes("matur") || s.includes("end of term")) return "maturity";
+  if (s.includes("weekly")) return "weekly";
+  if (s.includes("monthly")) return "monthly";
+  return "daily";
+}
+
+function isMockPayoutDue(
+  freq: "daily" | "weekly" | "monthly" | "maturity",
+  start: Date,
+  today: Date,
+  matured: boolean
+): boolean {
+  if (matured) return true;
+  if (freq === "maturity") return false;
+  const elapsedDays = Math.floor((today.getTime() - start.getTime()) / 86400000);
+  if (freq === "daily") return elapsedDays >= 1;
+  if (freq === "weekly") return elapsedDays > 0 && elapsedDays % 7 === 0;
+  return today.getUTCDate() === start.getUTCDate() && today > start;
+}
+
+export function processMockPlanDrivenRoi(asOf = new Date()): Array<{
+  investmentId: string;
+  userId: string;
+  email: string;
+  name: string;
+  emailAlerts: boolean;
+  amount: number;
+  planName: string;
+}> {
+  const today = utcDayStart(asOf);
+  const accrualCutoff = new Date(today.getTime() - 86400000);
+  const payouts: Array<{
+    investmentId: string;
+    userId: string;
+    email: string;
+    name: string;
+    emailAlerts: boolean;
+    amount: number;
+    planName: string;
+  }> = [];
+
+  for (const inv of investments) {
+    if (inv.status !== "Active") continue;
+    if (!(inv.dailyRatePct > 0) || inv.dailyRatePct > 100 || !(inv.amount > 0)) continue;
+
+    const start = utcDayStart(inv.startDate);
+    const maturity = utcDayStart(inv.maturityDate);
+    const lastAccrual = new Date(Math.min(accrualCutoff.getTime(), maturity.getTime() - 86400000));
+    const accruedSet = mockRoiAccruedDates.get(inv.id) ?? new Set<string>();
+    mockRoiAccruedDates.set(inv.id, accruedSet);
+
+    if (lastAccrual >= start) {
+      const dailyAmount = money((inv.amount * inv.dailyRatePct) / 100);
+      if (dailyAmount > 0) {
+        let added = 0;
+        for (let cursor = start.getTime(); cursor <= lastAccrual.getTime(); cursor += 86400000) {
+          const dayKey = new Date(cursor).toISOString().slice(0, 10);
+          if (!accruedSet.has(dayKey)) {
+            accruedSet.add(dayKey);
+            added = money(added + dailyAmount);
+          }
+        }
+        if (added > 0) {
+          mockRoiUnpaidBalances.set(inv.id, money((mockRoiUnpaidBalances.get(inv.id) ?? 0) + added));
+        }
+      }
+    }
+
+    const matured = today >= maturity;
+    const freq = resolveMockPayoutFrequency(inv.paymentFrequency);
+    if (isMockPayoutDue(freq, start, today, matured)) {
+      const dueAmount = money(mockRoiUnpaidBalances.get(inv.id) ?? 0);
+      if (dueAmount > 0) {
+        const wallet = getOrCreateWallet(inv.userId);
+        wallet.availableBalance = money(wallet.availableBalance + dueAmount);
+        mockRoiUnpaidBalances.set(inv.id, 0);
+
+        const nowIso = new Date().toISOString();
+        const ref = `ROI-${inv.id.slice(-8).toUpperCase()}-${today.toISOString().slice(0, 10).replace(/-/g, "")}`;
+        transactions.unshift({
+          id: randomUUID(),
+          userId: inv.userId,
+          userEmail: inv.userEmail,
+          type: "Profit",
+          method: `${inv.planName} ROI`,
+          amount: dueAmount,
+          destination: inv.id,
+          reference: ref,
+          status: "Completed",
+          currency: "USD",
+          description: `Daily ROI distribution: ${inv.planName}`,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+        notificationsList.unshift({
+          id: randomUUID(),
+          userId: inv.userId,
+          category: "investment",
+          title: "Investment return credited",
+          body: `USD ${dueAmount.toFixed(2)} credited from ${inv.planName}`,
+          read: false,
+          createdAt: nowIso,
+        });
+
+        const userInfo = usersById.get(inv.userId);
+        payouts.push({
+          investmentId: inv.id,
+          userId: inv.userId,
+          email: inv.userEmail,
+          name: userInfo?.name || inv.userName || "Investor",
+          emailAlerts: userInfo ? userInfo.emailAlerts : true,
+          amount: dueAmount,
+          planName: inv.planName,
+        });
+      }
+    }
+
+    if (matured) {
+      inv.status = "Completed";
+    }
+  }
+
+  return payouts;
 }
 
 export function resolveMockDeposit(txId: string, decision: "Completed" | "Rejected", actorEmail: string, note: string): boolean {

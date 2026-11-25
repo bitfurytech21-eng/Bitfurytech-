@@ -8,6 +8,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   FormField,
   NotificationBanner,
@@ -113,10 +114,8 @@ export function WalletPage() {
     >
       <div className="grid md:grid-cols-3 gap-4">
         <Card padding="md" className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-[#233b56] text-white flex items-center justify-center shrink-0">
-            <Wallet className="w-6 h-6" />
-          </div>
-          <div>
+          <DashboardSymbol icon={Wallet} tone="navy" size="lg" />
+          <div className="min-w-0">
             <p className="text-xs font-medium text-slate-500">Available Balance</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">
               {formatUsd(availableBalance)}
@@ -125,10 +124,8 @@ export function WalletPage() {
         </Card>
 
         <Card padding="md" className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-amber-400 text-white flex items-center justify-center shrink-0">
-            <ArrowDownCircle className="w-6 h-6" />
-          </div>
-          <div>
+          <DashboardSymbol icon={ArrowDownCircle} tone="green" size="lg" />
+          <div className="min-w-0">
             <p className="text-xs font-medium text-slate-500">Cumulative Deposits</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">
               {formatUsd(totalDeposit)}
@@ -137,10 +134,8 @@ export function WalletPage() {
         </Card>
 
         <Card padding="md" className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-slate-700 text-white flex items-center justify-center shrink-0">
-            <ArrowUpRight className="w-6 h-6" />
-          </div>
-          <div>
+          <DashboardSymbol icon={ArrowUpRight} tone="red" size="lg" />
+          <div className="min-w-0">
             <p className="text-xs font-medium text-slate-500">Pending Verification</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">
               {formatUsd(pendingAmount)}

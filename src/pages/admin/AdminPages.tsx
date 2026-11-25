@@ -17,6 +17,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   FormField,
   Modal,
@@ -102,9 +103,7 @@ export function AdminOverviewPage() {
     >
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card padding="md" className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-[#233b56] text-white flex items-center justify-center shrink-0">
-            <Users className="w-6 h-6" />
-          </div>
+          <DashboardSymbol icon={Users} tone="navy" size="lg" />
           <div>
             <p className="text-xs font-medium text-slate-500">Registered Investors</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">
@@ -114,9 +113,7 @@ export function AdminOverviewPage() {
         </Card>
 
         <Card padding="md" className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-amber-400 text-white flex items-center justify-center shrink-0">
-            <ArrowDownCircle className="w-6 h-6" />
-          </div>
+          <DashboardSymbol icon={ArrowDownCircle} tone="amber" size="lg" />
           <div>
             <p className="text-xs font-medium text-slate-500">Pending Settlements</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">
@@ -126,9 +123,7 @@ export function AdminOverviewPage() {
         </Card>
 
         <Card padding="md" className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-emerald-500 text-white flex items-center justify-center shrink-0">
-            <Shield className="w-6 h-6" />
-          </div>
+          <DashboardSymbol icon={Shield} tone="green" size="lg" />
           <div>
             <p className="text-xs font-medium text-slate-500">Aggregate Wallet Balances</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">
@@ -138,9 +133,7 @@ export function AdminOverviewPage() {
         </Card>
 
         <Card padding="md" className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-indigo-500 text-white flex items-center justify-center shrink-0">
-            <Building2 className="w-6 h-6" />
-          </div>
+          <DashboardSymbol icon={Building2} tone="navy" size="lg" />
           <div>
             <p className="text-xs font-medium text-slate-500">Listed Properties</p>
             <p className="text-xl font-semibold font-mono tabular-nums text-slate-900 mt-1">

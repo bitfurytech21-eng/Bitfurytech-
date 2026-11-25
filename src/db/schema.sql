@@ -331,3 +331,16 @@ CREATE TABLE IF NOT EXISTS roi_accruals (
   UNIQUE (investment_id, accrual_date)
 );
 CREATE INDEX IF NOT EXISTS roi_accruals_unpaid_idx ON roi_accruals(investment_id, accrual_date) WHERE paid_at IS NULL;
+
+-- Blocked / removed defaulters prevented from accessing the platform or re-registering.
+CREATE TABLE IF NOT EXISTS blocked_users (
+  id text PRIMARY KEY,
+  user_id text UNIQUE,
+  email text NOT NULL UNIQUE,
+  display_name text NOT NULL DEFAULT '',
+  reason text NOT NULL DEFAULT '',
+  blocked_by text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS blocked_users_email_idx ON blocked_users (lower(email));
+

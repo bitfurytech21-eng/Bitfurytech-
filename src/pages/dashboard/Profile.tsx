@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { KeyRound, ShieldCheck, User } from "lucide-react";
+import { Camera, KeyRound, ShieldCheck, Trash2, User } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
   Button,
@@ -8,6 +8,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   ErrorState,
   FormField,
   NotificationBanner,
@@ -17,13 +18,20 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { validateUsername } from "../../lib/username";
-import { formatIsoDate, sessionApiRequest } from "../../services/dashboardApi";
+import {
+  formatIsoDate,
+  isSafeProfilePhotoUrl,
+  removeInvestorProfilePhoto,
+  sessionApiRequest,
+  uploadInvestorProfilePhoto,
+} from "../../services/dashboardApi";
 
 interface BackendProfileDTO {
   uid: string;
   username?: string;
   email: string;
   displayName: string;
+  photoUrl?: string | null;
   country: string;
   phone: string;
   preferredRail: string;
@@ -37,7 +45,8 @@ interface BackendProfileDTO {
 }
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUserSession } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileData, setProfileData] = useState<BackendProfileDTO | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -45,6 +54,7 @@ export default function Profile() {
   const [country, setCountry] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
@@ -103,6 +113,13 @@ export default function Profile() {
         }),
       });
       setSavedMsg("Profile details validated and saved to the server.");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("bitfury:profile-updated", {
+            detail: { displayName: displayName.trim() },
+          })
+        );
+      }
       await loadProfile();
     } catch (err) {
       setSaveError(
@@ -112,6 +129,49 @@ export default function Profile() {
       setSaving(false);
     }
   };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setSaveError(null);
+    setSavedMsg(null);
+    setPhotoBusy(true);
+    try {
+      const nextUrl = await uploadInvestorProfilePhoto(file);
+      setProfileData((prev) => (prev ? { ...prev, photoUrl: nextUrl } : prev));
+      setSavedMsg("Profile photo uploaded and saved to your investor account.");
+      await refreshUserSession().catch(() => undefined);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Unable to upload profile photo.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const handlePhotoRemove = async () => {
+    setSaveError(null);
+    setSavedMsg(null);
+    setPhotoBusy(true);
+    try {
+      await removeInvestorProfilePhoto();
+      setProfileData((prev) => (prev ? { ...prev, photoUrl: null } : prev));
+      setSavedMsg("Profile photo removed.");
+      await refreshUserSession().catch(() => undefined);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Unable to remove profile photo.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const currentPhoto = isSafeProfilePhotoUrl(profileData?.photoUrl)
+    ? profileData.photoUrl
+    : null;
+  const avatarInitial = (profileData?.displayName || profileData?.email || "I")
+    .trim()
+    .charAt(0)
+    .toUpperCase();
 
   return (
     <DashboardLayout
@@ -134,7 +194,7 @@ export default function Profile() {
             <CardHeader
               title="Investor Identity & Contact Details"
               subtitle="All profile changes are validated through authenticated backend endpoints"
-              action={<User className="w-4 h-4 text-slate-400" />}
+              action={<DashboardSymbol icon={User} tone="navy" size="md" />}
             />
             <CardBody className="space-y-5">
               {saveError && (
@@ -151,6 +211,60 @@ export default function Profile() {
                   onDismiss={() => setSavedMsg(null)}
                 />
               )}
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#DCE4EC]">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-lg overflow-hidden border border-[#DCE4EC] bg-[#1F3649] text-white flex items-center justify-center shrink-0">
+                    {currentPhoto ? (
+                      <img
+                        src={currentPhoto}
+                        alt={profileData.displayName || "Investor profile photo"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl font-bold font-heading">{avatarInitial}</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#102030]">Investor Profile Photo</p>
+                    <p className="text-xs text-[#5A6B7C] mt-0.5">
+                      Displayed on your personal dashboard and account menu. JPEG, PNG, or WebP up to 2 MB.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    aria-label="Choose profile photo file"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    loading={photoBusy}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>{currentPhoto ? "Change Photo" : "Upload Photo"}</span>
+                  </Button>
+                  {currentPhoto && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={photoBusy}
+                      onClick={() => void handlePhotoRemove()}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      <span className="text-rose-700">Remove</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <FormField id="p-fullname" label="Full Name">
@@ -220,9 +334,28 @@ export default function Profile() {
           <Card className="lg:col-span-5">
             <CardHeader
               title="Verification & Account Record"
-              action={<ShieldCheck className="w-4 h-4 text-emerald-600" />}
+              action={<DashboardSymbol icon={ShieldCheck} tone="green" size="md" />}
             />
-            <CardBody className="space-y-3 text-xs">
+            <CardBody className="space-y-4 text-xs">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                <div className="h-12 w-12 rounded-lg overflow-hidden border border-[#DCE4EC] bg-[#1F3649] text-white flex items-center justify-center shrink-0">
+                  {currentPhoto ? (
+                    <img
+                      src={currentPhoto}
+                      alt={profileData.displayName || "Investor"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-base font-bold font-heading">{avatarInitial}</span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">
+                    {profileData.displayName || "Investor"}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate">{profileData.email}</p>
+                </div>
+              </div>
               <dl className="space-y-3">
                 <div className="flex justify-between">
                   <dt className="text-slate-500">Username Handle</dt>

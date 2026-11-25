@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import FinancialAmount from "../../components/FinancialAmount";
 import { Link } from "react-router-dom";
 import {
   ArrowDownCircle,
   ArrowRight,
   ArrowUpRight,
+  BarChart3,
+  Camera,
+  CheckCircle2,
+  Clock,
   Compass,
   RefreshCw,
+  User,
   Wallet,
 } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -17,6 +22,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   EmptyState,
   ErrorState,
   SkeletonBlock,
@@ -27,6 +33,8 @@ import {
   DashboardOverviewDTO,
   fetchDashboardOverview,
   formatIsoDate,
+  isSafeProfilePhotoUrl,
+  uploadInvestorProfilePhoto,
 } from "../../services/dashboardApi";
 
 function OverviewSkeleton() {
@@ -54,11 +62,14 @@ function OverviewSkeleton() {
 }
 
 export default function Overview() {
-  const { backendSession, authReady } = useAuth();
+  const { backendSession, authReady, refreshUserSession } = useAuth();
   const [data, setData] = useState<DashboardOverviewDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const loadOverview = useCallback(
     async (isManualRefresh = false) => {
@@ -90,6 +101,29 @@ export default function Overview() {
   useEffect(() => {
     void loadOverview(false);
   }, [loadOverview]);
+
+  const handleOverviewPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setPhotoError(null);
+    setUploadingPhoto(true);
+    try {
+      const nextUrl = await uploadInvestorProfilePhoto(file);
+      setData((prev) =>
+        prev ? { ...prev, account: { ...prev.account, photoUrl: nextUrl } } : prev
+      );
+      await refreshUserSession().catch(() => undefined);
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Unable to upload profile photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const overviewPhoto = isSafeProfilePhotoUrl(data?.account?.photoUrl)
+    ? data.account.photoUrl
+    : null;
 
   return (
     <DashboardLayout
@@ -129,23 +163,76 @@ export default function Overview() {
         <div className="space-y-5 sm:space-y-6">
           <section
             aria-label="Investor account snapshot"
-            className="flex flex-col gap-5 rounded-lg bg-[#112E3E] px-5 py-5 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6"
+            className="flex flex-col gap-5 rounded-lg bg-[#1F3649] px-5 py-5 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6"
           >
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B9D1DE]">
-                Investor account
-              </p>
-              <h2 className="mt-1.5 text-xl font-bold font-heading tracking-tight sm:text-2xl">
-                Welcome back, {backendSession?.email?.split("@")[0] || "Investor"}
-              </h2>
-              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-slate-300">
-                Your portfolio activity, settlements, and account figures are ready to review.
-              </p>
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="shrink-0">
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleOverviewPhotoChange}
+                  className="hidden"
+                  aria-label="Upload investor profile photo"
+                />
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  title={overviewPhoto ? "Change profile photo" : "Upload profile photo"}
+                  className="group relative h-16 w-16 rounded-lg overflow-hidden border border-white/25 bg-white/10 flex items-center justify-center hover:border-white/50 transition-colors cursor-pointer"
+                >
+                  {overviewPhoto ? (
+                    <img
+                      src={overviewPhoto}
+                      alt={data.account.displayName || "Investor profile"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-7 w-7 text-slate-200" strokeWidth={2} />
+                  )}
+                  <span className="absolute inset-x-0 bottom-0 bg-[#102030]/75 py-0.5 flex items-center justify-center opacity-90 group-hover:opacity-100">
+                    <Camera className="h-3.5 w-3.5 text-white" />
+                  </span>
+                </button>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B9D1DE]">
+                  Investor account
+                </p>
+                <h2 className="mt-1 text-xl font-bold font-heading tracking-tight sm:text-2xl truncate">
+                  Welcome back, {data.account.displayName || backendSession?.email?.split("@")[0] || "Investor"}
+                </h2>
+                <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B9D1DE] hover:text-white transition-colors cursor-pointer"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    <span>
+                      {uploadingPhoto
+                        ? "Uploading photo..."
+                        : overviewPhoto
+                          ? "Change profile photo"
+                          : "Upload profile photo"}
+                    </span>
+                  </button>
+                  <Link
+                    to="/profile"
+                    className="text-xs text-slate-300 hover:text-white underline-offset-2 hover:underline"
+                  >
+                    Manage profile
+                  </Link>
+                </div>
+                {photoError && (
+                  <p className="mt-1.5 text-xs text-[#FFD1D8]">{photoError}</p>
+                )}
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-4 border-t border-white/15 pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/10 text-[#B9D1DE]">
-                <Wallet className="h-5 w-5" aria-hidden="true" />
-              </div>
+              <DashboardSymbol icon={Wallet} tone="green" size="md" />
               <div>
                 <p className="text-xs text-slate-300">Portfolio synced</p>
                 <p className="mt-0.5 text-sm font-semibold text-white">
@@ -158,47 +245,59 @@ export default function Overview() {
           {/* Primary Financial Figures (server-verified) */}
           <section
             aria-label="Primary financial metrics"
-            className="grid grid-cols-1 min-[390px]:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
           >
-            <Card padding="md" className="space-y-2 border-[#DCE4EC] bg-white text-[#102030] shadow-sm transition-shadow hover:shadow-md">
-              <div className="text-xs font-medium text-[#5A6B7C]">Available Balance</div>
-              <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {<FinancialAmount value={data.metrics.availableBalance} size="lg" />}
-              </p>
-              <p className="text-xs text-[#5A6B7C]">
-                Deposited <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalDeposit} size="md" />}</span>
-              </p>
+            <Card padding="md" className="flex items-center gap-4 border-[#DCE4EC] bg-white text-[#102030] shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={CheckCircle2} tone="navy" size="lg" />
+              <div className="min-w-0 space-y-1">
+                <div className="text-xs font-medium text-[#5A6B7C]">Available Balance</div>
+                <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl truncate">
+                  {<FinancialAmount value={data.metrics.availableBalance} size="lg" />}
+                </p>
+                <p className="text-xs text-[#5A6B7C] truncate">
+                  Deposited <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalDeposit} size="md" />}</span>
+                </p>
+              </div>
             </Card>
 
-            <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
-              <div className="text-xs font-medium text-[#5A6B7C]">Total Invested</div>
-              <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {<FinancialAmount value={data.metrics.totalInvested} size="lg" />}
-              </p>
-              <p className="text-xs text-[#5A6B7C]">
-                Active principal <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.activeInvested} size="md" />}</span>
-              </p>
+            <Card padding="md" className="flex items-center gap-4 border-[#DCE4EC] bg-white shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={BarChart3} tone="amber" size="lg" />
+              <div className="min-w-0 space-y-1">
+                <div className="text-xs font-medium text-[#5A6B7C]">Total Invested</div>
+                <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl truncate">
+                  {<FinancialAmount value={data.metrics.totalInvested} size="lg" />}
+                </p>
+                <p className="text-xs text-[#5A6B7C] truncate">
+                  Active principal <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.activeInvested} size="md" />}</span>
+                </p>
+              </div>
             </Card>
 
-            <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
-              <div className="text-xs font-medium text-[#5A6B7C]">Total Earnings</div>
-              <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {<FinancialAmount value={data.metrics.totalEarnings} size="lg" />}
-              </p>
-              <p className="text-xs text-[#5A6B7C]">
-                Profit <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalProfit} size="md" />}</span> · Referral{" "}
-                <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.referralBonus} size="md" />}</span>
-              </p>
+            <Card padding="md" className="flex items-center gap-4 border-[#DCE4EC] bg-white shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={ArrowDownCircle} tone="green" size="lg" />
+              <div className="min-w-0 space-y-1">
+                <div className="text-xs font-medium text-[#5A6B7C]">Total Earnings</div>
+                <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl truncate">
+                  {<FinancialAmount value={data.metrics.totalEarnings} size="lg" />}
+                </p>
+                <p className="text-xs text-[#5A6B7C] truncate">
+                  Profit <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.totalProfit} size="md" />}</span> · Referral{" "}
+                  <span className="font-mono tabular-nums">{<FinancialAmount value={data.metrics.referralBonus} size="md" />}</span>
+                </p>
+              </div>
             </Card>
 
-            <Card padding="md" className="space-y-2 border-[#DCE4EC] shadow-sm transition-shadow hover:shadow-md">
-              <div className="text-xs font-medium text-[#5A6B7C]">Pending Payments</div>
-              <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl">
-                {<FinancialAmount value={data.metrics.pendingPayments} size="lg" />}
-              </p>
-              <p className="text-xs text-[#5A6B7C]">
-                {data.metrics.pendingCount} pending settlement{data.metrics.pendingCount === 1 ? "" : "s"}
-              </p>
+            <Card padding="md" className="flex items-center gap-4 border-[#DCE4EC] bg-white shadow-sm transition-shadow hover:shadow-md">
+              <DashboardSymbol icon={Clock} tone="red" size="lg" />
+              <div className="min-w-0 space-y-1">
+                <div className="text-xs font-medium text-[#5A6B7C]">Pending Payments</div>
+                <p className="text-xl font-bold font-mono tabular-nums text-[#102030] sm:text-2xl truncate">
+                  {<FinancialAmount value={data.metrics.pendingPayments} size="lg" />}
+                </p>
+                <p className="text-xs text-[#5A6B7C] truncate">
+                  {data.metrics.pendingCount} pending settlement{data.metrics.pendingCount === 1 ? "" : "s"}
+                </p>
+              </div>
             </Card>
           </section>
 
@@ -314,8 +413,8 @@ export default function Overview() {
                     <div key={bucket.category} className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-[#102030]">{bucket.label}</span>
-                        <span className="font-mono tabular-nums text-[#5A6B7C]">
-                          {<FinancialAmount value={bucket.investedAmount} size="md" />} ({bucket.sharePct}%)
+                        <span className="font-tabular-sans tabular-nums text-[#5A6B7C]">
+                          {<FinancialAmount value={bucket.investedAmount} size="md" />} ({Math.round(Number(bucket.sharePct) || 0)}%)
                         </span>
                       </div>
                       <div className="h-2 rounded-full bg-[#EDF3F7] overflow-hidden">

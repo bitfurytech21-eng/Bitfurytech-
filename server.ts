@@ -23,11 +23,13 @@ import {
   resolveBetterAuthRole,
   type BetterAuthRequest,
 } from "./src/middleware/betterAuth.ts";
+import { isUserBlocked } from "./src/lib/blockedUsers.ts";
 import {
   addMockInquiry,
   getMockAdminData,
   getMockAdminOverview,
   getMockCatalog,
+  getMockUserProfile,
   isMockUsernameAvailable,
   lookupMockEmailByUsername,
 } from "./src/services/inMemoryFinancialMock.ts";
@@ -38,9 +40,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.disable("x-powered-by");
 app.set("trust proxy", 1);
 const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === "production";
+
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
 
 // Better Auth is isolated under /api/better-auth and runs before express.json() so it can read the request body.
 app.all("/api/better-auth/*splat", toNodeHandler(betterAuthInstance));
@@ -55,7 +65,26 @@ app.get("/api/account/session", async (req, res) => {
       res.status(401).json({ authenticated: false });
       return;
     }
+    if (await isUserBlocked(session.user.id, session.user.email)) {
+      if (isDatabaseConfigured) {
+        await queryDatabase('DELETE FROM session WHERE "userId" = $1', [session.user.id]).catch(() => undefined);
+      }
+      res.status(403).json({
+        authenticated: false,
+        blocked: true,
+        error: "This account has been blocked and removed from the platform.",
+      });
+      return;
+    }
     const role = await resolveBetterAuthRole(session.user.id, session.user.email);
+    const photoUrl = isDatabaseConfigured
+      ? (session.user.image ?? null)
+      : (getMockUserProfile(session.user.id, {
+          email: session.user.email,
+          name: session.user.name,
+          emailVerified: session.user.emailVerified,
+          role,
+        }).photoUrl ?? session.user.image ?? null);
     res.json({
       authenticated: true,
       user: {
@@ -63,6 +92,7 @@ app.get("/api/account/session", async (req, res) => {
         name: session.user.name,
         email: session.user.email,
         emailVerified: session.user.emailVerified,
+        photoUrl,
         role,
         isAdmin: role === "admin" && session.user.emailVerified,
       },
@@ -84,7 +114,23 @@ app.get("/api/auth/better-session", requireBetterAuth, async (req: BetterAuthReq
     return;
   }
   try {
+    if (await isUserBlocked(session.user.id, session.user.email)) {
+      res.status(403).json({
+        authenticated: false,
+        blocked: true,
+        error: "This account has been blocked and removed from the platform.",
+      });
+      return;
+    }
     const role = await resolveBetterAuthRole(session.user.id, session.user.email);
+    const photoUrl = isDatabaseConfigured
+      ? (session.user.image ?? null)
+      : (getMockUserProfile(session.user.id, {
+          email: session.user.email,
+          name: session.user.name,
+          emailVerified: session.user.emailVerified,
+          role,
+        }).photoUrl ?? session.user.image ?? null);
     res.json({
       authenticated: true,
       user: {
@@ -92,6 +138,7 @@ app.get("/api/auth/better-session", requireBetterAuth, async (req: BetterAuthReq
         name: session.user.name,
         email: session.user.email,
         emailVerified: session.user.emailVerified,
+        photoUrl,
         role,
         isAdmin: role === "admin" && session.user.emailVerified,
       },
@@ -256,7 +303,10 @@ app.get("/api/health/migration", async (_req, res) => {
          ('public.properties'),
          ('public.email_outbox'),
          ('public.audit_logs'),
-         ('public.platform_payment_wallets')
+         ('public.platform_payment_wallets'),
+         ('public.roi_accruals'),
+         ('public.daily_roi_email_runs'),
+         ('public.blocked_users')
        ) AS required(name)`
     );
     const missing = result.rows.filter((row) => !row.present).map((row) => row.name);
@@ -455,8 +505,80 @@ app.get("/api/trading/plans", async (_req, res) => {
   }
 });
 
-app.get("/api/trading/plans/:id", (req, res) => {
-  const mandate = getMandateById(req.params.id);
+app.get("/api/trading/plans/:id", async (req, res) => {
+  const planId = String(req.params.id || "").trim();
+  if (!planId) {
+    res.status(400).json({ error: "Investment plan ID is required." });
+    return;
+  }
+  if (!isDatabaseConfigured) {
+    const mandate =
+      getMockCatalog(0.5).plans.find((p) => p.id === planId) ?? getMandateById(planId);
+    if (!mandate) {
+      res.status(404).json({ error: "Investment plan not found." });
+      return;
+    }
+    res.json({ mandate });
+    return;
+  }
+  try {
+    const result = await queryDatabase<{
+      id: string;
+      name: string;
+      category: string;
+      description: string;
+      min_deposit: string | number;
+      max_deposit: string | number | null;
+      daily_rate_pct: string | number | null;
+      duration_days: number;
+      published: boolean;
+      plan_data: Record<string, unknown> | null;
+    }>(
+      "SELECT id, name, category, description, min_deposit, max_deposit, daily_rate_pct, duration_days, published, plan_data FROM investment_plans WHERE id = $1 LIMIT 1",
+      [planId]
+    );
+    const row = result.rows[0];
+    if (row) {
+      if (row.published === false) {
+        res.status(404).json({ error: "Investment plan not found." });
+        return;
+      }
+      const data = row.plan_data && typeof row.plan_data === "object" ? row.plan_data : {};
+      const category = row.category === "stock" || row.category === "estate" ? row.category : "crypto";
+      res.json({
+        mandate: {
+          id: row.id,
+          category,
+          categoryLabel: String(
+            data.categoryLabel ??
+              (category === "crypto"
+                ? "Digital Assets"
+                : category === "stock"
+                  ? "Global Equities"
+                  : "Real Estate")
+          ),
+          name: String(row.name ?? "Investment Mandate"),
+          audience: String(data.audience ?? "Structured client allocation"),
+          description: String(row.description ?? ""),
+          minDeposit: Number(row.min_deposit ?? 500) || 500,
+          maxDeposit: Number(row.max_deposit ?? 50000) || 50000,
+          dailyRatePct: Number(row.daily_rate_pct ?? 1.5) || 1.5,
+          durationDays: Number(row.duration_days ?? 30) || 30,
+          paymentFrequency: String(data.paymentFrequency ?? "Scheduled cycle distribution"),
+          settlementRail: String(data.settlementRail ?? "USDT (TRC20) / Bank Wire"),
+          image: String(data.image ?? "/images/hero_institutional_wealth.jpg"),
+          returnTerms: String(data.returnTerms ?? row.description ?? ""),
+          highlights: Array.isArray(data.highlights)
+            ? data.highlights.map(String)
+            : ["Segregated custody tracking", "Verified ledger settlement"],
+        },
+      });
+      return;
+    }
+  } catch {
+    // Fall back to default mandate catalog below if DB lookup fails
+  }
+  const mandate = getMandateById(planId);
   if (!mandate) {
     res.status(404).json({ error: "Investment plan not found." });
     return;
@@ -723,14 +845,14 @@ app.get("/api/admin/overview", requireBetterAuth, requireBetterAdmin, async (_re
   }
   try {
     const [users, active, invested, pendingD, pendingW, amountD, amountW, newUsers, properties, inquiries, recentTx, audit] = await Promise.all([
-      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM \"user\""),
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM \"user\" u WHERE NOT EXISTS (SELECT 1 FROM blocked_users bu WHERE bu.user_id = u.id OR lower(bu.email) = lower(u.email))"),
       queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM investments WHERE lower(status) = 'active'"),
       queryDatabase<{ total: string }>("SELECT COALESCE(SUM(principal), 0)::text AS total FROM investments"),
       queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM transactions WHERE lower(type) = 'deposit' AND lower(status) IN ('pending','processing')"),
       queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM transactions WHERE lower(type) = 'withdrawal' AND lower(status) IN ('pending','processing')"),
       queryDatabase<{ total: string }>("SELECT COALESCE(SUM(amount), 0)::text AS total FROM transactions WHERE lower(type) = 'deposit' AND lower(status) IN ('pending','processing')"),
       queryDatabase<{ total: string }>("SELECT COALESCE(SUM(amount), 0)::text AS total FROM transactions WHERE lower(type) = 'withdrawal' AND lower(status) IN ('pending','processing')"),
-      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM \"user\" WHERE \"createdAt\" >= now() - interval '7 days'"),
+      queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM \"user\" u WHERE u.\"createdAt\" >= now() - interval '7 days' AND NOT EXISTS (SELECT 1 FROM blocked_users bu WHERE bu.user_id = u.id OR lower(bu.email) = lower(u.email))"),
       queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM properties"),
       queryDatabase<{ count: string }>("SELECT COUNT(*)::text AS count FROM inquiries"),
       queryDatabase<{ id: string; email: string; type: string; method: string | null; amount: string; reference: string | null; status: string; created_at: string }>("SELECT t.id, u.email, t.type, t.method, t.amount::text, t.reference, t.status, t.created_at FROM transactions t JOIN \"user\" u ON u.id = t.user_id ORDER BY t.created_at DESC LIMIT 10"),
@@ -753,6 +875,35 @@ app.use("/api", createSupportRouter());
 app.use("/api", createBetterAuthFinancialRouter());
 app.use("/api", createCustomerRouter());
 app.use("/api/admin", createBetterAuthAdminRouter());
+
+// JSON 404 & error handlers so unknown API paths and malformed payloads never return HTML stack traces
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "API endpoint not found." });
+});
+
+app.use(
+  (
+    err: unknown,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    const isSyntaxErr =
+      err instanceof SyntaxError &&
+      "status" in err &&
+      (err as { status?: number }).status === 400;
+    if (isSyntaxErr && !res.headersSent) {
+      res.status(400).json({ error: "Malformed JSON request payload." });
+      return;
+    }
+    console.error("Unhandled Express error:", err);
+    if (res.headersSent) {
+      _next(err);
+      return;
+    }
+    res.status(500).json({ error: "Internal server error." });
+  }
+);
 
 async function startServer() {
   const httpServer = http.createServer(app);
@@ -847,11 +998,22 @@ export class ErrorOverlay extends BaseEl {}
 
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`BitfuryTech server listening on http://0.0.0.0:${PORT}`);
+    startPlanDrivenRoiEngine();
     if (isDatabaseConfigured) {
       startDailyRoiEmailScheduler();
-      startPlanDrivenRoiEngine();
     }
   });
+
+  const shutdown = (signal: string) => {
+    console.info(`Received ${signal}; shutting down BitfuryTech server gracefully.`);
+    httpServer.close(() => {
+      import("./src/db/pool.ts")
+        .then(({ closeDatabasePool }) => closeDatabasePool())
+        .finally(() => process.exit(0));
+    });
+  };
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
 
 startServer().catch((err) => {

@@ -3,8 +3,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
+  BarChart3,
   Building2,
   Check,
+  CheckCircle2,
   Copy,
   Download,
   Eye,
@@ -20,6 +22,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   EmptyState,
   ErrorState,
@@ -501,26 +504,35 @@ export function ReferralProgramPage() {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card padding="md">
-              <p className="text-xs font-medium text-slate-500">Verified Referral Bonus</p>
-              <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
-                {loading ? "—" : <FinancialAmount value={overview?.metrics.referralBonus ?? 0} size="md" />}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">Credited by settlement review</p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={CheckCircle2} tone="green" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Verified Referral Bonus</p>
+                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1 truncate">
+                  {loading ? "—" : <FinancialAmount value={overview?.metrics.referralBonus ?? 0} size="md" />}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Credited by settlement review</p>
+              </div>
             </Card>
-            <Card padding="md">
-              <p className="text-xs font-medium text-slate-500">Account Referral Identifier</p>
-              <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
-                {referralCode}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">Linked to your verified UID</p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={Share2} tone="navy" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Account Referral Identifier</p>
+                <p className="text-xl font-bold font-mono tabular-nums text-slate-900 mt-1 truncate">
+                  {referralCode}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Linked to your verified UID</p>
+              </div>
             </Card>
-            <Card padding="md">
-              <p className="text-xs font-medium text-slate-500">Referral Ledger Entries</p>
-              <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
-                {loading ? "—" : referralTxs.length}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">Recorded referral settlements</p>
+            <Card padding="md" className="flex items-center gap-4">
+              <DashboardSymbol icon={BarChart3} tone="amber" size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Referral Ledger Entries</p>
+                <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1">
+                  {loading ? "—" : referralTxs.length}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Recorded referral settlements</p>
+              </div>
             </Card>
           </div>
 
@@ -528,7 +540,7 @@ export function ReferralProgramPage() {
             <CardHeader
               title="Partner Registration Link"
               subtitle="Provide this link to prospective institutional or individual clients registering an account."
-              action={<Share2 className="w-4 h-4 text-slate-400" />}
+              action={<DashboardSymbol icon={Share2} tone="navy" size="md" />}
             />
             <CardBody className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-2">
@@ -682,7 +694,7 @@ export function DocumentsPage() {
             <CardHeader
               title="Authenticated Account Statements"
               subtitle="Generated directly from your verified server-side investment and transaction ledger"
-              action={<FileText className="w-4 h-4 text-slate-400" />}
+              action={<DashboardSymbol icon={FileText} tone="navy" size="md" />}
             />
             <CardBody className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1 text-xs text-slate-600">
@@ -730,7 +742,7 @@ export function DocumentsPage() {
             <CardHeader
               title="Mandate Term Sheets & Compliance Disclosures"
               subtitle="Standard governance documents applicable to BitfuryTech client accounts"
-              action={<ShieldCheck className="w-4 h-4 text-slate-400" />}
+              action={<DashboardSymbol icon={ShieldCheck} tone="green" size="md" />}
             />
             <CardBody className="divide-y divide-slate-100 p-0">
               <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

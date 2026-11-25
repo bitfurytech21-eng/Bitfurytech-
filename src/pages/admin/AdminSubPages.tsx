@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   CheckCircle2,
+  Download,
+  Eye,
   FileText,
   FolderOpen,
   LifeBuoy,
@@ -17,6 +19,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   FormField,
   NotificationBanner,
@@ -49,7 +52,15 @@ interface SupportMessageDTO {
   clientMessageId?: string | null;
 }
 import { useAuth } from "../../hooks/useAuth";
-import { sessionApiRequest, formatIsoDate } from "../../services/dashboardApi";
+import {
+  type CustomerDocumentDTO,
+  sessionApiRequest,
+  formatIsoDate,
+} from "../../services/dashboardApi";
+import {
+  downloadInstitutionalHtml,
+  InstitutionalDocumentModal,
+} from "../../components/documents/InstitutionalDocumentModal";
 import { formatUsd } from "../../trading/tradingPage";
 
 export function AdminTransactionsPage() {
@@ -140,7 +151,7 @@ export function AdminTransactionsPage() {
       <Card>
         <CardHeader
           title={`All Transactions (${rows.length})`}
-          action={<FileText className="w-4 h-4 text-slate-400" />}
+          action={<DashboardSymbol icon={FileText} tone="navy" size="md" />}
         />
         <CardBody>
           <DataTable
@@ -229,7 +240,7 @@ export function AdminReferralsPage() {
       <Card>
         <CardHeader
           title={`Partner Codes (${partners.length})`}
-          action={<Share2 className="w-4 h-4 text-slate-400" />}
+          action={<DashboardSymbol icon={Share2} tone="navy" size="md" />}
         />
         <CardBody>
           <DataTable
@@ -250,16 +261,17 @@ export function AdminReferralsPage() {
 
 export function AdminDocumentsPage() {
   const { user } = useAuth();
-  const [docs, setDocs] = useState<Array<Record<string, unknown>>>([]);
+  const [docs, setDocs] = useState<CustomerDocumentDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeDoc, setActiveDoc] = useState<CustomerDocumentDTO | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await sessionApiRequest<{ documents: Array<Record<string, unknown>> }>(
+      const res = await sessionApiRequest<{ documents: CustomerDocumentDTO[] }>(
         "/api/admin/documents"
       );
       setDocs(res.documents);
@@ -274,35 +286,69 @@ export function AdminDocumentsPage() {
     void load();
   }, [load]);
 
-  const columns: TableColumn<Record<string, unknown>>[] = [
+  const columns: TableColumn<CustomerDocumentDTO>[] = [
     {
       key: "title",
       header: "Document",
       render: (d) => (
-        <div>
-          <p className="font-semibold text-slate-900">{String(d.title || "Record")}</p>
-          <p className="font-mono text-[11px] text-slate-500">{String(d.reference || d.id)}</p>
+        <div className="min-w-[220px]">
+          <p className="font-semibold text-[#102030]">{d.title || "Record"}</p>
+          <p className="font-mono text-[11px] text-[#5A6B7C]">{d.reference || d.id}</p>
         </div>
       ),
     },
     {
       key: "type",
-      header: "Category",
-      render: (d) => <span className="text-xs text-slate-700">{String(d.docType || "Document")}</span>,
+      header: "Instrument",
+      render: (d) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#EDF3F7] text-[#1B4962] text-[11px] font-semibold">
+          {d.fullDocument?.documentCode || d.docType || "Document"}
+        </span>
+      ),
     },
     {
       key: "user",
-      header: "Customer UID",
-      render: (d) => <span className="font-mono text-xs text-slate-500">{String(d.userId || "")}</span>,
+      header: "Counterparty",
+      render: (d) => (
+        <div>
+          <p className="text-xs font-medium text-[#102030]">
+            {d.fullDocument?.counterpartyName || "Investor"}
+          </p>
+          <p className="font-mono text-[11px] text-[#5A6B7C]">
+            {d.fullDocument?.counterpartyEmail || d.userId}
+          </p>
+        </div>
+      ),
     },
     {
       key: "date",
       header: "Issued",
       align: "right",
       render: (d) => (
-        <span className="font-mono text-xs text-slate-500">
+        <span className="text-xs text-[#5A6B7C] tabular-nums">
           {formatIsoDate(typeof d.createdAt === "string" ? d.createdAt : null)}
         </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (d) => (
+        <div className="inline-flex items-center gap-1.5">
+          <Button variant="ghost" size="sm" onClick={() => setActiveDoc(d)}>
+            <Eye className="w-3.5 h-3.5" />
+            <span>Inspect</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadInstitutionalHtml(d)}
+            aria-label={`Download ${d.reference}`}
+          >
+            <Download className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -310,12 +356,18 @@ export function AdminDocumentsPage() {
   return (
     <AdminLayout
       title="Documents Vault"
-      subtitle="Stored custody agreements, investment confirmations, and compliance records."
+      subtitle="Full institutional investment allocation agreements, master custody disclosures, and verified ledger records."
+      actions={
+        <Button variant="outline" size="sm" onClick={() => void load()}>
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Refresh</span>
+        </Button>
+      }
     >
       <Card>
         <CardHeader
           title={`Persisted Vault Documents (${docs.length})`}
-          action={<FolderOpen className="w-4 h-4 text-slate-400" />}
+          action={<DashboardSymbol icon={FolderOpen} tone="amber" size="md" />}
         />
         <CardBody>
           <DataTable
@@ -326,10 +378,15 @@ export function AdminDocumentsPage() {
             error={error}
             onRetry={() => void load()}
             emptyTitle="No Stored Vault Documents Yet"
-            emptyDescription="Documents issued during unit purchases and compliance uploads appear here."
+            emptyDescription="Full institutional agreements and compliance records appear here automatically."
           />
         </CardBody>
       </Card>
+
+      <InstitutionalDocumentModal
+        documentItem={activeDoc}
+        onClose={() => setActiveDoc(null)}
+      />
     </AdminLayout>
   );
 }
@@ -795,7 +852,7 @@ export function AdminSupportPage() {
           <Card>
             <CardHeader
               title="Twilio Conversations Configuration"
-              action={<ShieldCheck className="w-4 h-4 text-[#1B4962]" />}
+              action={<DashboardSymbol icon={ShieldCheck} tone="green" size="md" />}
             />
             <CardBody>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
@@ -840,7 +897,7 @@ export function AdminSupportPage() {
             <Card className="lg:col-span-5">
               <CardHeader
                 title={`Conversation Threads (${filteredThreads.length})`}
-                action={<MessageSquare className="w-4 h-4 text-slate-400" />}
+                action={<DashboardSymbol icon={MessageSquare} tone="navy" size="md" />}
               />
               <div className="px-4 py-2.5 border-b border-[#DCE4EC] bg-[#F6F8FA] flex items-center gap-2">
                 {(["All", "Open", "Resolved"] as const).map((status) => (
@@ -1047,7 +1104,7 @@ export function AdminSupportPage() {
         <Card>
           <CardHeader
             title={`Contact Form Queue (${inquiries.length})`}
-            action={<LifeBuoy className="w-4 h-4 text-slate-400" />}
+            action={<DashboardSymbol icon={LifeBuoy} tone="red" size="md" />}
           />
           <CardBody>
             <DataTable
@@ -1166,7 +1223,7 @@ export function AdminSettingsPage() {
         <Card className="lg:col-span-5">
           <CardHeader
             title="Publish Customer Broadcast"
-            action={<Bell className="w-4 h-4 text-slate-400" />}
+            action={<DashboardSymbol icon={Bell} tone="amber" size="md" />}
           />
           <CardBody>
             <form onSubmit={handleBroadcast} className="space-y-4">

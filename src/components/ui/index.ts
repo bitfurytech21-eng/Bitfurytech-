@@ -16,4 +16,10 @@ export {
 } from "./Feedback";
 export type { BannerTone } from "./Feedback";
 export { FormField, SelectInput, TextAreaInput, TextInput } from "./FormControls";
+export { DashboardSymbol } from "./DashboardSymbol";
+export type {
+  DashboardSymbolProps,
+  DashboardSymbolSize,
+  DashboardSymbolTone,
+} from "./DashboardSymbol";
 export { Modal } from "./Modal";

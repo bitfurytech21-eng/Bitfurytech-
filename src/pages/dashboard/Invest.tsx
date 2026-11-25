@@ -17,6 +17,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   ErrorState,
   FormField,
   NotificationBanner,
@@ -540,7 +541,7 @@ export default function Invest() {
               <CardHeader
                 title="Cost & Unit Summary"
                 subtitle="Server-verified pricing and fee breakdown"
-                action={<ShieldCheck className="w-4 h-4 text-slate-400" />}
+                action={<DashboardSymbol icon={ShieldCheck} tone="green" size="md" />}
               />
               <CardBody className="space-y-4 text-xs">
                 <dl className="space-y-3">

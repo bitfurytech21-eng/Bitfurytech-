@@ -6,6 +6,7 @@ import {
   Card,
   CardBody,
   CardHeader,
+  DashboardSymbol,
   DataTable,
   FormField,
   Modal,
@@ -216,7 +217,7 @@ export default function AdminWalletsPage() {
       <Card>
         <CardHeader
           title={`Configured Payment Wallets (${wallets.length})`}
-          action={<Wallet className="w-4 h-4 text-slate-400" />}
+          action={<DashboardSymbol icon={Wallet} tone="navy" size="md" />}
         />
         <CardBody>
           <DataTable

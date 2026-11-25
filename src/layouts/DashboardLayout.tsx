@@ -76,21 +76,26 @@ export default function DashboardLayout({
   const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(profile?.walletBalance ?? 0);
   const [serverDisplayName, setServerDisplayName] = useState<string>("");
+  const [serverPhotoUrl, setServerPhotoUrl] = useState<string | null | undefined>(undefined);
 
   const loadLayoutSessionData = useCallback(() => {
     if (!user || !user.emailVerified) return;
     void sessionApiRequest<{ notifications: NotificationMessage[] }>("/api/notifications")
       .then((res) => setNotifications(res.notifications || []))
       .catch(() => undefined);
-    void sessionApiRequest<{ account?: { displayName?: string }; metrics?: { availableBalance?: number } }>(
-      "/api/dashboard/overview"
-    )
+    void sessionApiRequest<{
+      account?: { displayName?: string; photoUrl?: string | null };
+      metrics?: { availableBalance?: number };
+    }>("/api/dashboard/overview")
       .then((res) => {
         if (typeof res.metrics?.availableBalance === "number") {
           setWalletBalance(res.metrics.availableBalance);
         }
         if (res.account?.displayName) {
           setServerDisplayName(res.account.displayName);
+        }
+        if (res.account && "photoUrl" in res.account) {
+          setServerPhotoUrl(res.account.photoUrl ?? null);
         }
       })
       .catch(() => undefined);
@@ -99,6 +104,20 @@ export default function DashboardLayout({
   useEffect(() => {
     loadLayoutSessionData();
   }, [loadLayoutSessionData]);
+
+  useEffect(() => {
+    const onProfileUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ photoUrl?: string | null; displayName?: string }>).detail;
+      if (detail && "photoUrl" in detail) {
+        setServerPhotoUrl(detail.photoUrl ?? null);
+      }
+      if (detail?.displayName) {
+        setServerDisplayName(detail.displayName);
+      }
+    };
+    window.addEventListener("bitfury:profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("bitfury:profile-updated", onProfileUpdated);
+  }, []);
 
   const meta = resolvePageMeta(pathname);
   const resolvedTitle = title || meta.title;
@@ -130,6 +149,11 @@ export default function DashboardLayout({
             user?.displayName ||
             user?.email?.split("@")[0] ||
             "Investor"
+          }
+          photoUrl={
+            serverPhotoUrl !== undefined
+              ? serverPhotoUrl
+              : profile?.photoUrl ?? user?.photoUrl ?? null
           }
           userId={user?.uid}
           isAdmin={isAdmin}

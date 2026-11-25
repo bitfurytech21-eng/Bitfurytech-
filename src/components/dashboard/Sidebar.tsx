@@ -25,7 +25,7 @@ import { formatUsd } from "../../trading/tradingPage";
 export interface DashboardNavItem {
   to: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   matchExact?: boolean;
 }
 
@@ -35,7 +35,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   { to: "/dashboard/opportunities", label: "Investment Opportunities", icon: Compass },
   { to: "/invest", label: "Purchase Units", icon: PlusCircle },
   { to: "/dashboard/properties", label: "Properties", icon: Building2 },
-  { to: "/trading", label: "Mandate Desk", icon: Activity },
+  { to: "/trading", label: "Trade View", icon: Activity },
   { to: "/deposit", label: "Deposit", icon: ArrowDownCircle },
   { to: "/withdrawal", label: "Withdraw", icon: ArrowUpRight },
   { to: "/transactions", label: "Transactions", icon: FileText },
@@ -80,7 +80,7 @@ function SidebarContent({
   return (
     <div className="flex flex-col justify-between h-full bg-[#1B4962] text-slate-100">
       <div>
-        <div className="h-16 px-5 flex items-center justify-between border-b border-white/15">
+        <div className="h-16 px-5 flex items-center justify-between border-b border-white/15 bg-[#1F3649]">
           <Link
             to="/dashboard"
             onClick={onNavigate}
@@ -111,7 +111,9 @@ function SidebarContent({
         >
           <div className="flex items-center justify-between text-xs text-slate-300">
             <span>Custody Wallet</span>
-            <Wallet className="w-3.5 h-3.5 text-[#E94D65] shrink-0" />
+            <span className="h-7 w-7 rounded-md bg-[#334E83] text-white flex items-center justify-center shrink-0">
+              <Wallet className="w-4 h-4" strokeWidth={2.1} />
+            </span>
           </div>
           <p className="text-lg font-semibold font-mono tabular-nums text-white mt-1">
             {formatUsd(walletBalance)}
@@ -133,7 +135,7 @@ function SidebarContent({
                     : "text-slate-100 hover:bg-white/10 hover:text-white font-medium"
                 }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
+                <Icon className="w-5 h-5 shrink-0" strokeWidth={2} />
                 <span className="truncate">{item.label}</span>
               </Link>
             );
@@ -148,7 +150,7 @@ function SidebarContent({
             onClick={onNavigate}
             className="flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] text-sm font-medium text-[#FFD1D8] hover:bg-white/10 whitespace-nowrap"
           >
-            <Shield className="w-4 h-4 shrink-0" />
+            <Shield className="w-4.5 h-4.5 shrink-0" strokeWidth={2} />
             <span>Admin Console</span>
           </Link>
         )}
@@ -157,7 +159,7 @@ function SidebarContent({
           onClick={onNavigate}
           className="flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] text-sm text-slate-100 hover:bg-white/10 hover:text-white whitespace-nowrap"
         >
-          <Home className="w-4 h-4 shrink-0" />
+          <Home className="w-4.5 h-4.5 shrink-0" strokeWidth={2} />
           <span>Corporate Website</span>
         </Link>
         <button
@@ -165,7 +167,7 @@ function SidebarContent({
           onClick={onSignOut}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] text-sm font-medium text-[#FFD1D8] hover:bg-white/10 text-left whitespace-nowrap cursor-pointer"
         >
-          <LogOut className="w-4 h-4 shrink-0" />
+          <LogOut className="w-4.5 h-4.5 shrink-0" strokeWidth={2} />
           <span>Logout</span>
         </button>
       </div>

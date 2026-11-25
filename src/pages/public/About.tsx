@@ -4,6 +4,7 @@ import { EditorialIcon } from "../../components/EditorialArtwork";
 import PublicLayout from "../../components/PublicLayout";
 import ResilientImage from "../../components/ResilientImage";
 import { buttonClasses } from "../../components/ui";
+import CompanyOverviewVideo from "../../components/CompanyOverviewVideo";
 import { LEADERSHIP_TEAM } from "../../data/leadershipTeam";
 
 const SECTORS = [
@@ -145,6 +146,31 @@ export default function About() {
                   withdrawal requests, and enquire about property listings. Request status is shown in
                   the client portal while the support team reviews submissions.
                 </p>
+              </div>
+            </section>
+
+            <section
+              aria-labelledby="about-company-video-heading"
+              className="grid items-center gap-8 rounded-xl border border-[#DCE4EC] bg-white p-6 shadow-[0_2px_8px_rgba(27,73,98,0.06)] sm:p-7 lg:grid-cols-12"
+            >
+              <div className="space-y-3 lg:col-span-5">
+                <p className="text-xs font-heading font-bold uppercase tracking-wider text-[#B92841]">
+                  Company Video
+                </p>
+                <h2
+                  id="about-company-video-heading"
+                  className="text-2xl font-heading font-bold tracking-tight text-[#102030]"
+                >
+                  Corporate Overview &amp; Platform Walkthrough
+                </h2>
+                <p className="text-sm leading-relaxed text-[#5A6B7C]">
+                  Explore how Bitfury Tech Investment structures multi-asset portfolios across
+                  cryptocurrency, listed global equities, and commercial real estate with transparent
+                  client ledger reporting.
+                </p>
+              </div>
+              <div className="lg:col-span-7">
+                <CompanyOverviewVideo />
               </div>
             </section>
 

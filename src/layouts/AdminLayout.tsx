@@ -108,6 +108,7 @@ export default function AdminLayout({
             user?.email?.split("@")[0] ||
             "Administrator"
           }
+          photoUrl={profile?.photoUrl ?? user?.photoUrl ?? null}
           userId={user?.uid}
           isAdmin={isAdmin}
           notifications={notifications}
