@@ -137,7 +137,7 @@ function mapInvestment(row: DbInvestment, transactions: ReturnType<typeof mapTra
 }
 
 async function loadFinancialRows(userId: string) {
-  const [user, profile, wallet, investmentRows, transactionRows, ledger] = await Promise.all([
+  const [user, profile, wallet, investmentRows, transactionRows, ledger, unread] = await Promise.all([
     queryDatabase<{ id: string; name: string; email: string; "emailVerified": boolean; image: string | null }>(
       'SELECT id, name, email, "emailVerified", image FROM "user" WHERE id = $1 LIMIT 1', [userId]),
     queryDatabase<{ preferred_rail: string }>(
@@ -150,6 +150,19 @@ async function loadFinancialRows(userId: string) {
       "SELECT id, user_id, type, amount, currency, method, destination, reference, status, metadata, created_at, updated_at FROM transactions WHERE user_id = $1 ORDER BY created_at DESC", [userId]),
     queryDatabase<{ entry_count: string; last_entry_at: Date | string | null }>(
       "SELECT COUNT(*)::text AS entry_count, MAX(created_at) AS last_entry_at FROM ledger_entries WHERE user_id = $1", [userId]),
+    queryDatabase<{ unread_count: number }>(
+      `SELECT COUNT(*)::int AS unread_count
+       FROM notifications n
+       WHERE (n.user_id = $1 AND n.read_at IS NULL)
+          OR (
+            n.user_id IS NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM notification_reads nr
+              WHERE nr.notification_id = n.id AND nr.user_id = $1
+            )
+          )`,
+      [userId]
+    ).catch(() => ({ rows: [{ unread_count: 0 }] })),
   ]);
   if (!user.rows[0]) throw new Error("Authenticated Better Auth account was not found in Neon.");
   const email = user.rows[0].email;
@@ -157,7 +170,15 @@ async function loadFinancialRows(userId: string) {
   const investments = investmentRows.rows
     .filter(row => ["active", "completed"].includes(row.status.toLowerCase()))
     .map(row => mapInvestment(row, transactions));
-  return { user: user.rows[0], profile: profile.rows[0], wallet: wallet.rows[0], investments, transactions, ledger: ledger.rows[0] };
+  return {
+    user: user.rows[0],
+    profile: profile.rows[0],
+    wallet: wallet.rows[0],
+    investments,
+    transactions,
+    ledger: ledger.rows[0],
+    unreadCount: Number(unread.rows[0]?.unread_count ?? 0),
+  };
 }
 
 export async function getNeonDashboardOverview(
@@ -218,7 +239,7 @@ export async function getNeonDashboardOverview(
     recentTransactions: rows.transactions.slice(0, 6).map(stripInternalTx),
     portfolioSummary,
     opportunities,
-    unreadNotificationsCount: 0,
+    unreadNotificationsCount: rows.unreadCount,
     syncedAt: new Date().toISOString(),
     ledgerSummary: {
       entryCount: amount(rows.ledger?.entry_count),

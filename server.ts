@@ -1,3 +1,4 @@
+import fsSync from "node:fs";
 import express from "express";
 import http from "http";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
@@ -23,7 +24,7 @@ import {
   resolveBetterAuthRole,
   type BetterAuthRequest,
 } from "./src/middleware/betterAuth.ts";
-import { isUserBlocked } from "./src/lib/blockedUsers.ts";
+import { isUserBlocked, isUserSuspended } from "./src/lib/blockedUsers.ts";
 import {
   addMockInquiry,
   getMockAdminData,
@@ -32,6 +33,7 @@ import {
   getMockUserProfile,
   isMockUsernameAvailable,
   lookupMockEmailByUsername,
+  subscribeMockNewsletter,
 } from "./src/services/inMemoryFinancialMock.ts";
 
 dotenv.config();
@@ -76,6 +78,80 @@ app.use((_req, res, next) => {
 // Better Auth is isolated under /api/better-auth and runs before express.json() so it can read the request body.
 app.all("/api/better-auth/*splat", toNodeHandler(betterAuthInstance));
 
+async function buildSessionAccountPayload(sessionUser: {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  image?: string | null;
+}) {
+  const role = await resolveBetterAuthRole(sessionUser.id, sessionUser.email);
+  if (!isDatabaseConfigured) {
+    const mock = getMockUserProfile(sessionUser.id, {
+      email: sessionUser.email,
+      name: sessionUser.name,
+      emailVerified: sessionUser.emailVerified,
+      role,
+    });
+    return {
+      id: sessionUser.id,
+      name: mock.displayName || sessionUser.name,
+      username: mock.username ?? null,
+      referralCode: mock.referralCode,
+      email: sessionUser.email,
+      emailVerified: sessionUser.emailVerified,
+      photoUrl: mock.photoUrl ?? sessionUser.image ?? null,
+      kycStatus: mock.kycStatus,
+      accountStatus: mock.accountStatus,
+      hasPasswordProvider: true,
+      role,
+      isAdmin: role === "admin" && sessionUser.emailVerified,
+    };
+  }
+  const metaResult = await queryDatabase<{
+    username: string | null;
+    referral_code: string | null;
+    kyc_status: string | null;
+    account_status: string | null;
+    has_password_provider: boolean;
+  }>(
+    `SELECT COALESCE(u.username, p.username) AS username,
+            COALESCE(p.referral_code, 'BF-' || upper(left(u.id, 8))) AS referral_code,
+            COALESCE(p.kyc_status, 'not_submitted') AS kyc_status,
+            COALESCE(p.account_status, 'Active') AS account_status,
+            EXISTS (
+              SELECT 1 FROM account a
+              WHERE a."userId" = u.id AND a."providerId" = 'credential'
+            ) AS has_password_provider
+     FROM "user" u
+     LEFT JOIN user_profiles p ON p.user_id = u.id
+     WHERE u.id = $1
+     LIMIT 1`,
+    [sessionUser.id]
+  ).catch(() => ({ rows: [] as Array<{
+    username: string | null;
+    referral_code: string | null;
+    kyc_status: string | null;
+    account_status: string | null;
+    has_password_provider: boolean;
+  }> }));
+  const meta = metaResult.rows[0];
+  return {
+    id: sessionUser.id,
+    name: sessionUser.name,
+    username: meta?.username ?? null,
+    referralCode: meta?.referral_code || `BF-${sessionUser.id.slice(0, 8).toUpperCase()}`,
+    email: sessionUser.email,
+    emailVerified: sessionUser.emailVerified,
+    photoUrl: sessionUser.image ?? null,
+    kycStatus: meta?.kyc_status ?? "not_submitted",
+    accountStatus: meta?.account_status ?? "Active",
+    hasPasswordProvider: meta ? Boolean(meta.has_password_provider) : true,
+    role,
+    isAdmin: role === "admin" && sessionUser.emailVerified,
+  };
+}
+
 app.get("/api/account/session", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   try {
@@ -97,26 +173,21 @@ app.get("/api/account/session", async (req, res) => {
       });
       return;
     }
-    const role = await resolveBetterAuthRole(session.user.id, session.user.email);
-    const photoUrl = isDatabaseConfigured
-      ? (session.user.image ?? null)
-      : (getMockUserProfile(session.user.id, {
-          email: session.user.email,
-          name: session.user.name,
-          emailVerified: session.user.emailVerified,
-          role,
-        }).photoUrl ?? session.user.image ?? null);
+    if (await isUserSuspended(session.user.id, session.user.email)) {
+      if (isDatabaseConfigured) {
+        await queryDatabase('DELETE FROM session WHERE "userId" = $1', [session.user.id]).catch(() => undefined);
+      }
+      res.status(403).json({
+        authenticated: false,
+        suspended: true,
+        error: "Your account has been suspended by an administrator. Contact support for assistance.",
+      });
+      return;
+    }
+    const userPayload = await buildSessionAccountPayload(session.user);
     res.json({
       authenticated: true,
-      user: {
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        emailVerified: session.user.emailVerified,
-        photoUrl,
-        role,
-        isAdmin: role === "admin" && session.user.emailVerified,
-      },
+      user: userPayload,
       session: {
         expiresAt: session.session.expiresAt,
       },
@@ -143,26 +214,21 @@ app.get("/api/auth/better-session", requireBetterAuth, async (req: BetterAuthReq
       });
       return;
     }
-    const role = await resolveBetterAuthRole(session.user.id, session.user.email);
-    const photoUrl = isDatabaseConfigured
-      ? (session.user.image ?? null)
-      : (getMockUserProfile(session.user.id, {
-          email: session.user.email,
-          name: session.user.name,
-          emailVerified: session.user.emailVerified,
-          role,
-        }).photoUrl ?? session.user.image ?? null);
+    if (await isUserSuspended(session.user.id, session.user.email)) {
+      if (isDatabaseConfigured) {
+        await queryDatabase('DELETE FROM session WHERE "userId" = $1', [session.user.id]).catch(() => undefined);
+      }
+      res.status(403).json({
+        authenticated: false,
+        suspended: true,
+        error: "Your account has been suspended by an administrator. Contact support for assistance.",
+      });
+      return;
+    }
+    const userPayload = await buildSessionAccountPayload(session.user);
     res.json({
       authenticated: true,
-      user: {
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        emailVerified: session.user.emailVerified,
-        photoUrl,
-        role,
-        isAdmin: role === "admin" && session.user.emailVerified,
-      },
+      user: userPayload,
       session: { expiresAt: session.session.expiresAt },
     });
   } catch (error) {
@@ -317,12 +383,24 @@ app.get("/api/health/migration", async (_req, res) => {
          ('public.verification'),
          ('public.user_profiles'),
          ('public.user_roles'),
+         ('public.wallets'),
          ('public.investment_plans'),
          ('public.investments'),
          ('public.transactions'),
          ('public.ledger_entries'),
          ('public.properties'),
+         ('public.referrals'),
+         ('public.notifications'),
+         ('public.notification_reads'),
+         ('public.crypto_wallets'),
+         ('public.support_threads'),
+         ('public.support_messages'),
+         ('public.inquiries'),
+         ('public.newsletter_subscribers'),
+         ('public.manual_payment_assignments'),
+         ('public.email_templates'),
          ('public.email_outbox'),
+         ('public.email_webhook_events'),
          ('public.audit_logs'),
          ('public.platform_payment_wallets'),
          ('public.roi_accruals'),
@@ -698,37 +776,91 @@ app.post("/api/auth/check-username", async (req, res) => {
   }
 });
 
-app.post("/api/auth/username-email", async (req, res) => {
+app.post("/api/auth/sign-in-username", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   const rawUsername = typeof req.body?.username === "string" ? req.body.username : "";
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const rememberMe = req.body?.rememberMe === true;
+  const callbackURL = typeof req.body?.callbackURL === "string" ? req.body.callbackURL : "/dashboard";
   const check = validateUsername(rawUsername);
-  if (!check.valid) {
+  if (!check.valid || !password) {
     res.status(400).json({ error: "Invalid username or password." });
     return;
   }
+
+  let resolvedUserId: string | null = null;
+  let resolvedEmail: string | null = null;
+
   if (!isDatabaseConfigured) {
-    const email = lookupMockEmailByUsername(check.normalized);
-    if (!email) {
-      res.status(401).json({ error: "Invalid username or password." });
+    resolvedEmail = lookupMockEmailByUsername(check.normalized);
+  } else {
+    try {
+      const result = await queryDatabase<{ id: string; email: string }>(
+        'SELECT id, email FROM "user" WHERE lower(username) = lower($1) LIMIT 1',
+        [check.normalized]
+      );
+      resolvedUserId = result.rows[0]?.id ?? null;
+      resolvedEmail = result.rows[0]?.email ?? null;
+    } catch (error) {
+      console.error("Neon username sign-in lookup failed:", error);
+      res.status(503).json({ error: "Username sign-in is temporarily unavailable." });
       return;
     }
-    res.json({ email });
+  }
+
+  if (!resolvedEmail) {
+    res.status(401).json({ error: "Invalid username or password." });
     return;
   }
-  try {
-    const result = await queryDatabase<{ email: string }>(
-      'SELECT email FROM "user" WHERE lower(username) = lower($1) LIMIT 1',
-      [check.normalized]
-    );
-    if (!result.rows[0]?.email) {
-      res.status(401).json({ error: "Invalid username or password." });
-      return;
-    }
-    res.json({ email: result.rows[0].email });
-  } catch (error) {
-    console.error("Neon username lookup failed:", error);
-    res.status(503).json({ error: "Username sign-in is temporarily unavailable." });
+
+  if (await isUserBlocked(resolvedUserId, resolvedEmail)) {
+    res.status(403).json({ error: "This account has been blocked and removed from the platform." });
+    return;
   }
+  if (await isUserSuspended(resolvedUserId, resolvedEmail)) {
+    res.status(403).json({ error: "Your account has been suspended by an administrator. Contact support for assistance." });
+    return;
+  }
+
+  try {
+    const authResponse = await betterAuthInstance.api.signInEmail({
+      body: {
+        email: resolvedEmail,
+        password,
+        rememberMe,
+        callbackURL,
+      },
+      headers: fromNodeHeaders(req.headers),
+      asResponse: true,
+    });
+    const setCookies =
+      typeof authResponse.headers.getSetCookie === "function"
+        ? authResponse.headers.getSetCookie()
+        : [];
+    if (setCookies.length > 0) {
+      res.setHeader("Set-Cookie", setCookies);
+    } else {
+      const singleCookie = authResponse.headers.get("set-cookie");
+      if (singleCookie) res.setHeader("Set-Cookie", singleCookie);
+    }
+    const contentType = authResponse.headers.get("content-type");
+    if (contentType) {
+      res.setHeader("Content-Type", contentType);
+    }
+    const bodyText = await authResponse.text();
+    res.status(authResponse.status).send(bodyText);
+  } catch (error) {
+    console.error("Username credential verification failed:", error);
+    const status = Number((error as { statusCode?: number; status?: number }).statusCode || (error as { status?: number }).status) || 401;
+    res.status(status).json({
+      error: error instanceof Error ? error.message : "Invalid username or password.",
+    });
+  }
+});
+
+app.post("/api/auth/username-email", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.status(410).json({ error: "Use /api/auth/sign-in-username for username authentication." });
 });
 
 // Public contact inquiry endpoint backed by Neon PostgreSQL (with in-memory fallback)
@@ -806,14 +938,18 @@ app.post("/api/newsletter", async (req, res) => {
     let subscribedAt = new Date().toISOString();
 
     if (!isDatabaseConfigured) {
-      const saved = addMockInquiry({
-        id: subscriptionId,
-        name: "Newsletter Subscriber",
-        email,
-        subject: topic,
-        message,
-      });
-      subscribedAt = saved.createdAt;
+      const saved = subscribeMockNewsletter(email);
+      subscribedAt = saved.subscribedAt;
+      isNewSubscription = !saved.alreadySubscribed;
+      if (isNewSubscription) {
+        addMockInquiry({
+          id: subscriptionId,
+          name: "Newsletter Subscriber",
+          email,
+          subject: topic,
+          message,
+        });
+      }
     } else {
       const saved = await queryDatabase<{ id: string; subscribed_at: Date | string }>(
         `INSERT INTO newsletter_subscribers (id, email)
@@ -1012,9 +1148,25 @@ export class ErrorOverlay extends BaseEl {}
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve(__dirname, "dist");
-    app.use(express.static(distPath));
+    const indexFile = path.join(distPath, "index.html");
+    if (!fsSync.existsSync(indexFile)) {
+      console.warn(`[BitfuryTech] Production build not found at ${indexFile}. Run "npm run build" first.`);
+    }
+    app.use(
+      "/assets",
+      express.static(path.join(distPath, "assets"), {
+        maxAge: "1y",
+        immutable: true,
+      })
+    );
+    app.use(express.static(distPath, { maxAge: "1h" }));
     app.get(/.*/, (_req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      if (!fsSync.existsSync(indexFile)) {
+        res.status(503).send("Application build artifacts are missing.");
+        return;
+      }
+      res.setHeader("Cache-Control", "no-cache");
+      res.sendFile(indexFile);
     });
   }
 

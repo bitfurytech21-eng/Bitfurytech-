@@ -16,10 +16,12 @@ import {
   getNeonDashboardOverview,
 } from "../services/neonDashboardService.ts";
 import {
+  claimMockReferral,
   getMockCustomerDocuments,
   getMockReferrals,
   getMockUserProfile,
   listMockNotifications,
+  markAllMockNotificationsRead,
   markMockNotificationRead,
   updateMockUserProfile,
 } from "../services/inMemoryFinancialMock.ts";
@@ -137,12 +139,15 @@ export function createCustomerRouter(): Router {
     const role = await resolveBetterAuthRole(user.id, user.email).catch(() => "investor" as const);
     if (!isDatabaseConfigured) {
       res.json({
-        profile: getMockUserProfile(user.id, {
-          email: user.email,
-          name: user.name,
-          emailVerified: user.emailVerified,
-          role,
-        }),
+        profile: {
+          ...getMockUserProfile(user.id, {
+            email: user.email,
+            name: user.name,
+            emailVerified: user.emailVerified,
+            role,
+          }),
+          hasPasswordProvider: true,
+        },
       });
       return;
     }
@@ -150,6 +155,7 @@ export function createCustomerRouter(): Router {
       const result = await queryDatabase<{
         uid: string;
         username: string | null;
+        referralCode: string | null;
         email: string;
         displayName: string;
         photoUrl: string | null;
@@ -161,10 +167,13 @@ export function createCustomerRouter(): Router {
         preferredRail: string | null;
         emailAlerts: boolean | null;
         twoFactorEnabled: boolean | null;
+        kycStatus: string | null;
         accountStatus: string | null;
+        hasPasswordProvider: boolean;
       }>(
         `SELECT u.id AS uid,
                 COALESCE(u.username, p.username) AS username,
+                COALESCE(p.referral_code, 'BF-' || upper(left(u.id, 8))) AS "referralCode",
                 u.email,
                 u.name AS "displayName",
                 u.image AS "photoUrl",
@@ -176,7 +185,12 @@ export function createCustomerRouter(): Router {
                 COALESCE(p.preferred_rail, 'USDT (TRC20)') AS "preferredRail",
                 COALESCE(p.email_alerts, true) AS "emailAlerts",
                 COALESCE(p.two_factor_enabled, false) AS "twoFactorEnabled",
-                COALESCE(p.account_status, 'Active') AS "accountStatus"
+                COALESCE(p.kyc_status, 'not_submitted') AS "kycStatus",
+                COALESCE(p.account_status, 'Active') AS "accountStatus",
+                EXISTS (
+                  SELECT 1 FROM account a
+                  WHERE a."userId" = u.id AND a."providerId" = 'credential'
+                ) AS "hasPasswordProvider"
          FROM "user" u
          LEFT JOIN user_profiles p ON p.user_id = u.id
          WHERE u.id = $1
@@ -192,6 +206,7 @@ export function createCustomerRouter(): Router {
         profile: {
           uid: row.uid,
           username: row.username ?? undefined,
+          referralCode: row.referralCode || `BF-${row.uid.slice(0, 8).toUpperCase()}`,
           email: row.email,
           displayName: row.displayName,
           photoUrl: row.photoUrl ?? null,
@@ -200,6 +215,8 @@ export function createCustomerRouter(): Router {
           preferredRail: row.preferredRail ?? "USDT (TRC20)",
           emailAlerts: Boolean(row.emailAlerts ?? true),
           twoFactorEnabled: Boolean(row.twoFactorEnabled ?? false),
+          kycStatus: row.kycStatus ?? "not_submitted",
+          hasPasswordProvider: Boolean(row.hasPasswordProvider),
           role,
           accountStatus: row.accountStatus ?? "Active",
           emailVerified: Boolean(row.emailVerified),
@@ -466,7 +483,11 @@ export function createCustomerRouter(): Router {
       return;
     }
     try {
-      const [refRows, allTxs] = await Promise.all([
+      const [profileRow, refRows, allTxs] = await Promise.all([
+        queryDatabase<{ referral_code: string | null }>(
+          "SELECT referral_code FROM user_profiles WHERE user_id = $1 LIMIT 1",
+          [userId]
+        ),
         queryDatabase<{
           id: string;
           email: string;
@@ -491,7 +512,7 @@ export function createCustomerRouter(): Router {
           .toFixed(2)
       );
       res.json({
-        referralCode: `BF-${userId.slice(0, 8).toUpperCase()}`,
+        referralCode: profileRow.rows[0]?.referral_code || `BF-${userId.slice(0, 8).toUpperCase()}`,
         totalReferrals: refRows.rows.length,
         qualifiedReferrals: refRows.rows.filter((r) => r.status === "qualified" || r.status === "paid").length,
         referralEarnings,
@@ -509,6 +530,179 @@ export function createCustomerRouter(): Router {
     } catch (error) {
       console.error("Neon referrals fetch failed:", error);
       res.status(503).json({ error: "Unable to load referral records." });
+    }
+  });
+
+  router.post("/referrals/claim", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
+    const user = req.betterAuthSession?.user;
+    if (!user?.id) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+    const rawCode = typeof req.body?.code === "string" ? req.body.code.trim().toUpperCase().slice(0, 40) : "";
+    if (!rawCode || rawCode.length < 4 || !/^[A-Z0-9_-]+$/.test(rawCode)) {
+      res.status(400).json({ error: "A valid referral code is required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      const outcome = claimMockReferral(user.id, user.email, rawCode);
+      res.json({ ok: true, ...outcome });
+      return;
+    }
+    try {
+      const existing = await queryDatabase<{ id: string }>(
+        "SELECT id FROM referrals WHERE referred_user_id = $1 LIMIT 1",
+        [user.id]
+      );
+      if (existing.rowCount) {
+        res.json({ ok: true, claimed: false, reason: "Referral attribution already recorded." });
+        return;
+      }
+      const referrerRes = await queryDatabase<{ id: string }>(
+        `SELECT u.id
+         FROM "user" u
+         LEFT JOIN user_profiles p ON p.user_id = u.id
+         WHERE u.id <> $1
+           AND COALESCE(p.account_status, 'Active') <> 'Suspended'
+           AND NOT EXISTS (
+             SELECT 1 FROM blocked_users bu
+             WHERE bu.user_id = u.id OR lower(bu.email) = lower(u.email)
+           )
+           AND (
+             upper(COALESCE(p.referral_code, '')) = $2
+             OR ('BF-' || upper(left(u.id, 8))) = $2
+           )
+         LIMIT 1`,
+        [user.id, rawCode]
+      );
+      const referrer = referrerRes.rows[0];
+      if (!referrer) {
+        res.json({ ok: true, claimed: false, reason: "Referral code does not match an active partner account." });
+        return;
+      }
+      const id = `ref_${randomUUID().slice(0, 12)}`;
+      const inserted = await queryDatabase(
+        `INSERT INTO referrals (id, referrer_user_id, referred_user_id, referral_code, status, reward_amount)
+         VALUES ($1, $2, $3, $4, 'pending', 0)
+         ON CONFLICT (referred_user_id) DO NOTHING
+         RETURNING id`,
+        [id, referrer.id, user.id, rawCode]
+      );
+      res.json({ ok: true, claimed: (inserted.rowCount ?? 0) > 0 });
+    } catch (error) {
+      console.error("Neon referral attribution failed:", error);
+      res.status(502).json({ error: "Unable to record referral attribution." });
+    }
+  });
+
+  router.get("/account/sessions", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
+    const userId = req.betterAuthSession?.user.id;
+    const currentSessionId = req.betterAuthSession?.session.id ?? null;
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    if (!isDatabaseConfigured) {
+      res.json({
+        sessions: [
+          {
+            id: currentSessionId || "current-session",
+            current: true,
+            createdAt: new Date().toISOString(),
+            expiresAt: req.betterAuthSession?.session.expiresAt
+              ? new Date(req.betterAuthSession.session.expiresAt).toISOString()
+              : null,
+            ipAddress: req.ip || null,
+            userAgent: req.header("user-agent") || null,
+          },
+        ],
+      });
+      return;
+    }
+    try {
+      const result = await queryDatabase<{
+        id: string;
+        createdAt: Date | string;
+        expiresAt: Date | string;
+        ipAddress: string | null;
+        userAgent: string | null;
+      }>(
+        `SELECT id, "createdAt", "expiresAt", "ipAddress", "userAgent"
+         FROM session
+         WHERE "userId" = $1 AND "expiresAt" > now()
+         ORDER BY "createdAt" DESC
+         LIMIT 25`,
+        [userId]
+      );
+      res.json({
+        sessions: result.rows.map((row) => ({
+          id: row.id,
+          current: row.id === currentSessionId,
+          createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+          expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null,
+          ipAddress: row.ipAddress ?? null,
+          userAgent: row.userAgent ?? null,
+        })),
+      });
+    } catch (error) {
+      console.error("Neon sessions query failed:", error);
+      res.status(503).json({ error: "Unable to load active sessions." });
+    }
+  });
+
+  router.delete("/account/sessions/:sessionId", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
+    const userId = req.betterAuthSession?.user.id;
+    const currentSessionId = req.betterAuthSession?.session.id ?? null;
+    const sessionId = typeof req.params.sessionId === "string" ? req.params.sessionId.trim() : "";
+    if (!userId || !sessionId) {
+      res.status(400).json({ error: "Session identifier is required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      if (sessionId !== (currentSessionId || "current-session")) {
+        res.status(404).json({ error: "Session not found." });
+        return;
+      }
+      res.json({ ok: true });
+      return;
+    }
+    try {
+      const result = await queryDatabase(
+        'DELETE FROM session WHERE id = $1 AND "userId" = $2 RETURNING id',
+        [sessionId, userId]
+      );
+      if (!result.rowCount) {
+        res.status(404).json({ error: "Session not found." });
+        return;
+      }
+      res.json({ ok: true, revokedCurrent: sessionId === currentSessionId });
+    } catch (error) {
+      console.error("Neon session revocation failed:", error);
+      res.status(502).json({ error: "Unable to revoke session." });
+    }
+  });
+
+  router.post("/account/sessions/revoke-others", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
+    const userId = req.betterAuthSession?.user.id;
+    const currentSessionId = req.betterAuthSession?.session.id ?? null;
+    if (!userId || !currentSessionId) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      res.json({ ok: true, revokedCount: 0 });
+      return;
+    }
+    try {
+      const result = await queryDatabase(
+        'DELETE FROM session WHERE "userId" = $1 AND id <> $2',
+        [userId, currentSessionId]
+      );
+      res.json({ ok: true, revokedCount: result.rowCount ?? 0 });
+    } catch (error) {
+      console.error("Neon revoke-other-sessions failed:", error);
+      res.status(502).json({ error: "Unable to revoke other sessions." });
     }
   });
 
@@ -578,13 +772,21 @@ export function createCustomerRouter(): Router {
         category: string;
         title: string;
         body: string;
-        read_at: Date | string | null;
+        is_read: boolean;
         created_at: Date | string;
       }>(
-        `SELECT id, user_id, category, title, body, read_at, created_at
-         FROM notifications
-         WHERE user_id = $1 OR user_id IS NULL
-         ORDER BY created_at DESC
+        `SELECT n.id,
+                n.user_id,
+                n.category,
+                n.title,
+                n.body,
+                (n.read_at IS NOT NULL OR nr.read_at IS NOT NULL) AS is_read,
+                n.created_at
+         FROM notifications n
+         LEFT JOIN notification_reads nr
+           ON nr.notification_id = n.id AND nr.user_id = $1
+         WHERE n.user_id = $1 OR n.user_id IS NULL
+         ORDER BY n.created_at DESC
          LIMIT 50`,
         [userId]
       );
@@ -595,7 +797,7 @@ export function createCustomerRouter(): Router {
           category: row.category,
           title: row.title,
           body: row.body,
-          read: Boolean(row.read_at),
+          read: Boolean(row.is_read),
           createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
         })),
       });
@@ -607,25 +809,78 @@ export function createCustomerRouter(): Router {
 
   router.patch("/notifications/:id/read", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
     const userId = req.betterAuthSession?.user.id;
-    const id = typeof req.params.id === "string" ? req.params.id : "";
+    const id = typeof req.params.id === "string" ? req.params.id.trim() : "";
     if (!userId || !id) {
       res.status(400).json({ error: "Notification identifier required." });
       return;
     }
     if (!isDatabaseConfigured) {
-      markMockNotificationRead(id, userId);
+      const updated = markMockNotificationRead(id, userId);
+      if (!updated) {
+        res.status(404).json({ error: "Notification not found." });
+        return;
+      }
+      res.json({ ok: true });
+      return;
+    }
+    try {
+      const existing = await queryDatabase<{ id: string; user_id: string | null }>(
+        "SELECT id, user_id FROM notifications WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) LIMIT 1",
+        [id, userId]
+      );
+      const row = existing.rows[0];
+      if (!row) {
+        res.status(404).json({ error: "Notification not found." });
+        return;
+      }
+      if (row.user_id === userId) {
+        await queryDatabase(
+          "UPDATE notifications SET read_at = COALESCE(read_at, now()) WHERE id = $1 AND user_id = $2",
+          [id, userId]
+        );
+      } else {
+        await queryDatabase(
+          `INSERT INTO notification_reads (notification_id, user_id, read_at)
+           VALUES ($1, $2, now())
+           ON CONFLICT (notification_id, user_id) DO NOTHING`,
+          [id, userId]
+        );
+      }
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Notification mark read failed:", error);
+      res.status(502).json({ error: "Unable to mark notification as read." });
+    }
+  });
+
+  router.post("/notifications/read-all", ...requireVerifiedSession, async (req: BetterAuthRequest, res) => {
+    const userId = req.betterAuthSession?.user.id;
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      markAllMockNotificationsRead(userId);
       res.json({ ok: true });
       return;
     }
     try {
       await queryDatabase(
-        "UPDATE notifications SET read_at = now() WHERE id = $1 AND user_id = $2",
-        [id, userId]
+        "UPDATE notifications SET read_at = now() WHERE user_id = $1 AND read_at IS NULL",
+        [userId]
+      );
+      await queryDatabase(
+        `INSERT INTO notification_reads (notification_id, user_id, read_at)
+         SELECT id, $1, now()
+         FROM notifications
+         WHERE user_id IS NULL
+         ON CONFLICT (notification_id, user_id) DO NOTHING`,
+        [userId]
       );
       res.json({ ok: true });
     } catch (error) {
-      console.error("Notification mark read failed:", error);
-      res.status(502).json({ error: "Unable to mark notification as read." });
+      console.error("Notification mark all read failed:", error);
+      res.status(502).json({ error: "Unable to mark all notifications as read." });
     }
   });
 

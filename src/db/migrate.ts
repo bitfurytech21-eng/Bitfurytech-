@@ -37,6 +37,16 @@ async function migrate(): Promise<void> {
       await client.query(financialSql);
       await client.query("INSERT INTO schema_migrations(version) VALUES ($1)", [financialVersion]);
     }
+    const expansionVersion = "2026-11-25-better-auth-neon-expansion";
+    const expansionApplied = await client.query(
+      "SELECT 1 FROM schema_migrations WHERE version = $1",
+      [expansionVersion]
+    );
+    if (expansionApplied.rowCount === 0) {
+      const expansionSql = await readFile(path.join(dirname, "expansion.sql"), "utf8");
+      await client.query(expansionSql);
+      await client.query("INSERT INTO schema_migrations(version) VALUES ($1)", [expansionVersion]);
+    }
     await client.query("COMMIT");
     console.log("Neon PostgreSQL schema migration completed.");
   } catch (error) {

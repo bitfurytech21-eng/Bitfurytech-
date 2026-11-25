@@ -64,6 +64,8 @@ interface MockUserInfo {
   email: string;
   name: string;
   username?: string;
+  referralCode: string;
+  kycStatus: "not_submitted" | "pending" | "approved" | "rejected" | "needs_information";
   country: string;
   phone: string;
   preferredRail: string;
@@ -88,8 +90,10 @@ interface MockInquiry {
 interface MockReferralRecord {
   id: string;
   referrerUserId: string;
+  referredUserId: string;
   referredEmail: string;
-  status: string;
+  referralCode: string;
+  status: "pending" | "qualified" | "paid" | "void";
   rewardAmount: number;
   createdAt: string;
 }
@@ -104,6 +108,34 @@ export interface MockBlockedUser {
   createdAt: string;
 }
 
+export interface MockPaymentWallet {
+  id: string;
+  label: string;
+  currency: string;
+  network: string;
+  walletAddress: string;
+  minDeposit: number;
+  instructions: string;
+  confirmationInfo: string;
+  enabled: boolean;
+  updatedAt: string;
+}
+
+export interface MockManualPaymentAssignment {
+  id: string;
+  userId: string;
+  userEmail: string;
+  customerName: string;
+  method: string;
+  amount: number;
+  destination: string;
+  network: string;
+  reference: string;
+  note: string;
+  status: "Assigned";
+  createdAt: string;
+}
+
 const usersById = new Map<string, MockUserInfo>();
 const emailByUsername = new Map<string, string>();
 const walletsByUser = new Map<string, MockWallet>();
@@ -113,13 +145,86 @@ const idempotencyResponses = new Map<string, unknown>();
 const customPlans = new Map<string, Record<string, unknown>>();
 const customProperties = new Map<string, Record<string, unknown>>();
 const notificationsList: NotificationMessage[] = [];
+const broadcastReadByUser = new Map<string, Set<string>>();
 const inquiriesList: MockInquiry[] = [];
+const newsletterSubscribers = new Map<string, string>();
 const referralsList: MockReferralRecord[] = [];
+const manualPaymentAssignments: MockManualPaymentAssignment[] = [];
 const customEmailTemplates = new Map<string, EmailTemplateRecord>();
 const emailOutboxList: EmailOutboxRecord[] = [];
 const mockRoiAccruedDates = new Map<string, Set<string>>();
 const mockRoiUnpaidBalances = new Map<string, number>();
 const blockedUsersById = new Map<string, MockBlockedUser>();
+const platformPaymentWallets = new Map<string, MockPaymentWallet>([
+  [
+    "USDT (TRC20)",
+    {
+      id: "USDT (TRC20)",
+      label: "USDT (TRC20)",
+      currency: "USDT / USD",
+      network: "TRON (TRC20)",
+      walletAddress: "TXv79qL2k83j2019384756102938475610293847",
+      minDeposit: 100,
+      instructions:
+        "Transmit USDT strictly on the TRON (TRC20) network to the BitfuryTech custody treasury address, then submit the exact transfer hash for settlement verification.",
+      confirmationInfo:
+        "Balance credits only after settlement desk review confirms network finality and matching reference.",
+      enabled: true,
+      updatedAt: new Date().toISOString(),
+    },
+  ],
+  [
+    "Bitcoin (BTC)",
+    {
+      id: "Bitcoin (BTC)",
+      label: "Bitcoin (BTC)",
+      currency: "BTC / USD Equivalent",
+      network: "Bitcoin Mainnet",
+      walletAddress: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+      minDeposit: 250,
+      instructions:
+        "Transfer BTC via Bitcoin Mainnet and enter your transaction ID (TXID). USD credit is calculated at verified settlement review.",
+      confirmationInfo:
+        "Requires minimum 3 mainnet confirmations and manual settlement desk sign-off.",
+      enabled: true,
+      updatedAt: new Date().toISOString(),
+    },
+  ],
+  [
+    "Ethereum (ETH)",
+    {
+      id: "Ethereum (ETH)",
+      label: "Ethereum (ETH)",
+      currency: "ETH / USD Equivalent",
+      network: "Ethereum Mainnet (ERC20)",
+      walletAddress: "0x71C3d2948b816281028372610293847192837465",
+      minDeposit: 250,
+      instructions:
+        "Send ETH on Ethereum Mainnet and record your transaction hash below. Do not use unsupported layer-2 bridges without prior desk notice.",
+      confirmationInfo:
+        "Requires 12 block confirmations and settlement verification prior to ledger credit.",
+      enabled: true,
+      updatedAt: new Date().toISOString(),
+    },
+  ],
+  [
+    "Bank Wire",
+    {
+      id: "Bank Wire",
+      label: "Bank Wire",
+      currency: "USD",
+      network: "SWIFT / Fedwire",
+      walletAddress: "BitfuryTech Corporate Settlement — Reference Desk Upon Verification",
+      minDeposit: 1000,
+      instructions:
+        "Initiate an institutional wire quoting your BitfuryTech account email and wire reference number in the beneficiary memo.",
+      confirmationInfo:
+        "Typically clears within 1–3 business days after incoming bank reconciliation.",
+      enabled: true,
+      updatedAt: new Date().toISOString(),
+    },
+  ],
+]);
 const auditLogs: Array<{
   id: string;
   actorUid: string;
@@ -163,6 +268,8 @@ export function registerMockUser(user: {
       email: cleanEmail,
       name: user.name?.trim() || cleanEmail.split("@")[0] || "Investor",
       username: cleanUsername || undefined,
+      referralCode: `BF-${user.id.slice(0, 8).toUpperCase()}`,
+      kycStatus: "not_submitted",
       country: "",
       phone: "",
       preferredRail: "USDT (TRC20)",
@@ -172,6 +279,8 @@ export function registerMockUser(user: {
       createdAt: now,
       updatedAt: now,
     });
+  } else if (cleanUsername && !existing.username) {
+    existing.username = cleanUsername;
   }
   getOrCreateWallet(user.id);
 }
@@ -182,6 +291,12 @@ export function isMockUsernameAvailable(username: string): boolean {
 
 export function lookupMockEmailByUsername(username: string): string | null {
   return emailByUsername.get(username.trim().toLowerCase()) ?? null;
+}
+
+export function isMockUserSuspended(userId?: string | null): boolean {
+  const cleanUid = userId?.trim();
+  if (!cleanUid) return false;
+  return usersById.get(cleanUid)?.accountStatus === "Suspended";
 }
 
 export function getMockUserProfile(
@@ -197,16 +312,20 @@ export function getMockUserProfile(
     });
     info = usersById.get(userId)!;
   }
+  const wallet = getOrCreateWallet(userId);
   return {
     uid: info.id,
     username: info.username,
+    referralCode: info.referralCode,
     email: info.email,
     displayName: info.name,
     country: info.country,
     phone: info.phone,
+    walletBalance: wallet.availableBalance,
     preferredRail: info.preferredRail,
     emailAlerts: info.emailAlerts,
     twoFactorEnabled: info.twoFactorEnabled,
+    kycStatus: info.kycStatus,
     role: fallback?.role || "investor",
     accountStatus: info.accountStatus,
     photoUrl: info.photoUrl ?? null,
@@ -393,7 +512,7 @@ export function getMockDashboardOverview(
     recentTransactions: userTxs.slice(0, 6),
     portfolioSummary,
     opportunities: INVESTMENT_MANDATES,
-    unreadNotificationsCount: notificationsList.filter((n) => n.userId === userId && !n.read).length,
+    unreadNotificationsCount: listMockNotifications(userId).filter((n) => !n.read).length,
     syncedAt: new Date().toISOString(),
     ledgerSummary: {
       entryCount: userTxs.length,
@@ -567,6 +686,102 @@ export function deleteMockCryptoWallet(id: string): boolean {
   return customCryptoWallets.delete(id);
 }
 
+export function listMockPaymentWallets(): MockPaymentWallet[] {
+  return Array.from(platformPaymentWallets.values());
+}
+
+export function upsertMockPaymentWallet(wallet: MockPaymentWallet): MockPaymentWallet {
+  const saved: MockPaymentWallet = {
+    ...wallet,
+    updatedAt: new Date().toISOString(),
+  };
+  platformPaymentWallets.set(saved.id, saved);
+  return saved;
+}
+
+export function getMockDepositMethods() {
+  const methods = Array.from(platformPaymentWallets.values())
+    .filter((w) => w.enabled && w.walletAddress.trim().length >= 6)
+    .map((w) => ({
+      id: w.id,
+      label: w.label,
+      currency: w.currency,
+      network: w.network,
+      minDeposit: w.minDeposit,
+      instructions: w.instructions,
+      custodyDestination: w.walletAddress,
+      confirmationInfo: w.confirmationInfo,
+    }));
+
+  const seenIds = new Set(methods.map((m) => m.id));
+  for (const cw of customCryptoWallets.values()) {
+    if (cw.status !== "Active" || cw.walletAddress.trim().length < 6) continue;
+    const label = `${cw.cryptocurrency} (${cw.blockchainNetwork})`;
+    if (seenIds.has(cw.id) || seenIds.has(label)) continue;
+    // Also skip if standard matching currency+network already exists in platformPaymentWallets
+    const cryptoUpper = cw.cryptocurrency.toUpperCase();
+    const netUpper = cw.blockchainNetwork.toUpperCase();
+    const alreadyCovered = methods.some((m) => {
+      const mid = m.id.toUpperCase();
+      return (
+        (cryptoUpper.includes("BTC") && mid.includes("BTC")) ||
+        (cryptoUpper.includes("ETH") && mid.includes("ETH") && !netUpper.includes("USDC")) ||
+        (cryptoUpper.includes("USDT") && mid.includes("USDT") && netUpper.includes("TRC"))
+      );
+    });
+    if (alreadyCovered) continue;
+    seenIds.add(cw.id);
+    methods.push({
+      id: cw.id,
+      label: cw.walletLabel ? `${cw.cryptocurrency} — ${cw.walletLabel}` : label,
+      currency: `${cw.cryptocurrency} / USD`,
+      network: cw.blockchainNetwork,
+      minDeposit: cw.minDeposit,
+      instructions: cw.instructions || `Send ${cw.cryptocurrency} strictly via ${cw.blockchainNetwork} to the custody address below.`,
+      custodyDestination: cw.walletAddress,
+      confirmationInfo: "Balance credits after settlement desk confirms blockchain finality.",
+    });
+  }
+  return methods;
+}
+
+export function listMockManualPaymentAssignments(): MockManualPaymentAssignment[] {
+  return [...manualPaymentAssignments];
+}
+
+export function addMockManualPaymentAssignment(
+  entry: Omit<MockManualPaymentAssignment, "id" | "status" | "createdAt">,
+  actorUid: string,
+  actorEmail: string
+): MockManualPaymentAssignment {
+  const duplicate = manualPaymentAssignments.find(
+    (a) =>
+      a.userId === entry.userId &&
+      a.method === entry.method &&
+      a.reference.toLowerCase() === entry.reference.toLowerCase()
+  );
+  if (duplicate) {
+    throw Object.assign(
+      new Error("This customer already has an assignment with that reference."),
+      { statusCode: 409 }
+    );
+  }
+  const saved: MockManualPaymentAssignment = {
+    ...entry,
+    id: `mpa_${randomUUID()}`,
+    status: "Assigned",
+    createdAt: new Date().toISOString(),
+  };
+  manualPaymentAssignments.unshift(saved);
+  addMockAuditLog(actorUid, actorEmail, "CREATE_MANUAL_PAYMENT_ASSIGNMENT", "manual_payment_assignment", saved.id, {
+    userId: entry.userId,
+    userEmail: entry.userEmail,
+    method: entry.method,
+    amount: entry.amount,
+    reference: entry.reference,
+  });
+  return saved;
+}
 
 export function createMockDeposit(params: {
   userId: string;
@@ -586,6 +801,9 @@ export function createMockDeposit(params: {
   if (existing) return { response: existing, duplicate: true };
 
   registerMockUser({ id: params.userId, email: params.userEmail, name: params.userName });
+  if (isMockUserSuspended(params.userId)) {
+    throw Object.assign(new Error("Account deposit are currently restricted. Contact support."), { statusCode: 403 });
+  }
   const now = new Date().toISOString();
   const id = randomUUID();
   const normalizedAmount = money(params.amount);
@@ -640,6 +858,9 @@ export function createMockWithdrawal(params: {
   if (existing) return { response: existing, duplicate: true };
 
   registerMockUser({ id: params.userId, email: params.userEmail, name: params.userName });
+  if (isMockUserSuspended(params.userId)) {
+    throw Object.assign(new Error("Account withdrawal are currently restricted. Contact support."), { statusCode: 403 });
+  }
   const wallet = getOrCreateWallet(params.userId);
   const requested = money(params.amount);
   if (requested > wallet.availableBalance) {
@@ -705,6 +926,9 @@ export function createMockInvestmentPurchase(params: {
   if (existing) return { response: existing, duplicate: true };
 
   registerMockUser({ id: params.userId, email: params.userEmail, name: params.userName });
+  if (isMockUserSuspended(params.userId)) {
+    throw Object.assign(new Error("Account investment allocations are currently restricted. Contact support."), { statusCode: 403 });
+  }
   const plan = getMandateById(params.targetId);
   if (!plan && params.targetType === "plan") {
     throw Object.assign(new Error("Selected investment plan does not exist."), { statusCode: 404 });
@@ -883,7 +1107,7 @@ export function getMockAdminData() {
               .reduce((sum, t) => sum + t.amount, 0)
           ),
           role: "investor",
-          kycStatus: "not_submitted",
+          kycStatus: u.kycStatus,
           accountStatus: u.accountStatus,
           createdAt: u.createdAt,
           investmentsCount: userInvs.length,
@@ -975,15 +1199,51 @@ export function addMockInquiry(entry: {
   return item;
 }
 
+export function subscribeMockNewsletter(email: string): { subscribedAt: string; alreadySubscribed: boolean } {
+  const cleanEmail = email.trim().toLowerCase();
+  const existing = newsletterSubscribers.get(cleanEmail);
+  if (existing) {
+    return { subscribedAt: existing, alreadySubscribed: true };
+  }
+  const now = new Date().toISOString();
+  newsletterSubscribers.set(cleanEmail, now);
+  return { subscribedAt: now, alreadySubscribed: false };
+}
+
 export function listMockNotifications(userId: string): NotificationMessage[] {
-  return notificationsList.filter((n) => n.userId === userId || n.userId === "all");
+  const broadcastReads = broadcastReadByUser.get(userId);
+  return notificationsList
+    .filter((n) => n.userId === userId || n.userId === "all")
+    .map((n) =>
+      n.userId === "all"
+        ? { ...n, read: Boolean(broadcastReads?.has(n.id)) }
+        : { ...n }
+    );
 }
 
 export function markMockNotificationRead(id: string, userId: string): boolean {
-  const item = notificationsList.find((n) => n.id === id && n.userId === userId);
+  const item = notificationsList.find((n) => n.id === id && (n.userId === userId || n.userId === "all"));
   if (!item) return false;
-  item.read = true;
+  if (item.userId === "all") {
+    const reads = broadcastReadByUser.get(userId) ?? new Set<string>();
+    reads.add(id);
+    broadcastReadByUser.set(userId, reads);
+  } else {
+    item.read = true;
+  }
   return true;
+}
+
+export function markAllMockNotificationsRead(userId: string): void {
+  const reads = broadcastReadByUser.get(userId) ?? new Set<string>();
+  for (const item of notificationsList) {
+    if (item.userId === userId) {
+      item.read = true;
+    } else if (item.userId === "all") {
+      reads.add(item.id);
+    }
+  }
+  broadcastReadByUser.set(userId, reads);
 }
 
 export function addMockBroadcast(title: string, body: string, actorUid: string, actorEmail: string): NotificationMessage {
@@ -1001,8 +1261,44 @@ export function addMockBroadcast(title: string, body: string, actorUid: string, 
   return entry;
 }
 
+export function claimMockReferral(
+  referredUserId: string,
+  referredEmail: string,
+  rawCode: string
+): { claimed: boolean; reason?: string } {
+  const code = rawCode.trim().toUpperCase();
+  if (!code || code.length < 4) {
+    return { claimed: false, reason: "Invalid referral code." };
+  }
+  if (referralsList.some((r) => r.referredUserId === referredUserId)) {
+    return { claimed: false, reason: "Referral attribution already recorded." };
+  }
+  const referrer = Array.from(usersById.values()).find(
+    (u) =>
+      u.id !== referredUserId &&
+      u.accountStatus !== "Suspended" &&
+      !isMockUserBlocked(u.id, u.email) &&
+      (u.referralCode.toUpperCase() === code || `BF-${u.id.slice(0, 8).toUpperCase()}` === code)
+  );
+  if (!referrer) {
+    return { claimed: false, reason: "Referral code does not match an active partner account." };
+  }
+  referralsList.unshift({
+    id: `ref_${randomUUID().slice(0, 12)}`,
+    referrerUserId: referrer.id,
+    referredUserId,
+    referredEmail: referredEmail.trim().toLowerCase(),
+    referralCode: code,
+    status: "pending",
+    rewardAmount: 0,
+    createdAt: new Date().toISOString(),
+  });
+  return { claimed: true };
+}
+
 export function getMockReferrals(userId: string) {
-  const code = `BF-${userId.slice(0, 8).toUpperCase()}`;
+  const userInfo = usersById.get(userId);
+  const code = userInfo?.referralCode || `BF-${userId.slice(0, 8).toUpperCase()}`;
   const matching = referralsList.filter((r) => r.referrerUserId === userId);
   const referralTxs = getMockCustomerTransactions(userId).filter((t) => t.type === "Referral");
   const referralEarnings = money(
@@ -1031,6 +1327,7 @@ export function getMockReferrals(userId: string) {
 export function getMockAdminReferrals() {
   return {
     partnerSummary: Array.from(usersById.values()).map((u) => {
+      const matching = referralsList.filter((r) => r.referrerUserId === u.id);
       const earnings = transactions
         .filter((t) => t.userId === u.id && t.type === "Referral" && t.status === "Completed")
         .reduce((s, t) => s + t.amount, 0);
@@ -1038,7 +1335,9 @@ export function getMockAdminReferrals() {
         uid: u.id,
         email: u.email,
         displayName: u.name,
-        code: `BF-${u.id.slice(0, 8).toUpperCase()}`,
+        code: u.referralCode || `BF-${u.id.slice(0, 8).toUpperCase()}`,
+        totalReferrals: matching.length,
+        qualifiedReferrals: matching.filter((r) => r.status === "qualified" || r.status === "paid").length,
         referralBonus: money(earnings),
       };
     }),
@@ -1087,6 +1386,27 @@ export function updateMockCustomerStatus(
   user.updatedAt = new Date().toISOString();
   addMockAuditLog(actorUid, actorEmail, "UPDATE_CUSTOMER_STATUS", "user", uid, { status });
   return true;
+}
+
+export function updateMockCustomerKycStatus(
+  uid: string,
+  kycStatus: "pending" | "approved" | "rejected" | "needs_information",
+  note: string,
+  actorUid: string,
+  actorEmail: string
+): { email: string; name: string } | null {
+  const user = usersById.get(uid);
+  if (!user) return null;
+  user.kycStatus = kycStatus;
+  user.updatedAt = new Date().toISOString();
+  addMockUserNotification(
+    uid,
+    "Security",
+    "Verification status updated",
+    `Your KYC verification status is now ${kycStatus.replace(/_/g, " ")}.${note ? ` Note: ${note}` : ""}`
+  );
+  addMockAuditLog(actorUid, actorEmail, "UPDATE_KYC_STATUS", "user", uid, { status: kycStatus, note });
+  return { email: user.email, name: user.name };
 }
 
 export function updateMockCustomerDetails(
@@ -1323,6 +1643,18 @@ export function updateMockProperty(
   return true;
 }
 
+export function deleteMockProperty(
+  id: string,
+  actorUid: string,
+  actorEmail: string
+): boolean {
+  const deleted = customProperties.delete(id);
+  if (deleted) {
+    addMockAuditLog(actorUid, actorEmail, "DELETE_PROPERTY", "property", id, {});
+  }
+  return deleted;
+}
+
 export function getMockEmailTemplates(): EmailTemplateRecord[] {
   return DEFAULT_MAIL_TEMPLATES.map((def) => {
     const saved = customEmailTemplates.get(def.eventType);
@@ -1517,48 +1849,135 @@ export function processMockPlanDrivenRoi(asOf = new Date()): Array<{
   return payouts;
 }
 
-export function resolveMockDeposit(txId: string, decision: "Completed" | "Rejected", actorEmail: string, note: string): boolean {
+export function resolveMockDeposit(
+  txId: string,
+  decision: "Completed" | "Rejected",
+  actorEmail: string,
+  note: string
+): { userId: string; userEmail: string; userName: string; amount: number; method: string; reference: string } | null {
   const tx = transactions.find((t) => t.id === txId && t.type === "Deposit");
-  if (!tx || tx.status !== "Pending") return false;
+  if (!tx || tx.status !== "Pending") return null;
+  const nowIso = new Date().toISOString();
   tx.status = decision;
-  tx.updatedAt = new Date().toISOString();
+  tx.updatedAt = nowIso;
+  const depositor = usersById.get(tx.userId);
   if (decision === "Completed") {
     const w = getOrCreateWallet(tx.userId);
     w.availableBalance = money(w.availableBalance + tx.amount);
+    addMockUserNotification(
+      tx.userId,
+      "Settlement",
+      "Deposit verified",
+      `Your ${tx.method} deposit for $${tx.amount.toFixed(2)} (${tx.reference}) has been verified and credited.`
+    );
+
+    const pendingRef = referralsList.find((r) => r.referredUserId === tx.userId && r.status === "pending");
+    if (pendingRef) {
+      const referrer = usersById.get(pendingRef.referrerUserId);
+      if (referrer && referrer.accountStatus !== "Suspended" && !isMockUserBlocked(referrer.id, referrer.email)) {
+        const priorSettledVolume = referralsList
+          .filter((r) => r.referrerUserId === referrer.id && (r.status === "paid" || r.status === "qualified"))
+          .reduce((sum, r) => {
+            const refDeposit = transactions
+              .filter((t) => t.userId === r.referredUserId && t.type === "Deposit" && t.status === "Completed")
+              .reduce((dSum, t) => dSum + t.amount, 0);
+            return sum + refDeposit;
+          }, 0);
+        const rate = priorSettledVolume + tx.amount >= 100000 ? 0.1 : 0.05;
+        const reward = money(tx.amount * rate);
+        if (reward > 0) {
+          pendingRef.status = "paid";
+          pendingRef.rewardAmount = reward;
+          const rw = getOrCreateWallet(referrer.id);
+          rw.availableBalance = money(rw.availableBalance + reward);
+          transactions.unshift({
+            id: randomUUID(),
+            userId: referrer.id,
+            userEmail: referrer.email,
+            type: "Referral",
+            method: `Partner Tier (${Math.round(rate * 100)}%)`,
+            amount: reward,
+            destination: "Custody Wallet",
+            reference: `REF-${tx.reference.slice(-8)}`,
+            status: "Completed",
+            currency: "USD",
+            description: `Referral bonus credited for ${tx.userEmail}`,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
+          addMockUserNotification(
+            referrer.id,
+            "Referral",
+            "Referral reward credited",
+            `USD ${reward.toFixed(2)} referral bonus was credited following verified settlement from ${tx.userEmail}.`
+          );
+        }
+      }
+    }
+  } else {
+    addMockUserNotification(
+      tx.userId,
+      "Settlement",
+      "Deposit notice declined",
+      `Your ${tx.method} deposit notice (${tx.reference}) could not be verified.${note ? ` Note: ${note}` : ""}`
+    );
   }
-  auditLogs.unshift({
-    id: randomUUID(),
-    actorUid: "admin",
-    actorEmail,
-    action: "RESOLVE_DEPOSIT",
-    targetType: "transaction",
-    targetId: txId,
-    summary: JSON.stringify({ decision, amount: tx.amount, note }),
-    createdAt: new Date().toISOString(),
+  addMockAuditLog("admin", actorEmail, "RESOLVE_DEPOSIT", "transaction", txId, {
+    decision,
+    amount: tx.amount,
+    note,
   });
-  return true;
+  return {
+    userId: tx.userId,
+    userEmail: tx.userEmail,
+    userName: depositor?.name || tx.userEmail.split("@")[0] || "Investor",
+    amount: tx.amount,
+    method: tx.method,
+    reference: tx.reference,
+  };
 }
 
-export function resolveMockWithdrawal(txId: string, decision: "Completed" | "Rejected", actorEmail: string, note: string): boolean {
+export function resolveMockWithdrawal(
+  txId: string,
+  decision: "Completed" | "Rejected",
+  actorEmail: string,
+  note: string
+): { userId: string; userEmail: string; userName: string; amount: number; method: string; reference: string } | null {
   const tx = transactions.find((t) => t.id === txId && t.type === "Withdrawal");
-  if (!tx || tx.status !== "Pending") return false;
+  if (!tx || tx.status !== "Pending") return null;
   const w = getOrCreateWallet(tx.userId);
-  if (w.reservedBalance < tx.amount) return false;
+  if (w.reservedBalance < tx.amount) return null;
   w.reservedBalance = money(w.reservedBalance - tx.amount);
   if (decision === "Rejected") {
     w.availableBalance = money(w.availableBalance + tx.amount);
+    addMockUserNotification(
+      tx.userId,
+      "Settlement",
+      "Withdrawal request declined",
+      `Your withdrawal request for $${tx.amount.toFixed(2)} (${tx.reference}) was declined and reserved funds were returned.${note ? ` Note: ${note}` : ""}`
+    );
+  } else {
+    addMockUserNotification(
+      tx.userId,
+      "Settlement",
+      "Withdrawal settled",
+      `Your ${tx.method} withdrawal for $${tx.amount.toFixed(2)} (${tx.reference}) has been approved and settled.`
+    );
   }
   tx.status = decision;
   tx.updatedAt = new Date().toISOString();
-  auditLogs.unshift({
-    id: randomUUID(),
-    actorUid: "admin",
-    actorEmail,
-    action: "RESOLVE_WITHDRAWAL",
-    targetType: "transaction",
-    targetId: txId,
-    summary: JSON.stringify({ decision, amount: tx.amount, note }),
-    createdAt: new Date().toISOString(),
+  const userInfo = usersById.get(tx.userId);
+  addMockAuditLog("admin", actorEmail, "RESOLVE_WITHDRAWAL", "transaction", txId, {
+    decision,
+    amount: tx.amount,
+    note,
   });
-  return true;
+  return {
+    userId: tx.userId,
+    userEmail: tx.userEmail,
+    userName: userInfo?.name || tx.userEmail.split("@")[0] || "Investor",
+    amount: tx.amount,
+    method: tx.method,
+    reference: tx.reference,
+  };
 }

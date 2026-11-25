@@ -14,6 +14,11 @@ export interface AuthUser {
 export interface BackendSessionProfile {
   uid: string;
   email: string | null;
+  displayName?: string | null;
+  username?: string | null;
+  referralCode?: string | null;
+  kycStatus?: string | null;
+  hasPasswordProvider?: boolean;
   emailVerified: boolean;
   photoUrl?: string | null;
   role: "admin" | "investor";
@@ -46,7 +51,7 @@ export interface AuthContextValue {
   verifyAdminSession: () => Promise<AdminVerifyResult>;
   resendVerificationEmail: (email?: string) => Promise<void>;
   signInWithEmail: (identifier: string, password: string, rememberMe: boolean) => Promise<AuthActionResult>;
-  registerWithEmail: (fullName: string, email: string, password: string, username: string) => Promise<AuthActionResult>;
+  registerWithEmail: (fullName: string, email: string, password: string, username: string, referralCode?: string) => Promise<AuthActionResult>;
   updateAccountPassword: (newPassword: string, currentPassword?: string) => Promise<{ ok: boolean; error?: string }>;
   sendPasswordReset: (email: string) => Promise<{ ok: boolean; error?: string }>;
   signInWithGoogle: () => Promise<AuthActionResult>;
@@ -60,6 +65,10 @@ type SessionResponse = {
   user?: {
     id?: string;
     name?: string;
+    username?: string | null;
+    referralCode?: string | null;
+    kycStatus?: string | null;
+    hasPasswordProvider?: boolean;
     email?: string | null;
     emailVerified?: boolean;
     photoUrl?: string | null;
@@ -95,6 +104,11 @@ async function readSession(): Promise<BackendSessionProfile | null> {
   return {
     uid: body.user.id,
     email: body.user.email ?? null,
+    displayName: body.user.name ?? null,
+    username: body.user.username ?? null,
+    referralCode: body.user.referralCode ?? null,
+    kycStatus: body.user.kycStatus ?? null,
+    hasPasswordProvider: body.user.hasPasswordProvider,
     emailVerified: Boolean(body.user.emailVerified),
     photoUrl: body.user.photoUrl ?? body.user.image ?? null,
     role: body.user.role === "admin" && body.user.isAdmin ? "admin" : "investor",
@@ -109,13 +123,16 @@ function asCompatUser(session: BackendSessionProfile | null): AuthUser | null {
     uid: session.uid,
     email: session.email,
     emailVerified: session.emailVerified,
-    displayName: null,
+    displayName: session.displayName ?? null,
     photoUrl: session.photoUrl ?? null,
   };
 }
 
+const PENDING_REFERRAL_KEY = "bf_pending_referral";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [backendSession, setBackendSession] = useState<BackendSessionProfile | null>(null);
+  const [profile, setProfile] = useState<UserAccount | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -150,6 +167,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("focus", onFocus);
     };
   }, []);
+
+  useEffect(() => {
+    const uid = backendSession?.uid;
+    const verified = backendSession?.emailVerified;
+    if (!uid || !verified) {
+      setProfile(null);
+      return;
+    }
+    let active = true;
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/profile", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) return;
+        const payload = (await res.json().catch(() => ({}))) as { profile?: UserAccount };
+        if (active && payload.profile) {
+          setProfile(payload.profile);
+        }
+      } catch {
+        // ignore transient profile fetch errors
+      }
+    };
+    void fetchProfile();
+
+    const pendingCode =
+      typeof window !== "undefined" ? window.sessionStorage.getItem(PENDING_REFERRAL_KEY) : null;
+    if (pendingCode && pendingCode.trim().length >= 4) {
+      void fetch("/api/referrals/claim", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+        body: JSON.stringify({ code: pendingCode.trim().toUpperCase() }),
+      })
+        .then(() => {
+          window.sessionStorage.removeItem(PENDING_REFERRAL_KEY);
+        })
+        .catch(() => undefined);
+    }
+
+    const onProfileUpdated = () => {
+      void fetchProfile();
+    };
+    window.addEventListener("bitfury:profile-updated", onProfileUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("bitfury:profile-updated", onProfileUpdated);
+    };
+  }, [backendSession?.uid, backendSession?.emailVerified]);
 
   const clearAuthError = useCallback(() => setAuthError(null), []);
   const retryAuthSync = useCallback(async () => {
@@ -195,19 +264,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthBusy(true);
     setAuthError(null);
     try {
-      let email = identifier.trim().toLowerCase();
-      if (!email.includes("@")) {
-        const check = validateUsername(email);
+      const cleanIdentifier = identifier.trim().toLowerCase();
+      if (!cleanIdentifier.includes("@")) {
+        const check = validateUsername(cleanIdentifier);
         if (!check.valid) throw new Error(check.error || "Enter a valid username or email.");
-        const response = await fetch("/api/auth/username-email", {
-          method: "POST", credentials: "include",
+        const response = await fetch("/api/auth/sign-in-username", {
+          method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: check.normalized }),
+          body: JSON.stringify({
+            username: check.normalized,
+            password,
+            rememberMe,
+            callbackURL: `${window.location.origin}/dashboard`,
+          }),
         });
-        const body = await response.json().catch(() => ({})) as { email?: string; error?: string };
-        if (!response.ok || !body.email) throw new Error(body.error || "Invalid username or password.");
-        email = body.email;
+        const body = (await response.json().catch(() => ({}))) as {
+          code?: unknown;
+          message?: string;
+          error?: string;
+          user?: { email?: string };
+        };
+        if (!response.ok) {
+          const code = String(body.code || "").toUpperCase();
+          const message = body.error || body.message || "Invalid username or password.";
+          if (code.includes("EMAIL_NOT_VERIFIED") || /email.*(not verified|verification required|verify)/i.test(message)) {
+            if (body.user?.email) setPendingVerificationEmail(body.user.email);
+            return {
+              ok: false,
+              needsVerification: true,
+              error: "Your email address must be verified before you can access the dashboard. Enter your email to resend verification.",
+            };
+          }
+          throw new Error(message);
+        }
+        const session = await syncSession();
+        if (!session) throw new Error("Sign-in was accepted, but the server did not return an authenticated session. Please try again; if this continues, contact support.");
+        if (!session.emailVerified) {
+          if (session.email) setPendingVerificationEmail(session.email);
+          return { ok: false, session, needsVerification: true, error: "Your email address is not verified yet. Resend the verification email below, then open its link." };
+        }
+        return { ok: true, session, needsVerification: false };
       }
+
+      const email = cleanIdentifier;
       const result = await betterAuthClient.signIn.email({
         email,
         password,
@@ -240,7 +340,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [syncSession]);
 
   const registerWithEmail = useCallback(async (
-    fullName: string, email: string, password: string, username: string
+    fullName: string, email: string, password: string, username: string, referralCode?: string
   ): Promise<AuthActionResult> => {
     setAuthBusy(true);
     setAuthError(null);
@@ -254,6 +354,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const availabilityBody = await availability.json().catch(() => ({})) as { available?: boolean; error?: string };
       if (!availability.ok || availabilityBody.available !== true) {
         throw new Error(availabilityBody.error || "This username is already taken.");
+      }
+      const cleanRef = referralCode?.trim().toUpperCase();
+      if (cleanRef && typeof window !== "undefined") {
+        window.sessionStorage.setItem(PENDING_REFERRAL_KEY, cleanRef);
       }
       const result = await betterAuthClient.signUp.email({
         name: fullName.trim(),
@@ -330,6 +434,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await betterAuthClient.signOut({});
       if (result.error) throw new Error(result.error.message || "Unable to sign out.");
       setBackendSession(null);
+      setProfile(null);
       setPendingVerificationEmail(null);
     } catch (error) {
       setAuthError(toAuthErrorMessage(error, "Unable to sign out."));
@@ -342,16 +447,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const user = useMemo(() => asCompatUser(backendSession), [backendSession]);
   const isAdmin = Boolean(backendSession?.isAdmin && backendSession.emailVerified);
   const needsEmailVerification = Boolean(user && !backendSession?.emailVerified);
+  const hasPasswordProvider =
+    backendSession?.hasPasswordProvider ?? profile?.hasPasswordProvider ?? Boolean(user);
 
   return (
     <AuthContext.Provider value={{
       user,
-      profile: null,
+      profile,
       backendSession,
       authReady,
       authBusy,
       isAdmin,
-      hasPasswordProvider: Boolean(user),
+      hasPasswordProvider,
       needsEmailVerification,
       authError,
       clearAuthError,

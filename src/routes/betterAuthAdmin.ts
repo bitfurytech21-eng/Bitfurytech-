@@ -11,26 +11,32 @@ import { MANUAL_PAYMENT_METHODS } from "../trading/manualPaymentMethods.ts";
 import {
   addMockAuditLog,
   addMockBroadcast,
+  addMockManualPaymentAssignment,
   addMockUserNotification,
   blockMockUser,
+  deleteMockCryptoWallet,
+  deleteMockProperty,
   getMockAdminData,
   getMockAdminDocuments,
   getMockAdminReferrals,
   getMockEmailOutbox,
   getMockEmailTemplates,
   listMockBlockedUsers,
+  listMockManualPaymentAssignments,
+  listMockPaymentWallets,
   resolveMockDeposit,
   resolveMockWithdrawal,
   saveMockEmailTemplate,
   unblockMockUser,
   updateMockCustomerDetails,
+  updateMockCustomerKycStatus,
   updateMockCustomerStatus,
   updateMockInvestmentStatus,
   updateMockProperty,
+  upsertMockCryptoWallet,
+  upsertMockPaymentWallet,
   upsertMockPlan,
   upsertMockProperty,
-  upsertMockCryptoWallet,
-  deleteMockCryptoWallet,
 } from "../services/inMemoryFinancialMock.ts";
 import { DEFAULT_MAIL_TEMPLATES } from "../services/mailTemplates.ts";
 import { enqueueMailEvent, getMailDeliveryStatus, sendCustomMailEvent } from "../services/mailOutbox.ts";
@@ -110,6 +116,9 @@ export function createBetterAuthAdminRouter(): Router {
                 u."createdAt" AS "createdAt",
                 COALESCE(inv.count,0)::int AS "investmentsCount",
                 COALESCE(tx.count,0)::int AS "transactionsCount",
+                COALESCE(tx.total_deposit,0) AS "totalDeposit",
+                COALESCE(tx.total_profit,0) AS "totalProfit",
+                COALESCE(tx.referral_bonus,0) AS "referralBonus",
                 COALESCE(inv.items,'[]'::jsonb) AS investments,
                 COALESCE(tx.items,'[]'::jsonb) AS transactions
          FROM "user" u
@@ -122,6 +131,9 @@ export function createBetterAuthAdminRouter(): Router {
          ) inv ON true
          LEFT JOIN LATERAL (
            SELECT COUNT(*) count,
+                  COALESCE(SUM(CASE WHEN lower(t.type)='deposit' AND lower(t.status)='completed' THEN t.amount ELSE 0 END),0) AS total_deposit,
+                  COALESCE(SUM(CASE WHEN lower(t.type) IN ('profit','return') AND lower(t.status)='completed' THEN t.amount ELSE 0 END),0) AS total_profit,
+                  COALESCE(SUM(CASE WHEN lower(t.type)='referral' AND lower(t.status)='completed' THEN t.amount ELSE 0 END),0) AS referral_bonus,
                   jsonb_agg(jsonb_build_object('id',t.id,'type',initcap(t.type),'reference',COALESCE(t.reference,t.id),'amount',t.amount,'status',initcap(t.status))) AS items
            FROM transactions t WHERE t.user_id=u.id
          ) tx ON true
@@ -134,9 +146,9 @@ export function createBetterAuthAdminRouter(): Router {
         customers: result.rows.map((row) => ({
           ...row,
           walletBalance: number(row.walletBalance, 0),
-          totalDeposit: 0,
-          totalProfit: 0,
-          referralBonus: 0,
+          totalDeposit: number(row.totalDeposit, 0),
+          totalProfit: number(row.totalProfit, 0),
+          referralBonus: number(row.referralBonus, 0),
           role: "investor",
           investments: Array.isArray(row.investments) ? row.investments : [],
           transactions: Array.isArray(row.transactions) ? row.transactions : [],
@@ -769,6 +781,7 @@ export function createBetterAuthAdminRouter(): Router {
           );
           const refs = await client.query<{ has_refs: boolean }>(
             `SELECT (
+               EXISTS (SELECT 1 FROM wallets WHERE user_id=$1 AND (available_balance <> 0 OR reserved_balance <> 0)) OR
                EXISTS (SELECT 1 FROM investments WHERE user_id=$1) OR
                EXISTS (SELECT 1 FROM transactions WHERE user_id=$1) OR
                EXISTS (SELECT 1 FROM ledger_entries WHERE user_id=$1) OR
@@ -781,6 +794,10 @@ export function createBetterAuthAdminRouter(): Router {
             [matched.id]
           );
           if (!refs.rows[0]?.has_refs) {
+            await client.query(
+              "DELETE FROM wallets WHERE user_id=$1 AND available_balance = 0 AND reserved_balance = 0",
+              [matched.id]
+            );
             await client.query('DELETE FROM "user" WHERE id=$1', [matched.id]);
             hardDeleted = true;
           }
@@ -940,8 +957,35 @@ export function createBetterAuthAdminRouter(): Router {
       res.status(400).json({ error: "A valid customer ID and KYC status are required." });
       return;
     }
+    const actorId = auditActor(req as BetterAuthRequest);
+    const actorEmail = (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin";
     if (!isDatabaseConfigured) {
-      res.status(503).json({ error: "KYC review requires the configured Neon database." });
+      const updated = updateMockCustomerKycStatus(
+        uid,
+        status as "pending" | "approved" | "rejected" | "needs_information",
+        note,
+        actorId,
+        actorEmail
+      );
+      if (!updated) {
+        res.status(404).json({ error: "Customer not found." });
+        return;
+      }
+      let emailSent = false;
+      try {
+        emailSent = await enqueueMailEvent({
+          eventType: "kyc_status",
+          userId: uid,
+          recipient: updated.email,
+          values: {
+            firstName: updated.name.trim().split(/\s+/)[0] || "Investor",
+            status: status.replace(/_/g, " "),
+          },
+        });
+      } catch (mailError) {
+        console.error("KYC status email failed:", mailError);
+      }
+      res.json({ ok: true, uid, kycStatus: status, emailSent });
       return;
     }
 
@@ -956,7 +1000,15 @@ export function createBetterAuthAdminRouter(): Router {
           "INSERT INTO user_profiles (user_id, kyc_status) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET kyc_status=EXCLUDED.kyc_status, updated_at=now()",
           [uid, status]
         );
-        await auditInTransaction(client, auditActor(req as BetterAuthRequest)!, "UPDATE_KYC_STATUS", "user", uid, { status, note });
+        await client.query(
+          "INSERT INTO notifications (id, user_id, category, title, body) VALUES ($1,$2,'Security','Verification status updated',$3)",
+          [
+            randomUUID(),
+            uid,
+            `Your KYC verification status is now ${status.replace(/_/g, " ")}.${note ? ` Note: ${note}` : ""}`,
+          ]
+        );
+        await auditInTransaction(client, actorId, "UPDATE_KYC_STATUS", "user", uid, { status, note });
         return user.rows[0];
       });
 
@@ -990,23 +1042,50 @@ export function createBetterAuthAdminRouter(): Router {
       return;
     }
     if (!isDatabaseConfigured) {
-      const ok = resolveMockDeposit(
+      const resolved = resolveMockDeposit(
         id,
         decision === "completed" ? "Completed" : "Rejected",
         (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin",
         evidenceNote
       );
-      if (!ok) {
+      if (!resolved) {
         res.status(404).json({ error: "Deposit not found or already resolved." });
         return;
       }
+      await enqueueMailEvent({
+        eventType: decision === "completed" ? "deposit_approved" : "deposit_rejected",
+        userId: resolved.userId,
+        recipient: resolved.userEmail,
+        values: {
+          firstName: resolved.userName.split(/[ @]/)[0] || "Investor",
+          amount: `$${resolved.amount.toFixed(2)}`,
+          method: resolved.method,
+          reference: resolved.reference,
+          status: decision === "completed" ? "Completed" : "Rejected",
+        },
+      }).catch((err) => console.error("Deposit resolution mail failed:", err));
       res.json({ ok: true, id, status: decision === "completed" ? "Completed" : "Rejected" });
       return;
     }
     try {
-      await withAdminTransaction(async (client) => {
-        const found = await client.query(
-          "SELECT id,user_id,type,amount,currency,status,metadata FROM transactions WHERE id=$1 FOR UPDATE",
+      const resolved = await withAdminTransaction(async (client) => {
+        const found = await client.query<{
+          id: string;
+          user_id: string;
+          type: string;
+          amount: string | number;
+          currency: string;
+          method: string | null;
+          reference: string | null;
+          status: string;
+          email: string;
+          name: string;
+        }>(
+          `SELECT t.id, t.user_id, t.type, t.amount, t.currency, t.method, t.reference, t.status, u.email, u.name
+           FROM transactions t
+           JOIN "user" u ON u.id = t.user_id
+           WHERE t.id = $1
+           FOR UPDATE OF t`,
           [id]
         );
         const tx = found.rows[0];
@@ -1014,6 +1093,8 @@ export function createBetterAuthAdminRouter(): Router {
         if (tx.status !== "pending" && tx.status !== "processing") throw Object.assign(new Error("Deposit has already been resolved."), { statusCode: 409 });
         const amount = Number(tx.amount);
         const currency = String(tx.currency || "USD").trim().toUpperCase();
+        const method = String(tx.method || "Custody Deposit");
+        const reference = String(tx.reference || tx.id);
         if (!(amount > 0) || currency.length !== 3) throw Object.assign(new Error("Deposit amount or currency is invalid."), { statusCode: 422 });
         if (decision === "completed") {
           await client.query(
@@ -1024,13 +1105,121 @@ export function createBetterAuthAdminRouter(): Router {
             "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'platform_custody','debit',$3,$4,$5),($1,$2,'customer_available','credit',$3,$4,$5)",
             [id, tx.user_id, amount, currency, "Verified deposit credit"]
           );
+          await client.query(
+            "INSERT INTO notifications (id,user_id,category,title,body) VALUES ($1,$2,'Settlement','Deposit verified',$3)",
+            [
+              randomUUID(),
+              tx.user_id,
+              `Your ${method} deposit for $${amount.toFixed(2)} (${reference}) has been verified and credited.`,
+            ]
+          );
+
+          // Settle pending referral reward on depositor's first verified deposit
+          const pendingRef = await client.query<{ id: string; referrer_user_id: string }>(
+            "SELECT id, referrer_user_id FROM referrals WHERE referred_user_id = $1 AND status = 'pending' FOR UPDATE",
+            [tx.user_id]
+          );
+          const refRow = pendingRef.rows[0];
+          if (refRow) {
+            const activeReferrer = await client.query<{ id: string }>(
+              `SELECT u.id
+               FROM "user" u
+               LEFT JOIN user_profiles p ON p.user_id = u.id
+               WHERE u.id = $1
+                 AND COALESCE(p.account_status, 'Active') <> 'Suspended'
+                 AND NOT EXISTS (
+                   SELECT 1 FROM blocked_users bu WHERE bu.user_id = u.id OR lower(bu.email) = lower(u.email)
+                 )
+               LIMIT 1`,
+              [refRow.referrer_user_id]
+            );
+            if (activeReferrer.rowCount) {
+              const volRes = await client.query<{ total_vol: string | number }>(
+                `SELECT COALESCE(SUM(dt.amount), 0) AS total_vol
+                 FROM referrals r
+                 JOIN transactions dt ON dt.user_id = r.referred_user_id
+                 WHERE r.referrer_user_id = $1
+                   AND r.status IN ('qualified', 'paid')
+                   AND lower(dt.type) = 'deposit'
+                   AND lower(dt.status) = 'completed'`,
+                [refRow.referrer_user_id]
+              );
+              const priorVolume = Number(volRes.rows[0]?.total_vol ?? 0);
+              const rate = priorVolume + amount >= 100000 ? 0.1 : 0.05;
+              const reward = Number((amount * rate).toFixed(2));
+              if (reward > 0) {
+                const refTxId = randomUUID();
+                const refReference = `REF-${reference.slice(-8)}-${randomUUID().slice(0, 4).toUpperCase()}`;
+                await client.query(
+                  "INSERT INTO wallets (user_id,currency,available_balance) VALUES ($1,'USD',$2) ON CONFLICT (user_id,currency) DO UPDATE SET available_balance=wallets.available_balance+EXCLUDED.available_balance, updated_at=now()",
+                  [refRow.referrer_user_id, reward]
+                );
+                await client.query(
+                  "INSERT INTO transactions (id,user_id,type,amount,currency,method,destination,reference,status,metadata) VALUES ($1,$2,'referral',$3,'USD',$4,'Custody Wallet',$5,'completed',$6::jsonb)",
+                  [
+                    refTxId,
+                    refRow.referrer_user_id,
+                    reward,
+                    `Partner Tier (${Math.round(rate * 100)}%)`,
+                    refReference,
+                    JSON.stringify({ referralId: refRow.id, depositTransactionId: id, referredEmail: tx.email, rate }),
+                  ]
+                );
+                await client.query(
+                  "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'platform_custody','debit',$3,'USD','Qualified referral bonus credit'),($1,$2,'customer_available','credit',$3,'USD','Qualified referral bonus credit')",
+                  [refTxId, refRow.referrer_user_id, reward]
+                );
+                await client.query(
+                  "UPDATE referrals SET status='paid', reward_amount=$2 WHERE id=$1",
+                  [refRow.id, reward]
+                );
+                await client.query(
+                  "INSERT INTO notifications (id,user_id,category,title,body) VALUES ($1,$2,'Referral','Referral reward credited',$3)",
+                  [
+                    randomUUID(),
+                    refRow.referrer_user_id,
+                    `USD ${reward.toFixed(2)} referral bonus was credited following verified settlement from ${tx.email}.`,
+                  ]
+                );
+              }
+            }
+          }
+        } else {
+          await client.query(
+            "INSERT INTO notifications (id,user_id,category,title,body) VALUES ($1,$2,'Settlement','Deposit notice declined',$3)",
+            [
+              randomUUID(),
+              tx.user_id,
+              `Your ${method} deposit notice (${reference}) could not be verified.${evidenceNote ? ` Note: ${evidenceNote}` : ""}`,
+            ]
+          );
         }
         await client.query(
           "UPDATE transactions SET status=$2, metadata=metadata || $3::jsonb, updated_at=now() WHERE id=$1",
           [id, decision, JSON.stringify({ adminEvidence: evidenceNote, reviewedAt: new Date().toISOString() })]
         );
         await auditInTransaction(client, auditActor(req as BetterAuthRequest)!, "RESOLVE_DEPOSIT", "transaction", id, { decision, amount, currency, evidenceNote });
+        return {
+          userId: tx.user_id,
+          userEmail: tx.email,
+          userName: tx.name || tx.email,
+          amount,
+          method,
+          reference,
+        };
       });
+      await enqueueMailEvent({
+        eventType: decision === "completed" ? "deposit_approved" : "deposit_rejected",
+        userId: resolved.userId,
+        recipient: resolved.userEmail,
+        values: {
+          firstName: String(resolved.userName).split(/[ @]/)[0] || "Investor",
+          amount: `$${resolved.amount.toFixed(2)}`,
+          method: resolved.method,
+          reference: resolved.reference,
+          status: decision === "completed" ? "Completed" : "Rejected",
+        },
+      }).catch((err) => console.error("Deposit resolution mail failed:", err));
       res.json({ ok: true, id, status: decision === "completed" ? "Completed" : "Rejected" });
     } catch (error) {
       const code = Number((error as { statusCode?: number }).statusCode) || 502;
@@ -1047,23 +1236,51 @@ export function createBetterAuthAdminRouter(): Router {
       return;
     }
     if (!isDatabaseConfigured) {
-      const ok = resolveMockWithdrawal(
+      const resolved = resolveMockWithdrawal(
         id,
         decision === "completed" ? "Completed" : "Rejected",
         (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin",
         note
       );
-      if (!ok) {
+      if (!resolved) {
         res.status(404).json({ error: "Withdrawal not found or already resolved." });
         return;
       }
+      await enqueueMailEvent({
+        eventType: decision === "completed" ? "withdrawal_approved" : "withdrawal_rejected",
+        userId: resolved.userId,
+        recipient: resolved.userEmail,
+        values: {
+          firstName: resolved.userName.split(/[ @]/)[0] || "Investor",
+          amount: `$${resolved.amount.toFixed(2)}`,
+          method: resolved.method,
+          reference: resolved.reference,
+          status: decision === "completed" ? "Completed" : "Rejected",
+        },
+      }).catch((err) => console.error("Withdrawal resolution mail failed:", err));
       res.json({ ok: true, id, status: decision === "completed" ? "Completed" : "Rejected" });
       return;
     }
     try {
-      await withAdminTransaction(async (client) => {
-        const found = await client.query(
-          "SELECT id,user_id,type,amount,currency,status,metadata FROM transactions WHERE id=$1 FOR UPDATE",
+      const resolved = await withAdminTransaction(async (client) => {
+        const found = await client.query<{
+          id: string;
+          user_id: string;
+          type: string;
+          amount: string | number;
+          currency: string;
+          method: string | null;
+          reference: string | null;
+          status: string;
+          metadata: Record<string, unknown> | null;
+          email: string;
+          name: string;
+        }>(
+          `SELECT t.id, t.user_id, t.type, t.amount, t.currency, t.method, t.reference, t.status, t.metadata, u.email, u.name
+           FROM transactions t
+           JOIN "user" u ON u.id = t.user_id
+           WHERE t.id = $1
+           FOR UPDATE OF t`,
           [id]
         );
         const tx = found.rows[0];
@@ -1071,6 +1288,8 @@ export function createBetterAuthAdminRouter(): Router {
         if (tx.status !== "pending" && tx.status !== "processing") throw Object.assign(new Error("Withdrawal has already been resolved."), { statusCode: 409 });
         const amount = Number(tx.amount);
         const currency = String(tx.currency || "USD").trim().toUpperCase();
+        const method = String(tx.method || "Custody Payout");
+        const reference = String(tx.reference || tx.id);
         if (!(amount > 0) || currency.length !== 3) throw Object.assign(new Error("Withdrawal amount or currency is invalid."), { statusCode: 422 });
         const wallet = await client.query(
           "SELECT available_balance,reserved_balance FROM wallets WHERE user_id=$1 AND currency=$2 FOR UPDATE",
@@ -1083,12 +1302,20 @@ export function createBetterAuthAdminRouter(): Router {
             "UPDATE wallets SET reserved_balance=reserved_balance-$3, updated_at=now() WHERE user_id=$1 AND currency=$2",
             [tx.user_id, currency, amount]
           );
-          const withdrawalMetadata = tx.metadata && typeof tx.metadata === "object" ? tx.metadata as Record<string, unknown> : {};
+          const withdrawalMetadata = tx.metadata && typeof tx.metadata === "object" ? tx.metadata : {};
           const fee = Math.min(amount, Math.max(0, Number(withdrawalMetadata.fee ?? 0)));
           const payout = Math.max(0, amount - fee);
           await client.query(
             "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'customer_reserved','debit',$3,$4,'Approved reserved withdrawal'),($1,$2,'platform_custody','credit',$5,$4,'Approved withdrawal payout'),($1,$2,'platform_fees','credit',$6,$4,'Withdrawal processing fee')",
             [id, tx.user_id, amount, currency, payout, fee]
+          );
+          await client.query(
+            "INSERT INTO notifications (id,user_id,category,title,body) VALUES ($1,$2,'Settlement','Withdrawal settled',$3)",
+            [
+              randomUUID(),
+              tx.user_id,
+              `Your ${method} withdrawal for $${amount.toFixed(2)} (${reference}) has been approved and settled.`,
+            ]
           );
         } else {
           await client.query(
@@ -1099,13 +1326,41 @@ export function createBetterAuthAdminRouter(): Router {
             "INSERT INTO ledger_entries (transaction_id,user_id,account_code,direction,amount,currency,memo) VALUES ($1,$2,'customer_reserved','debit',$3,$4,'Rejected withdrawal release'),($1,$2,'customer_available','credit',$3,$4,'Rejected withdrawal refund')",
             [id, tx.user_id, amount, currency]
           );
+          await client.query(
+            "INSERT INTO notifications (id,user_id,category,title,body) VALUES ($1,$2,'Settlement','Withdrawal request declined',$3)",
+            [
+              randomUUID(),
+              tx.user_id,
+              `Your withdrawal request for $${amount.toFixed(2)} (${reference}) was declined and reserved funds were returned.${note ? ` Note: ${note}` : ""}`,
+            ]
+          );
         }
         await client.query(
           "UPDATE transactions SET status=$2, metadata=metadata || $3::jsonb, updated_at=now() WHERE id=$1",
           [id, decision, JSON.stringify({ adminNote: note, reviewedAt: new Date().toISOString() })]
         );
         await auditInTransaction(client, auditActor(req as BetterAuthRequest)!, "RESOLVE_WITHDRAWAL", "transaction", id, { decision, amount, currency, note });
+        return {
+          userId: tx.user_id,
+          userEmail: tx.email,
+          userName: tx.name || tx.email,
+          amount,
+          method,
+          reference,
+        };
       });
+      await enqueueMailEvent({
+        eventType: decision === "completed" ? "withdrawal_approved" : "withdrawal_rejected",
+        userId: resolved.userId,
+        recipient: resolved.userEmail,
+        values: {
+          firstName: String(resolved.userName).split(/[ @]/)[0] || "Investor",
+          amount: `$${resolved.amount.toFixed(2)}`,
+          method: resolved.method,
+          reference: resolved.reference,
+          status: decision === "completed" ? "Completed" : "Rejected",
+        },
+      }).catch((err) => console.error("Withdrawal resolution mail failed:", err));
       res.json({ ok: true, id, status: decision === "completed" ? "Completed" : "Rejected" });
     } catch (error) {
       const code = Number((error as { statusCode?: number }).statusCode) || 502;
@@ -1302,7 +1557,11 @@ export function createBetterAuthAdminRouter(): Router {
   router.delete("/properties/:id", async (req, res) => {
     const id = typeof req.params.id === "string" ? req.params.id : "";
     if (!isDatabaseConfigured) {
-      const deleted = getMockAdminData().customProperties.delete(id);
+      const deleted = deleteMockProperty(
+        id,
+        auditActor(req as BetterAuthRequest),
+        (req as BetterAuthRequest).betterAuthSession?.user.email ?? "admin"
+      );
       if (!deleted) {
         res.status(404).json({ error: "Property not found." });
         return;
@@ -1369,11 +1628,11 @@ export function createBetterAuthAdminRouter(): Router {
   });
 
 
-  // Manual payment instructions are stored in Neon and never approve or credit deposits.
+  // Manual payment instructions are stored in Neon (or mock store when DB is unconfigured) and never approve or credit deposits.
   router.get("/manual-payment-assignments", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     if (!isDatabaseConfigured) {
-      res.status(503).json({ error: "Neon database is required for payment assignments." });
+      res.json({ assignments: listMockManualPaymentAssignments() });
       return;
     }
     try {
@@ -1399,10 +1658,6 @@ export function createBetterAuthAdminRouter(): Router {
 
   router.post("/manual-payment-assignments", async (req: BetterAuthRequest, res) => {
     res.setHeader("Cache-Control", "no-store");
-    if (!isDatabaseConfigured) {
-      res.status(503).json({ error: "Neon database is required for payment assignments." });
-      return;
-    }
     const body = (req.body ?? {}) as Record<string, unknown>;
     const userId = textValue(body.userId).trim();
     const methodId = textValue(body.method).trim();
@@ -1440,6 +1695,36 @@ export function createBetterAuthAdminRouter(): Router {
     }
     if (note.length > 500) {
       res.status(400).json({ error: "Internal note must be 500 characters or fewer." });
+      return;
+    }
+
+    if (!isDatabaseConfigured) {
+      const customer = getMockAdminData().customers.find((c) => c.uid === userId);
+      if (!customer) {
+        res.status(404).json({ error: "Customer account not found." });
+        return;
+      }
+      try {
+        const assignment = addMockManualPaymentAssignment(
+          {
+            userId,
+            userEmail: customer.email,
+            customerName: customer.displayName || "Investor",
+            method: method.id,
+            amount,
+            destination,
+            network: method.network,
+            reference,
+            note,
+          },
+          auditActor(req),
+          req.betterAuthSession?.user.email ?? "admin"
+        );
+        res.status(201).json({ assignment });
+      } catch (error) {
+        const code = Number((error as { statusCode?: number }).statusCode) || 400;
+        res.status(code).json({ error: error instanceof Error ? error.message : "Unable to save payment assignment." });
+      }
       return;
     }
 
@@ -1508,13 +1793,31 @@ export function createBetterAuthAdminRouter(): Router {
         uid: string;
         email: string;
         displayName: string;
+        referralCode: string;
+        totalReferrals: number;
+        qualifiedReferrals: number;
         referralBonus: string | number;
       }>(
-        `SELECT u.id AS uid, u.email, u.name AS "displayName",
-                COALESCE(SUM(CASE WHEN lower(t.type)='referral' AND lower(t.status)='completed' THEN t.amount ELSE 0 END), 0) AS "referralBonus"
+        `SELECT u.id AS uid,
+                u.email,
+                u.name AS "displayName",
+                COALESCE(p.referral_code, 'BF-' || upper(left(u.id, 8))) AS "referralCode",
+                COALESCE(ref.total_referrals, 0)::int AS "totalReferrals",
+                COALESCE(ref.qualified_referrals, 0)::int AS "qualifiedReferrals",
+                COALESCE(tx.referral_bonus, 0) AS "referralBonus"
          FROM "user" u
-         LEFT JOIN transactions t ON t.user_id = u.id
-         GROUP BY u.id, u.email, u.name
+         LEFT JOIN user_profiles p ON p.user_id = u.id
+         LEFT JOIN LATERAL (
+           SELECT COUNT(*) AS total_referrals,
+                  COUNT(*) FILTER (WHERE r.status IN ('qualified', 'paid')) AS qualified_referrals
+           FROM referrals r
+           WHERE r.referrer_user_id = u.id
+         ) ref ON true
+         LEFT JOIN LATERAL (
+           SELECT COALESCE(SUM(CASE WHEN lower(t.type)='referral' AND lower(t.status)='completed' THEN t.amount ELSE 0 END), 0) AS referral_bonus
+           FROM transactions t
+           WHERE t.user_id = u.id
+         ) tx ON true
          ORDER BY u."createdAt" DESC
          LIMIT 500`
       );
@@ -1523,7 +1826,9 @@ export function createBetterAuthAdminRouter(): Router {
           uid: row.uid,
           email: row.email,
           displayName: row.displayName,
-          code: `BF-${row.uid.slice(0, 8).toUpperCase()}`,
+          code: row.referralCode || `BF-${row.uid.slice(0, 8).toUpperCase()}`,
+          totalReferrals: Number(row.totalReferrals || 0),
+          qualifiedReferrals: Number(row.qualifiedReferrals || 0),
           referralBonus: Number(row.referralBonus || 0),
         })),
       });
@@ -1738,7 +2043,7 @@ export function createBetterAuthAdminRouter(): Router {
   router.get("/payment-wallets", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
     if (!isDatabaseConfigured) {
-      res.status(503).json({ error: "Payment wallet management requires the Neon database." });
+      res.json({ wallets: listMockPaymentWallets() });
       return;
     }
     try {
@@ -1759,10 +2064,6 @@ export function createBetterAuthAdminRouter(): Router {
       res.status(400).json({ error: "Unsupported payment method." });
       return;
     }
-    if (!isDatabaseConfigured) {
-      res.status(503).json({ error: "Payment wallet management requires the Neon database." });
-      return;
-    }
     const label = textValue(req.body?.label).trim().slice(0, 100);
     const currency = textValue(req.body?.currency).trim().slice(0, 40);
     const network = textValue(req.body?.network).trim().slice(0, 100);
@@ -1777,6 +2078,25 @@ export function createBetterAuthAdminRouter(): Router {
     }
     if (enabled && walletAddress.length < 6) {
       res.status(400).json({ error: "Add a valid receiving wallet address or bank details before enabling this method." });
+      return;
+    }
+    if (!isDatabaseConfigured) {
+      upsertMockPaymentWallet({
+        id: methodId,
+        label,
+        currency,
+        network,
+        walletAddress,
+        minDeposit,
+        instructions,
+        confirmationInfo,
+        enabled,
+        updatedAt: new Date().toISOString(),
+      });
+      await recordAudit(req, "UPDATE_PAYMENT_WALLET", "payment_wallet", methodId, {
+        enabled, network, walletAddressChanged: walletAddress.length > 0, minDeposit,
+      });
+      res.json({ ok: true, methodId, enabled });
       return;
     }
     try {

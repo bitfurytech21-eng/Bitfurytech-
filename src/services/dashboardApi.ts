@@ -162,6 +162,7 @@ export interface CustomerDocumentDTO {
 export interface UserAccount {
   uid: string;
   username?: string;
+  referralCode?: string;
   email: string;
   displayName: string;
   photoUrl?: string | null;
@@ -175,6 +176,8 @@ export interface UserAccount {
   preferredRail: "USDT (TRC20)" | "Bitcoin (BTC)" | "Ethereum (ETH)" | "Bank Wire";
   emailAlerts: boolean;
   twoFactorEnabled: boolean;
+  kycStatus?: string;
+  hasPasswordProvider?: boolean;
   role: "investor" | "admin";
   accountStatus?: "Active" | "Review" | "Suspended";
   createdAt?: string | null;

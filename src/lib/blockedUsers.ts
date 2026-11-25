@@ -1,5 +1,5 @@
 import { isDatabaseConfigured, queryDatabase } from "../db/pool.ts";
-import { isMockUserBlocked } from "../services/inMemoryFinancialMock.ts";
+import { isMockUserBlocked, isMockUserSuspended } from "../services/inMemoryFinancialMock.ts";
 
 export const BOOTSTRAP_ADMIN_EMAIL = (
   process.env.BITFURYTECH_ADMIN_EMAIL || "bitfurytech21@gmail.com"
@@ -43,6 +43,36 @@ export async function isUserBlocked(
         : "";
     if (pgCode === "42P01") {
       // blocked_users table not yet migrated on older DB; do not crash requests
+      return false;
+    }
+    throw error;
+  }
+}
+
+export async function isUserSuspended(
+  userId?: string | null,
+  email?: string | null
+): Promise<boolean> {
+  if (isBootstrapAdminEmail(email)) return false;
+  const cleanUid = userId?.trim() || null;
+  if (!cleanUid) return false;
+
+  if (!isDatabaseConfigured) {
+    return isMockUserSuspended(cleanUid);
+  }
+
+  try {
+    const result = await queryDatabase<{ account_status: string }>(
+      "SELECT account_status FROM user_profiles WHERE user_id = $1 LIMIT 1",
+      [cleanUid]
+    );
+    return result.rows[0]?.account_status === "Suspended";
+  } catch (error) {
+    const pgCode =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code?: unknown }).code)
+        : "";
+    if (pgCode === "42P01") {
       return false;
     }
     throw error;

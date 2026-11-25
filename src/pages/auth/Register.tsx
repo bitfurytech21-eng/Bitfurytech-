@@ -160,7 +160,8 @@ export default function Register() {
       trimmedName,
       trimmedEmail,
       password,
-      usernameCheck.normalized
+      usernameCheck.normalized,
+      referralCode.trim().toUpperCase() || undefined
     );
     if (!result.ok) {
       refreshChallenge();
@@ -177,6 +178,10 @@ export default function Register() {
   const handleGoogleRegister = async () => {
     setLocalError(null);
     clearAuthError();
+    const cleanRef = referralCode.trim().toUpperCase();
+    if (cleanRef && typeof window !== "undefined") {
+      window.sessionStorage.setItem("bf_pending_referral", cleanRef);
+    }
     const result = await signInWithGoogle();
     if (result.ok) {
       navigate(result.session?.isAdmin ? "/admin" : "/dashboard", { replace: true });

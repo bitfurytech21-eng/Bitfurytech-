@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 import { betterAuthInstance } from "../lib/better-auth.ts";
 import { isDatabaseConfigured, queryDatabase } from "../db/pool.ts";
-import { BOOTSTRAP_ADMIN_EMAIL, isUserBlocked } from "../lib/blockedUsers.ts";
+import { BOOTSTRAP_ADMIN_EMAIL, isUserBlocked, isUserSuspended } from "../lib/blockedUsers.ts";
 
 export interface BetterAuthRequest extends Request {
   betterAuthSession?: Awaited<ReturnType<typeof betterAuthInstance.api.getSession>>;
@@ -51,6 +51,13 @@ export async function requireBetterAuth(
         await queryDatabase('DELETE FROM session WHERE "userId" = $1', [session.user.id]).catch(() => undefined);
       }
       res.status(403).json({ error: "This account has been blocked and removed from the platform." });
+      return;
+    }
+    if (await isUserSuspended(session.user.id, session.user.email)) {
+      if (isDatabaseConfigured) {
+        await queryDatabase('DELETE FROM session WHERE "userId" = $1', [session.user.id]).catch(() => undefined);
+      }
+      res.status(403).json({ error: "This account is currently suspended. Contact support for assistance." });
       return;
     }
     req.betterAuthSession = session;

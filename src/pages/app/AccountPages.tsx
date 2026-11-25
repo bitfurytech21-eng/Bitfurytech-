@@ -47,6 +47,15 @@ export function NotificationsPage() {
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
+  const handleMarkAllRead = async () => {
+    await sessionApiRequest("/api/notifications/read-all", {
+      method: "POST",
+    });
+    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const hasUnread = items.some((n) => !n.read);
+
   return (
     <MetronicShell
       title="Notifications"
@@ -60,7 +69,14 @@ export function NotificationsPage() {
               <span>Message Feed</span>
             </span>
           }
-          subtitle="Mark personal account notices as read once reviewed"
+          subtitle="Mark account notices and broadcasts as read once reviewed"
+          action={
+            hasUnread ? (
+              <Button size="sm" variant="outline" onClick={() => void handleMarkAllRead()}>
+                Mark all read
+              </Button>
+            ) : undefined
+          }
         />
         <CardBody>
           {items.length === 0 ? (
@@ -71,7 +87,7 @@ export function NotificationsPage() {
           ) : (
             <div className="divide-y divide-slate-100">
               {items.map((n) => {
-                const isPersonal = n.userId === user?.uid;
+                const canMarkRead = (n.userId === user?.uid || n.userId === "all") && !n.read;
                 return (
                   <div key={n.id} className="py-4 flex items-start justify-between gap-4">
                     <div className="space-y-1">
@@ -83,7 +99,7 @@ export function NotificationsPage() {
                       <h3 className="text-sm font-bold text-slate-900">{n.title}</h3>
                       <p className="text-xs text-slate-600 leading-relaxed">{n.body}</p>
                     </div>
-                    {isPersonal && !n.read && (
+                    {canMarkRead && (
                       <Button
                         size="sm"
                         variant="ghost"

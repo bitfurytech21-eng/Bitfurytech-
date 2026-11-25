@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
+import { isDatabaseConfigured, queryDatabase } from "../db/pool.ts";
 
 export type SupportChannelMode = "twilio-conversations" | "live-websocket";
 export type SupportThreadStatus = "Open" | "Resolved";
@@ -48,6 +49,7 @@ export interface VisitorSessionClaims {
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const STORE_PATH = path.resolve(DATA_DIR, "support-threads.json");
 const SESSION_SIGNING_KEY =
+  process.env.BETTER_AUTH_SECRET?.trim() ||
   process.env.SESSION_SECRET?.trim() ||
   process.env.TWILIO_SESSION_SECRET?.trim() ||
   crypto.randomBytes(32).toString("hex");
@@ -56,7 +58,7 @@ const VALID_THREAD_ID_RE = /^[a-zA-Z0-9_-]{4,80}$/;
 
 const threads = new Map<string, SupportThread>();
 const messagesByThread = new Map<string, SupportMessage[]>();
-let loadedFromDisk = false;
+let initPromise: Promise<void> | null = null;
 let persistTimer: NodeJS.Timeout | null = null;
 
 type RealtimeBroadcaster = {
@@ -75,37 +77,184 @@ export function isValidThreadId(threadId: string): boolean {
 }
 
 export async function initSupportStore(): Promise<void> {
-  if (loadedFromDisk) return;
-  loadedFromDisk = true;
-  if (!STORE_PATH.startsWith(DATA_DIR + path.sep)) {
-    throw new Error("Invalid support store path.");
-  }
-  try {
-    const raw = await fs.readFile(STORE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Partial<PersistedSupportStore>;
-    if (Array.isArray(parsed.threads)) {
-      for (const t of parsed.threads) {
-        if (t && typeof t.id === "string" && isValidThreadId(t.id)) {
-          threads.set(t.id, t);
-          messagesByThread.set(t.id, []);
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    if (isDatabaseConfigured) {
+      try {
+        const [threadRows, msgRows] = await Promise.all([
+          queryDatabase<{
+            id: string;
+            user_id: string | null;
+            visitor_name: string;
+            visitor_email: string;
+            topic: string;
+            status: SupportThreadStatus;
+            channel: SupportChannelMode;
+            twilio_conversation_sid: string | null;
+            twilio_participant_identity: string;
+            created_at: Date | string;
+            updated_at: Date | string;
+            last_message_at: Date | string;
+            last_message_preview: string;
+          }>("SELECT * FROM support_threads ORDER BY last_message_at DESC LIMIT 500"),
+          queryDatabase<{
+            id: string;
+            thread_id: string;
+            sender_role: SupportSenderRole;
+            sender_name: string;
+            body: string;
+            source: "web" | "twilio";
+            twilio_message_sid: string | null;
+            client_message_id: string | null;
+            created_at: Date | string;
+          }>("SELECT * FROM support_messages ORDER BY created_at ASC"),
+        ]);
+
+        for (const r of threadRows.rows) {
+          if (!isValidThreadId(r.id)) continue;
+          threads.set(r.id, {
+            id: r.id,
+            userId: r.user_id,
+            visitorName: r.visitor_name,
+            visitorEmail: r.visitor_email,
+            topic: r.topic,
+            status: r.status === "Resolved" ? "Resolved" : "Open",
+            channel: r.channel === "twilio-conversations" ? "twilio-conversations" : "live-websocket",
+            twilioConversationSid: r.twilio_conversation_sid,
+            twilioParticipantIdentity: r.twilio_participant_identity,
+            createdAt: new Date(r.created_at).toISOString(),
+            updatedAt: new Date(r.updated_at).toISOString(),
+            lastMessageAt: new Date(r.last_message_at).toISOString(),
+            lastMessagePreview: r.last_message_preview,
+          });
+          messagesByThread.set(r.id, []);
+        }
+
+        for (const m of msgRows.rows) {
+          if (!threads.has(m.thread_id)) continue;
+          const list = messagesByThread.get(m.thread_id) || [];
+          list.push({
+            id: m.id,
+            threadId: m.thread_id,
+            senderRole: m.sender_role,
+            senderName: m.sender_name,
+            body: m.body,
+            source: m.source,
+            twilioMessageSid: m.twilio_message_sid,
+            clientMessageId: m.client_message_id,
+            createdAt: new Date(m.created_at).toISOString(),
+          });
+          messagesByThread.set(m.thread_id, list);
+        }
+        return;
+      } catch (err) {
+        const pgCode =
+          err && typeof err === "object" && "code" in err ? String((err as { code?: unknown }).code) : "";
+        if (pgCode !== "42P01") {
+          console.error("Support store Neon hydration failed:", err);
         }
       }
     }
-    if (Array.isArray(parsed.messages)) {
-      for (const m of parsed.messages) {
-        if (m && typeof m.threadId === "string" && threads.has(m.threadId)) {
-          const list = messagesByThread.get(m.threadId) || [];
-          list.push(m);
-          messagesByThread.set(m.threadId, list);
+
+    if (!STORE_PATH.startsWith(DATA_DIR + path.sep)) {
+      throw new Error("Invalid support store path.");
+    }
+    try {
+      const raw = await fs.readFile(STORE_PATH, "utf8");
+      const parsed = JSON.parse(raw) as Partial<PersistedSupportStore>;
+      if (Array.isArray(parsed.threads)) {
+        for (const t of parsed.threads) {
+          if (t && typeof t.id === "string" && isValidThreadId(t.id)) {
+            threads.set(t.id, t);
+            messagesByThread.set(t.id, []);
+          }
         }
       }
+      if (Array.isArray(parsed.messages)) {
+        for (const m of parsed.messages) {
+          if (m && typeof m.threadId === "string" && threads.has(m.threadId)) {
+            const list = messagesByThread.get(m.threadId) || [];
+            list.push(m);
+            messagesByThread.set(m.threadId, list);
+          }
+        }
+      }
+    } catch {
+      // Store initializes cleanly on first run
     }
-  } catch {
-    // Store initializes cleanly on first run
-  }
+  })();
+  return initPromise;
+}
+
+function upsertSupportThreadToDb(thread: SupportThread): void {
+  if (!isDatabaseConfigured) return;
+  void queryDatabase(
+    `INSERT INTO support_threads
+      (id, user_id, visitor_name, visitor_email, topic, status, channel,
+       twilio_conversation_sid, twilio_participant_identity, created_at, updated_at,
+       last_message_at, last_message_preview)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+     ON CONFLICT (id) DO UPDATE SET
+       status = EXCLUDED.status,
+       channel = EXCLUDED.channel,
+       twilio_conversation_sid = COALESCE(EXCLUDED.twilio_conversation_sid, support_threads.twilio_conversation_sid),
+       updated_at = EXCLUDED.updated_at,
+       last_message_at = EXCLUDED.last_message_at,
+       last_message_preview = EXCLUDED.last_message_preview`,
+    [
+      thread.id,
+      thread.userId,
+      thread.visitorName,
+      thread.visitorEmail,
+      thread.topic,
+      thread.status,
+      thread.channel,
+      thread.twilioConversationSid,
+      thread.twilioParticipantIdentity,
+      thread.createdAt,
+      thread.updatedAt,
+      thread.lastMessageAt,
+      thread.lastMessagePreview,
+    ]
+  ).catch((err) => {
+    console.error("Failed to persist support thread to Neon:", err);
+  });
+}
+
+function insertSupportMessageToDb(msg: SupportMessage, thread: SupportThread): void {
+  if (!isDatabaseConfigured) return;
+  void queryDatabase(
+    `INSERT INTO support_messages
+      (id, thread_id, sender_role, sender_name, body, source, twilio_message_sid, client_message_id, created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     ON CONFLICT (id) DO NOTHING`,
+    [
+      msg.id,
+      msg.threadId,
+      msg.senderRole,
+      msg.senderName,
+      msg.body,
+      msg.source,
+      msg.twilioMessageSid,
+      msg.clientMessageId ?? null,
+      msg.createdAt,
+    ]
+  )
+    .then(() =>
+      queryDatabase(
+        `UPDATE support_threads
+         SET status = $2, updated_at = $3, last_message_at = $4, last_message_preview = $5
+         WHERE id = $1`,
+        [thread.id, thread.status, thread.updatedAt, thread.lastMessageAt, thread.lastMessagePreview]
+      )
+    )
+    .catch((err) => {
+      console.error("Failed to persist support message to Neon:", err);
+    });
 }
 
 function schedulePersist(): void {
+  if (isDatabaseConfigured) return;
   if (persistTimer) return;
   persistTimer = setTimeout(() => {
     persistTimer = null;
@@ -114,6 +263,7 @@ function schedulePersist(): void {
 }
 
 async function persistNow(): Promise<void> {
+  if (isDatabaseConfigured) return;
   if (!STORE_PATH.startsWith(DATA_DIR + path.sep)) return;
   const payload: PersistedSupportStore = {
     threads: Array.from(threads.values()),
@@ -249,6 +399,7 @@ export function createSupportThread(params: {
   };
   threads.set(id, thread);
   messagesByThread.set(id, []);
+  upsertSupportThreadToDb(thread);
   schedulePersist();
   broadcaster?.broadcastThreadUpdate(thread);
   return thread;
@@ -264,6 +415,7 @@ export function updateSupportThreadTwilioSid(
   existing.twilioConversationSid = conversationSid;
   existing.channel = channel;
   existing.updatedAt = new Date().toISOString();
+  upsertSupportThreadToDb(existing);
   schedulePersist();
   broadcaster?.broadcastThreadUpdate(existing);
   return existing;
@@ -277,6 +429,7 @@ export function setSupportThreadStatus(
   if (!existing) return null;
   existing.status = status;
   existing.updatedAt = new Date().toISOString();
+  upsertSupportThreadToDb(existing);
   schedulePersist();
   broadcaster?.broadcastThreadUpdate(existing);
   return existing;
@@ -332,6 +485,7 @@ export function appendSupportMessage(params: {
     thread.status = "Open";
   }
 
+  insertSupportMessageToDb(msg, thread);
   schedulePersist();
   broadcaster?.broadcastMessage(msg, thread);
   return { message: msg, inserted: true };

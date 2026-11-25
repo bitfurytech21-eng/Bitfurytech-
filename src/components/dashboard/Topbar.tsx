@@ -55,7 +55,7 @@ export default function Topbar({
   const notifRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter(
-    (n) => userId && n.userId === userId && !n.read
+    (n) => userId && (n.userId === userId || n.userId === "all") && !n.read
   ).length;
   const recentNotifications = notifications.slice(0, 4);
 
@@ -200,7 +200,9 @@ export default function Topbar({
               ) : (
                 <div className="divide-y divide-[#EDF2F7] max-h-80 overflow-y-auto">
                   {recentNotifications.map((item) => {
-                    const isPersonalUnread = Boolean(userId && item.userId === userId && !item.read);
+                    const isUnread = Boolean(
+                      userId && (item.userId === userId || item.userId === "all") && !item.read
+                    );
                     return (
                       <div key={item.id} className="p-3.5 space-y-1 hover:bg-[#F6F8FA]">
                         <div className="flex items-center justify-between gap-2 text-[11px] text-[#5A6B7C]">
@@ -209,7 +211,7 @@ export default function Topbar({
                         </div>
                         <p className="text-xs font-semibold text-[#102030]">{item.title}</p>
                         <p className="text-xs text-[#3B4C5E] line-clamp-2">{item.body}</p>
-                        {isPersonalUnread && (
+                        {isUnread && (
                           <button
                             type="button"
                             onClick={() =>

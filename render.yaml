@@ -4,11 +4,22 @@ services:
     runtime: node
     plan: free
     buildCommand: npm ci --no-audit --no-fund && npm run build
-    startCommand: npm run db:migrate && npm start
+    startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: "3000"
+      - key: DISABLE_HMR
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: BITFURYTECH_ADMIN_EMAIL
+        sync: false
       - key: SMTP_FROM
         value: "BitfuryTech Support <support@bitfurytech.cloud>"

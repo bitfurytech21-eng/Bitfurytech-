@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { KeyRound, LogOut, Mail, Shield } from "lucide-react";
+import { KeyRound, LogOut, Mail, Monitor, Shield, Trash2 } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
   Button,
@@ -16,6 +16,15 @@ import {
 } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { sessionApiRequest } from "../../services/dashboardApi";
+
+interface ActiveSessionDTO {
+  id: string;
+  current: boolean;
+  createdAt: string | null;
+  expiresAt: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+}
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -47,6 +56,26 @@ export default function Settings() {
   const [pwdBusy, setPwdBusy] = useState(false);
   const [pwdError, setPwdError] = useState<string | null>(null);
   const [pwdSuccess, setPwdSuccess] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<ActiveSessionDTO[]>([]);
+  const [sessionsBusy, setSessionsBusy] = useState(false);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+
+  const loadSessions = useCallback(async () => {
+    if (!user) return;
+    setSessionsBusy(true);
+    try {
+      const res = await sessionApiRequest<{ sessions?: ActiveSessionDTO[] }>("/api/account/sessions");
+      setSessions(res.sessions ?? []);
+    } catch {
+      // ignore transient session load failure
+    } finally {
+      setSessionsBusy(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void loadSessions();
+  }, [loadSessions]);
 
   useEffect(() => {
     if (profile) {
@@ -161,6 +190,42 @@ export default function Settings() {
   const handleSignOutAll = async () => {
     await signOutUser();
     navigate("/login", { replace: true });
+  };
+
+  const handleRevokeSession = async (sessionId: string) => {
+    setSessionNotice(null);
+    setSessionsBusy(true);
+    try {
+      await sessionApiRequest(`/api/account/sessions/${encodeURIComponent(sessionId)}`, {
+        method: "DELETE",
+      });
+      setSessionNotice("Selected session revoked.");
+      await loadSessions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to revoke session.");
+    } finally {
+      setSessionsBusy(false);
+    }
+  };
+
+  const handleRevokeOtherSessions = async () => {
+    setSessionNotice(null);
+    setSessionsBusy(true);
+    try {
+      const res = await sessionApiRequest<{ revokedCount?: number }>("/api/account/sessions/revoke-others", {
+        method: "POST",
+      });
+      setSessionNotice(
+        res.revokedCount
+          ? `Signed out ${res.revokedCount} other active session${res.revokedCount === 1 ? "" : "s"}.`
+          : "No other active sessions were found."
+      );
+      await loadSessions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to revoke other sessions.");
+    } finally {
+      setSessionsBusy(false);
+    }
   };
 
   return (
@@ -283,8 +348,8 @@ export default function Settings() {
                 />
               )}
 
-              <form onSubmit={handlePasswordChange} className="space-y-3">
-                {hasPasswordProvider && (
+              {hasPasswordProvider ? (
+                <form onSubmit={handlePasswordChange} className="space-y-3">
                   <FormField id="set-cur-pwd" label="Current Password">
                     <TextInput
                       id="set-cur-pwd"
@@ -295,55 +360,69 @@ export default function Settings() {
                       placeholder="Enter current password"
                     />
                   </FormField>
-                )}
-                <FormField id="set-new-pwd" label={hasPasswordProvider ? "New Password" : "Set Account Password"}>
-                  <TextInput
-                    id="set-new-pwd"
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={8}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Minimum 8 characters"
-                  />
-                </FormField>
-                <FormField id="set-conf-pwd" label="Confirm New Password">
-                  <TextInput
-                    id="set-conf-pwd"
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={8}
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    placeholder="Repeat new password"
-                  />
-                </FormField>
-                <Button type="submit" size="sm" loading={pwdBusy}>
-                  {hasPasswordProvider ? "Update Password" : "Enable Password Sign-In"}
-                </Button>
-              </form>
+                  <FormField id="set-new-pwd" label="New Password">
+                    <TextInput
+                      id="set-new-pwd"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Minimum 8 characters"
+                    />
+                  </FormField>
+                  <FormField id="set-conf-pwd" label="Confirm New Password">
+                    <TextInput
+                      id="set-conf-pwd"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Repeat new password"
+                    />
+                  </FormField>
+                  <Button type="submit" size="sm" loading={pwdBusy}>
+                    Update Password
+                  </Button>
+                </form>
+              ) : (
+                <div className="rounded-md bg-slate-50 border border-slate-200 p-3 text-slate-600 leading-relaxed">
+                  Your account signs in with Google Authentication and does not have an email password set yet. Use the reset link below to configure a password.
+                </div>
+              )}
 
-              <div className="pt-3 border-t border-slate-100 space-y-2.5">
+              <div className={hasPasswordProvider ? "pt-3 border-t border-slate-100 space-y-2.5" : "space-y-2.5"}>
                 <p className="text-slate-600 leading-relaxed">
-                  Or send a password recovery link to{" "}
+                  {hasPasswordProvider ? "Or send a password recovery link to" : "Send a secure password setup link to"}{" "}
                   <strong className="text-slate-900">{user?.email}</strong>.
                 </p>
                 <Button
-                  variant="outline"
+                  variant={hasPasswordProvider ? "outline" : "primary"}
                   size="sm"
                   loading={resetBusy}
                   onClick={() => void handlePasswordReset()}
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>Send Password Reset Email</span>
+                  <span>{hasPasswordProvider ? "Send Password Reset Email" : "Send Password Setup Email"}</span>
                 </Button>
               </div>
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="Session Management & Support" />
+            <CardHeader
+              title="Active Sessions & Support"
+              action={<DashboardSymbol icon={Monitor} tone="navy" size="md" />}
+            />
             <CardBody className="space-y-3 text-xs">
+              {sessionNotice && (
+                <NotificationBanner
+                  tone="success"
+                  message={sessionNotice}
+                  onDismiss={() => setSessionNotice(null)}
+                />
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-500">Authenticated Identity</span>
                 <span className="font-mono text-slate-800">{user?.email}</span>
@@ -356,11 +435,63 @@ export default function Settings() {
                     : "Active"}
                 </span>
               </div>
+
+              {sessions.length > 0 && (
+                <div className="pt-2 border-t border-slate-100 space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    Active Browser Sessions ({sessions.length})
+                  </p>
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                    {sessions.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50/70 px-2.5 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-800 truncate">
+                            {s.current ? "Current Browser Session" : "Signed-In Device"}
+                            {s.ipAddress ? ` · ${s.ipAddress}` : ""}
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {s.userAgent ? s.userAgent.slice(0, 48) : "Web Client"}
+                          </p>
+                        </div>
+                        {s.current ? (
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                            Active
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={sessionsBusy}
+                            onClick={() => void handleRevokeSession(s.id)}
+                            aria-label="Revoke session"
+                            className="shrink-0 p-1 text-slate-500 hover:text-[#E94D65] cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="pt-2 flex flex-wrap gap-2">
                 <Button variant="danger" size="sm" onClick={() => void handleSignOutAll()}>
                   <LogOut className="w-3.5 h-3.5" />
                   <span>End Current Session</span>
                 </Button>
+                {sessions.length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={sessionsBusy}
+                    onClick={() => void handleRevokeOtherSessions()}
+                  >
+                    <span>Sign Out Other Devices</span>
+                  </Button>
+                )}
                 <Link to="/contact" className={buttonClasses({ variant: "outline", size: "sm" })}>
                   Account Support
                 </Link>

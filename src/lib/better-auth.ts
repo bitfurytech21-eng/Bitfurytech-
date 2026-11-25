@@ -4,13 +4,20 @@ import { bearer } from "better-auth/plugins";
 import { databasePool, isDatabaseConfigured } from "../db/pool.ts";
 import { sendBetterAuthEmail } from "../services/betterAuthMailer.ts";
 import { registerMockUser } from "../services/inMemoryFinancialMock.ts";
-import { isUserBlocked } from "./blockedUsers.ts";
+import { isUserBlocked, isUserSuspended } from "./blockedUsers.ts";
 
-const baseURL =
+const rawBaseURL =
   process.env.BETTER_AUTH_URL ||
   process.env.VITE_SITE_URL ||
   process.env.APP_URL ||
   "http://localhost:3000";
+const baseURL = rawBaseURL.trim().replace(/\/+$/, "");
+
+if (process.env.NODE_ENV === "production" && !process.env.BETTER_AUTH_SECRET?.trim()) {
+  console.warn(
+    "[CRITICAL] BETTER_AUTH_SECRET is not configured in production; sessions will not survive server restarts."
+  );
+}
 
 const secret =
   process.env.BETTER_AUTH_SECRET?.trim() ||
@@ -139,6 +146,9 @@ export const betterAuthInstance = betterAuth({
         before: async (session) => {
           if (await isUserBlocked(session.userId, null)) {
             throw new Error("Account access has been blocked by administration.");
+          }
+          if (await isUserSuspended(session.userId, null)) {
+            throw new Error("This account is currently suspended. Contact support for assistance.");
           }
         },
       },

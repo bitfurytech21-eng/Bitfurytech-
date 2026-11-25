@@ -10,6 +10,7 @@ import {
   createMockInvestmentPurchase,
   createMockWithdrawal,
   getMockCatalog,
+  getMockDepositMethods,
 } from "../services/inMemoryFinancialMock.ts";
 
 const DEPOSIT_RAILS = [
@@ -102,23 +103,68 @@ export function createBetterAuthFinancialRouter(): Router {
   router.get("/deposits/methods", ...requireVerifiedSession, async (_req, res) => {
     if (!isDatabaseConfigured) {
       res.setHeader("Cache-Control", "no-store");
-      res.json({ methods: DEPOSIT_RAILS });
+      res.json({ methods: getMockDepositMethods() });
       return;
     }
     try {
-      const result = await databasePool!.query(
-        "SELECT method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info FROM platform_payment_wallets WHERE enabled=true AND length(trim(wallet_address)) >= 6 ORDER BY method_id"
-      );
+      const [platformResult, cryptoResult] = await Promise.all([
+        databasePool!.query(
+          "SELECT method_id, label, currency, network, wallet_address, min_deposit, instructions, confirmation_info FROM platform_payment_wallets WHERE enabled=true AND length(trim(wallet_address)) >= 6 ORDER BY method_id"
+        ),
+        databasePool!
+          .query(
+            "SELECT id, cryptocurrency, blockchain_network, wallet_address, wallet_label, min_deposit, instructions FROM crypto_wallets WHERE status='Active' AND length(trim(wallet_address)) >= 6 ORDER BY created_at DESC"
+          )
+          .catch(() => ({ rows: [] as Record<string, unknown>[] })),
+      ]);
+
+      const methods = platformResult.rows.map((row) => ({
+        id: String(row.method_id),
+        label: String(row.label),
+        currency: String(row.currency),
+        network: String(row.network),
+        minDeposit: Number(row.min_deposit),
+        instructions: String(row.instructions ?? ""),
+        custodyDestination: String(row.wallet_address),
+        confirmationInfo: String(row.confirmation_info ?? ""),
+      }));
+
+      const seenIds = new Set(methods.map((m) => m.id));
+      for (const cw of cryptoResult.rows) {
+        const cwId = String(cw.id);
+        const cryptocurrency = String(cw.cryptocurrency ?? "Crypto");
+        const network = String(cw.blockchain_network ?? "");
+        const walletLabel = String(cw.wallet_label ?? "").trim();
+        const label = walletLabel ? `${cryptocurrency} — ${walletLabel}` : `${cryptocurrency} (${network})`;
+        if (seenIds.has(cwId) || seenIds.has(label)) continue;
+        const cryptoUpper = cryptocurrency.toUpperCase();
+        const netUpper = network.toUpperCase();
+        const alreadyCovered = methods.some((m) => {
+          const mid = m.id.toUpperCase();
+          return (
+            (cryptoUpper.includes("BTC") && mid.includes("BTC")) ||
+            (cryptoUpper.includes("ETH") && mid.includes("ETH") && !netUpper.includes("USDC")) ||
+            (cryptoUpper.includes("USDT") && mid.includes("USDT") && netUpper.includes("TRC"))
+          );
+        });
+        if (alreadyCovered) continue;
+        seenIds.add(cwId);
+        methods.push({
+          id: cwId,
+          label,
+          currency: `${cryptocurrency} / USD`,
+          network,
+          minDeposit: Math.max(10, Number(cw.min_deposit ?? 100)),
+          instructions:
+            String(cw.instructions ?? "").trim() ||
+            `Send ${cryptocurrency} strictly via ${network} to the custody address below.`,
+          custodyDestination: String(cw.wallet_address),
+          confirmationInfo: "Balance credits after settlement desk confirms blockchain finality.",
+        });
+      }
+
       res.setHeader("Cache-Control", "no-store");
-      res.json({
-        methods: result.rows.map((row) => ({
-          id: String(row.method_id), label: String(row.label), currency: String(row.currency),
-          network: String(row.network), minDeposit: Number(row.min_deposit),
-          instructions: String(row.instructions ?? ""),
-          custodyDestination: String(row.wallet_address),
-          confirmationInfo: String(row.confirmation_info ?? ""),
-        })),
-      });
+      res.json({ methods });
     } catch (error) {
       console.error("Configured payment methods could not be loaded:", error);
       res.status(503).json({ error: "Payment methods are temporarily unavailable." });
@@ -181,7 +227,7 @@ export function createBetterAuthFinancialRouter(): Router {
       instructions: string; custodyDestination: string; confirmationInfo: string;
     } | undefined;
     if (!isDatabaseConfigured) {
-      rail = DEPOSIT_RAILS.find((item) => item.id === method);
+      rail = getMockDepositMethods().find((item) => item.id === method);
     } else {
       try {
         const configured = await databasePool!.query(
@@ -196,6 +242,31 @@ export function createBetterAuthFinancialRouter(): Router {
             instructions: String(row.instructions ?? ""), custodyDestination: String(row.wallet_address),
             confirmationInfo: String(row.confirmation_info ?? ""),
           };
+        } else {
+          const cwRes = await databasePool!
+            .query(
+              "SELECT id, cryptocurrency, blockchain_network, wallet_address, wallet_label, min_deposit, instructions FROM crypto_wallets WHERE id=$1 AND status='Active' AND length(trim(wallet_address)) >= 6 LIMIT 1",
+              [method]
+            )
+            .catch(() => ({ rows: [] as Record<string, unknown>[] }));
+          const cw = cwRes.rows[0];
+          if (cw) {
+            const cryptocurrency = String(cw.cryptocurrency ?? "Crypto");
+            const network = String(cw.blockchain_network ?? "");
+            const walletLabel = String(cw.wallet_label ?? "").trim();
+            rail = {
+              id: String(cw.id),
+              label: walletLabel ? `${cryptocurrency} — ${walletLabel}` : `${cryptocurrency} (${network})`,
+              currency: `${cryptocurrency} / USD`,
+              network,
+              minDeposit: Math.max(10, Number(cw.min_deposit ?? 100)),
+              instructions:
+                String(cw.instructions ?? "").trim() ||
+                `Send ${cryptocurrency} strictly via ${network} to the custody address below.`,
+              custodyDestination: String(cw.wallet_address),
+              confirmationInfo: "Balance credits after settlement desk confirms blockchain finality.",
+            };
+          }
         }
       } catch (error) {
         console.error("Deposit wallet lookup failed:", error);
@@ -207,21 +278,40 @@ export function createBetterAuthFinancialRouter(): Router {
     if (!key || key.length < 8) { res.status(400).json({ error: "A valid idempotency key is required." }); return; }
     if (!Number.isFinite(amount) || amount < rail.minDeposit || amount > 10_000_000) { res.status(400).json({ error: `Deposit amount for ${rail.label} must be at least $${rail.minDeposit.toLocaleString()}.` }); return; }
     if (!isDatabaseConfigured) {
-      const reference = referenceInput.slice(0, 64) || makeReference("DEP");
-      const result = createMockDeposit({
-        userId: user.id,
-        userEmail: user.email,
-        userName: user.name,
-        method: rail.label,
-        currency: rail.currency,
-        custodyDestination: rail.custodyDestination,
-        instructions: rail.instructions,
-        confirmationInfo: rail.confirmationInfo,
-        amount,
-        reference,
-        idempotencyKey: key,
-      });
-      res.status(result.duplicate ? 200 : 201).json(result.response);
+      try {
+        const reference = referenceInput.slice(0, 64) || makeReference("DEP");
+        const result = createMockDeposit({
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.name,
+          method: rail.label,
+          currency: rail.currency,
+          custodyDestination: rail.custodyDestination,
+          instructions: rail.instructions,
+          confirmationInfo: rail.confirmationInfo,
+          amount,
+          reference,
+          idempotencyKey: key,
+        });
+        if (!result.duplicate) {
+          void enqueueMailEvent({
+            eventType: "deposit_initiated",
+            userId: user.id,
+            recipient: user.email,
+            values: {
+              firstName: String(user.name || user.email).split(/[ @]/)[0],
+              amount: `$${money(amount).toFixed(2)}`,
+              method: rail.label,
+              reference: (result.response as { deposit?: { reference?: string } })?.deposit?.reference ?? reference,
+              status: "Pending",
+            },
+          }).catch(() => undefined);
+        }
+        res.status(result.duplicate ? 200 : 201).json(result.response);
+      } catch (error) {
+        const status = Number((error as { statusCode?: number }).statusCode) || 400;
+        res.status(status).json({ error: error instanceof Error ? error.message : "Unable to record deposit request." });
+      }
       return;
     }
     try {
@@ -277,6 +367,7 @@ export function createBetterAuthFinancialRouter(): Router {
     const combinedDestination = accountDetails ? `${destination} (${accountDetails})`.slice(0, 200) : destination;
     if (!isDatabaseConfigured) {
       try {
+        const ref = makeReference("WDR");
         const result = createMockWithdrawal({
           userId: user.id,
           userEmail: user.email,
@@ -286,9 +377,23 @@ export function createBetterAuthFinancialRouter(): Router {
           fee,
           netPayout,
           destination: combinedDestination,
-          reference: makeReference("WDR"),
+          reference: ref,
           idempotencyKey: key,
         });
+        if (!result.duplicate) {
+          void enqueueMailEvent({
+            eventType: "withdrawal_initiated",
+            userId: user.id,
+            recipient: user.email,
+            values: {
+              firstName: String(user.name || user.email).split(" ")[0],
+              amount: `$${requested.toFixed(2)}`,
+              method,
+              reference: (result.response as { withdrawal?: { reference?: string } })?.withdrawal?.reference ?? ref,
+              status: "Pending",
+            },
+          }).catch(() => undefined);
+        }
         res.status(result.duplicate ? 200 : 201).json(result.response);
       } catch (error) {
         const status = Number((error as { statusCode?: number }).statusCode) || 400;
@@ -351,6 +456,7 @@ export function createBetterAuthFinancialRouter(): Router {
 
     if (!isDatabaseConfigured) {
       try {
+        const ref = makeReference("INV");
         const result = createMockInvestmentPurchase({
           userId: user.id,
           userEmail: user.email,
@@ -360,9 +466,26 @@ export function createBetterAuthFinancialRouter(): Router {
           amountInput,
           units,
           feeRatePct: INVESTMENT_FEE_PCT,
-          reference: makeReference("INV"),
+          reference: ref,
           idempotencyKey: key,
         });
+        if (!result.duplicate) {
+          const receipt = (result.response as { receipt?: { totalCost?: number; planName?: string; reference?: string } })?.receipt;
+          if (receipt) {
+            void enqueueMailEvent({
+              eventType: "investment_confirmed",
+              userId: user.id,
+              recipient: user.email,
+              values: {
+                firstName: String(user.name || user.email).split(" ")[0],
+                amount: `$${Number(receipt.totalCost ?? 0).toFixed(2)}`,
+                plan: String(receipt.planName ?? "Investment"),
+                reference: String(receipt.reference ?? ref),
+                status: "Completed",
+              },
+            }).catch(() => undefined);
+          }
+        }
         res.status(result.duplicate ? 200 : 201).json(result.response);
       } catch (error) {
         const status = Number((error as { statusCode?: number }).statusCode) || 400;

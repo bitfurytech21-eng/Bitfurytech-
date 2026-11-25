@@ -6,6 +6,7 @@ import { resolveBetterAuthRole } from "../middleware/betterAuth.ts";
 import {
   appendSupportMessage,
   findThreadById,
+  initSupportStore,
   isValidThreadId,
   registerSupportBroadcaster,
   verifyVisitorToken,
@@ -50,6 +51,7 @@ function broadcastToThreadAndAdmins(
 
 export function attachSupportWebSocketServer(httpServer: http.Server): void {
   const wss = new WebSocketServer({ noServer: true });
+  void initSupportStore();
 
   registerSupportBroadcaster({
     broadcastMessage: (message: SupportMessage, thread: SupportThread) => {
@@ -121,6 +123,7 @@ export function attachSupportWebSocketServer(httpServer: http.Server): void {
       }
 
       if (type === "auth") {
+        await initSupportStore();
         const requestedMode = msg.mode === "admin" ? "admin" : "client";
         const visitorToken =
           typeof msg.visitorToken === "string" ? msg.visitorToken.trim() : "";
