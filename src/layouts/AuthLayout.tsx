@@ -22,9 +22,9 @@ export default function AuthLayout({
           src="/images/hero-private-capital.jpg"
           alt="BitfuryTech institutional wealth office"
           referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
+          className="absolute inset-0 w-full h-full object-cover opacity-30"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1B4962]/92 via-[#1B4962]/86 to-[#112E3E]/96" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1B4962]/84 via-[#1B4962]/74 to-[#112E3E]/90" />
 
         <div className="relative z-10 flex items-center justify-between gap-4">
           <Link to="/" className="inline-flex items-center rounded-md bg-white px-2 py-1">
