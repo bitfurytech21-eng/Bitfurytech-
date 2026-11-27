@@ -174,13 +174,13 @@ export default function Home() {
       {/* 1. Homepage Introduction & Rotating Hero Banner */}
       <section
         aria-label="Featured investment overview"
-        className="relative isolate overflow-hidden bg-[#102f43] text-white"
+        className="public-hero relative isolate overflow-hidden text-white min-h-[620px] sm:min-h-[720px]"
+        style={{ backgroundImage: `linear-gradient(90deg, rgba(16,47,67,0.94) 0%, rgba(27,73,98,0.84) 56%, rgba(17,46,62,0.72) 100%), url("${activeSlide.image}")` }}
         onMouseEnter={() => setHeroPaused(true)}
         onMouseLeave={() => setHeroPaused(false)}
         onTouchStart={handleHeroTouchStart}
         onTouchEnd={handleHeroTouchEnd}
       >
-        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_12%_12%,rgba(233,77,101,0.2),transparent_36%),linear-gradient(115deg,#102f43_0%,#1B4962_58%,#112e3e_100%)]" />
         <div className="relative mx-auto grid max-w-7xl items-stretch gap-10 px-4 py-14 sm:px-6 lg:grid-cols-12 lg:px-8 lg:py-24">
           <div className="flex flex-col justify-center space-y-6 min-w-0 lg:col-span-7">
             <AnimatePresence mode="wait">
