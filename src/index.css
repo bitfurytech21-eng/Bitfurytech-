@@ -91,9 +91,10 @@
 
 @layer components {
   .public-hero {
-    background:
-      radial-gradient(ellipse at 12% 10%, rgba(233, 77, 101, 0.16), transparent 38%),
-      linear-gradient(115deg, #102f43 0%, #1b4962 58%, #112e3e 100%);
+    background: linear-gradient(115deg, #102f43 0%, #1b4962 58%, #112e3e 100%);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   .public-site [class~="rounded-[5px]"] {
