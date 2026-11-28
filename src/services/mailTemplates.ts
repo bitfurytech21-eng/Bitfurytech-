@@ -32,7 +32,7 @@ export function getMailTemplateDefinition(eventType: string): MailTemplateDefini
 }
 
 export function renderMailTemplate(template: string, values: Record<string, unknown>): string {
-  return template.replace(/\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}/g, (_match, key: string) =>
+  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key: string) =>
     String(values[key] ?? "")
   );
 }
