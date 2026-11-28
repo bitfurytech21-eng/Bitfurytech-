@@ -17,3 +17,16 @@ Verify the sender domain in Resend and publish the exact DNS records Resend prov
 - Daily ROI, newsletter campaigns and KYC notifications remain workflow-required until their underlying business workflows exist.
 
 Keep both settings in Render's server environment only. Do not prefix the API key with `VITE_`. Rotate any exposed key.
+
+
+## Template coverage
+
+The admin Email Templates page includes editable message definitions for:
+- Welcome/registration, email verification, successful sign-in alert, password reset, and password-changed alert.
+- Deposit received, approved, and declined.
+- Withdrawal requested, approved, and declined.
+- KYC status plus separate KYC submission, approval, and rejection messages.
+- Investment allocation confirmation, pending return settlement, daily recorded-return summary, and investment maturity.
+- Internal transfer received, newsletter subscription, support-ticket acknowledgement, and account-suspension notice.
+
+Templates labelled **Workflow not connected** are intentionally stored as editable drafts and are not sent until their corresponding business event is implemented and verified. This prevents a template being mistaken for a live notification. The currently wired Resend events remain registration, deposit initiation, withdrawal initiation, investment confirmation, and KYC status where their route hooks are present. Better Auth continues to own email verification and password reset. The daily return scheduler sends only for completed return transactions already present in the ledger.
