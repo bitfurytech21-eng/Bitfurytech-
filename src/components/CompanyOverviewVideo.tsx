@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Play, RotateCcw } from "lucide-react";
 
 export default function CompanyOverviewVideo({
-  videoSrc = "/videos/bitfury-company-overview.mp4",
+  videoSrc = "/videos/bitfurytechinvestment.mp4",
   posterSrc = "/images/corporate-video-poster.jpg",
 }: {
   videoSrc?: string;
@@ -28,7 +28,7 @@ export default function CompanyOverviewVideo({
     <div className="relative overflow-hidden rounded-xl border border-[#DCE4EC] bg-[#102030] shadow-[0_6px_24px_rgba(16,32,48,0.12)]">
       <video
         ref={videoRef}
-        className="aspect-[16/9] w-full bg-[#0E2534] object-cover"
+        className="block h-auto max-h-[75vh] w-full bg-[#0E2534] object-contain"
         src={videoSrc}
         poster={posterSrc}
         controls={hasStarted}
